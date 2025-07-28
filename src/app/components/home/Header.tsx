@@ -5,22 +5,35 @@ import Image from "next/image";
 
 const Header = () => {
   return (
-    <header className="flex items-center justify-between p-4 bg-white">
+    <header className="w-full flex items-center justify-between p-3 bg-white">
       <div>
         <Link href="/">
           <Image
             src={"/cosbaii-main-logo.webp"}
             alt="Logo"
-            width={209}
-            height={47}
+            width={159}
+            height={40}
           />
         </Link>
       </div>
       <div>
-        <nav></nav>
+        <nav className="flex gap-5 justify-center items-center">
+          <a href="#about" className="mx-2 hover:text-primary">
+            About Cosbaii
+          </a>
+          <a href="/features" className="mx-2 hover:text-primary">
+            Features
+          </a>
+          <a href="/pricing" className="mx-2 hover:text-primary">
+            Roadmap
+          </a>
+          <a href="/contact" className="mx-2 hover:text-primary">
+            Early Access
+          </a>
+        </nav>
       </div>
       <div>
-        <Link href="/login" className="btn btn-neutral bg-">
+        <Link href="/login" className="btn btn-primary btn-md text-white">
           Login
         </Link>
       </div>
