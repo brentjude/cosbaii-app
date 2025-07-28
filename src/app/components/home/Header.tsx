@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { UserIcon } from "@heroicons/react/16/solid";
 
 const Header = () => {
   return (
-    <header className="w-full flex items-center justify-between p-3 bg-white">
+    <header className="max-w-8/10 mx-auto flex items-center justify-between p-3 bg-white">
       <div>
         <Link href="/">
           <Image
@@ -33,8 +34,8 @@ const Header = () => {
         </nav>
       </div>
       <div>
-        <Link href="/login" className="btn btn-primary btn-md text-white">
-          Login
+        <Link href="/login" className="btn btn-primary btn-md w-24 text-white">
+          <UserIcon />Login
         </Link>
       </div>
     </header>
