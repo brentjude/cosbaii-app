@@ -93,3 +93,8 @@
 body {
   font-family: 'OpenSans', sans-serif;
 }
+
+.button-gradient {
+  background: #F17105;
+background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1) 100%);
+}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { UserIcon } from "@heroicons/react/16/solid";
 
 const Header = () => {
   return (
@@ -34,6 +35,7 @@ const Header = () => {
       </div>
       <div>
         <Link href="/login" className="btn btn-primary btn-md text-white">
+          <UserIcon className="size-5 text-white " />
           Login
         </Link>
       </div>
