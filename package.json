@@ -23,7 +23,9 @@
     "daisyui": "^5.0.48",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
+    "prisma": "^6.13.0",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }
