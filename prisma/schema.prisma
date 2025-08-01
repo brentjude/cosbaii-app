@@ -66,7 +66,7 @@ model User {
   updatedAt DateTime   @updatedAt
 
   //Relations
-  prifle           Profile?
+  profile          Profile?
   competitions     Competition[]
   participations   CompetitionParticipatant[]
   photos           Photo[]
