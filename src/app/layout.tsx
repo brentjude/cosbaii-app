@@ -4,6 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Cosbaii",
   description: "Platform for Cosplayers",
+  icons: {
+    icon: [
+      { url : './favicon.ico' }
+    ]
+  }
 };
 
 export default function RootLayout({

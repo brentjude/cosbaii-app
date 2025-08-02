@@ -6,7 +6,6 @@ import LoginForm from "@/app/components/form/LoginForm";
 const page = () => {
   return (
     <div className="w-full h-screen flex">
-      
       <div className="basis-[50vw] flex items-center justify-center">
         <LoginForm />
       </div>

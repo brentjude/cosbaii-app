@@ -103,6 +103,9 @@ model Profile {
   tiktokUrl    String?
   youtubeUrl   String?
 
+  //agreed to receive email updates
+  receiveEmailUpdates  Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
