@@ -13,7 +13,7 @@ export default function EarlyAccessSection() {
                 </div>
             </div>
             <div className="w-[50%] flex flex-col gap-4 justify-center p-10">
-                <h2 className="text-[36px] text-primary weight-bold font-bold">Get Early Access and unlock exclusive perks when you are a founding members of Cosbaii</h2>
+                <h2 className="text-[36px] text-primary weight-bold font-bold">Get Early Access and unlock exclusive perks when you are a original members of Cosbaii</h2>
                 <p className="text-lg">Sign up now and be part of our early supporters who shape the future of Cosbaii.</p>
                 <ul className="list-none ">
                     <li className="my-4"> ✅ <strong>Exclusive Beta Access</strong> – try Cosbaii before anyone else</li>

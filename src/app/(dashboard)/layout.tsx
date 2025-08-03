@@ -7,7 +7,7 @@ interface AuthLayoutProps {
 const AuthLayout: FC<AuthLayoutProps> = ({ children }) => {
   return (
     <>
-      <main className="w-full h-screen">{children} test</main>
+      <main className="w-full h-screen">{children}</main>
     </>
   );
 };

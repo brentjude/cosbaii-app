@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
-    const token = req.nextauth.token;
-    const { pathname } = req.nextUrl;
+
+    const token = req.nextauth.token; // Get the authentication token from the request
+    const { pathname } = req.nextUrl; // Get the current request path
 
     console.log("Middleware - Path:", pathname, "User:", token?.email, "Role:", token?.role);
 
