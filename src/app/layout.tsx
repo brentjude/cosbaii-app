@@ -18,7 +18,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-theme="cosbaii">
-      <body>{children}</body>
+      <body>
+   
+        {children}
+   
+        </body>
     </html>
   );
 }

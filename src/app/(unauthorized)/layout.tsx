@@ -1,7 +1,5 @@
-"use client"
-
 import { FC, ReactNode } from "react";
-import { SessionProvider } from "next-auth/react";
+
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -10,9 +8,9 @@ interface AuthLayoutProps {
 const AuthLayout: FC<AuthLayoutProps> = ({ children }) => {
   return (
     <>
-    <SessionProvider>
+
       <main className="w-full h-screen">{children}</main>
-    </SessionProvider>
+
     </>
   );
 };
