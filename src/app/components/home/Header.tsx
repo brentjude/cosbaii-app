@@ -10,7 +10,7 @@ const Header = () => {
       <div>
         <Link href="/">
           <Image
-            src={"/cosbaii-main-logo.webp"}
+            src={"/images/cosbaii-colored-wordmark.svg"}
             alt="Logo"
             width={159}
             height={40}

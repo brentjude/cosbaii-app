@@ -26,8 +26,10 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
 
+        // Validate input data using zod
         const validationResult = userSchema.safeParse(body)
 
+        // If validation fails, return an error response
         if(!validationResult.success) {
             return NextResponse.json({
                 message: "Validation failed",
@@ -35,6 +37,8 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
+        // Extract validated data
+        // This will ensure that the data conforms to the schema
         const { email, username, password } = validationResult.data;
 
         // check if the email already exists
@@ -42,8 +46,9 @@ export async function POST(req: Request) {
             where: { email: email }
         });
 
+        // If the email already exists, return an error response
         if(existingUserByEmail) {
-            return NextResponse.json({ user: null, message: "User with this email already exists"}, { status: 409 })
+            return NextResponse.json({ user: null, message: "Email is already taken. Please use a different email."}, { status: 409 })
         }
 
         // check if the username already exists
@@ -52,12 +57,18 @@ export async function POST(req: Request) {
         })
 
 
+        // If the username already exists, return an error response
+        // This will ensure that the username is unique
         if(existingUserByUsername) {
-            return NextResponse.json({ username: null, message: "User with this username already exists"}, { status: 409 })
+            return NextResponse.json({ username: null, message: "Username is already taken. Please choose a different one."}, { status: 409 })
         }
 
-         const hashedPassword = await hash(password, 10);
+        // Hash the password before storing it in the database
+        // This will ensure that the password is stored securely
+        const hashedPassword = await hash(password, 10);
 
+        // Create a new user in the database
+        // This will insert the user data into the database
         const newUser = await prisma.user.create({
             data: {
                 username,
@@ -66,8 +77,12 @@ export async function POST(req: Request) {
             }
         })
 
+        // Exclude the password from the response
+        // This will ensure that the password is not exposed in the response
         const { password: newUserPassword, ...rest} = newUser;
 
+        // Return a success response with the created user data
+        // This will return the user data without the password
         return NextResponse.json({
             user: rest,
             message: "User created successfully"

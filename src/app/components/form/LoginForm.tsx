@@ -1,10 +1,18 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 
 const LoginForm = () => {
   return (
-    <fieldset className="fieldset rounded-sm w-xs p-4">
-      <form>
+    <fieldset className="fieldset rounded-sm p-4">
+      <form className="w-xs">
+        <Image
+            src={"/images/cosbaii-colored-wordmark.svg"}
+            alt="Logo"
+            width={250}
+            height={40}
+            className="ml-[-10px] mb-6"
+          />
         <h1 className="font-medium text-lg">Sign-In</h1>
         <p className="text-xsm mb-4 text-gray-500">
           Get early access&nbsp;
@@ -22,6 +30,7 @@ const LoginForm = () => {
           className="input bg-base-200"
           placeholder="Password"
         />
+
 
         <input
           type="button"
