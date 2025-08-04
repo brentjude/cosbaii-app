@@ -20,7 +20,7 @@ import ViewUserModal from "@/app/components/admin/users/modals/ViewUserModal";
 import EditUserModal from "@/app/components/admin/users/modals/EditUserModal";
 import DeleteUserModal from "@/app/components/admin/users/modals/DeleteUserModal";
 import ReviewUserModal from "@/app/components/admin/users/modals/ReviewUserModal";
-import AddUserModal from "@/app/components/admin/users/modals/AddUserModal"; // ✅ Import new modal
+import AddUserModal from "@/app/components/admin/users/modals/AddUserModal";
 
 // Import hooks
 import { useAdminUsers } from "@/hooks/admin/useAdminUsers";
@@ -42,7 +42,7 @@ interface User {
   status: UserStatus;
   createdAt: string;
   updatedAt: string;
-  reviewedBy?: string;
+  reviewedBy: string | null; // ✅ Fixed: Changed from `reviewedBy?: string` to `reviewedBy: string | null`
 }
 
 interface NewUserData {
@@ -87,7 +87,7 @@ const UserManagementPage = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false); // ✅ Add state for new modal
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Selected user and action states
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -197,19 +197,28 @@ const UserManagementPage = () => {
     // Optionally fetch fresh user data
     const freshUser = await getUser(user.id);
     if (freshUser) {
-      setSelectedUser(freshUser);
+      setSelectedUser({
+        ...freshUser,
+        reviewedBy: freshUser.reviewedBy ?? null,
+      });
     }
   };
 
   /** Open edit user modal */
   const handleEditUser = async (user: User) => {
-    setSelectedUser(user);
+    setSelectedUser({
+      ...user,
+      reviewedBy: user.reviewedBy ?? null,
+    });
     setShowEditModal(true);
 
     // Fetch fresh user data for editing
     const freshUser = await getUser(user.id);
     if (freshUser) {
-      setSelectedUser(freshUser);
+      setSelectedUser({
+        ...freshUser,
+        reviewedBy: freshUser.reviewedBy ?? null,
+      });
     }
   };
 
@@ -280,7 +289,7 @@ const UserManagementPage = () => {
     setShowViewModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
-    setShowAddModal(false); // ✅ Close add modal
+    setShowAddModal(false);
     setSelectedUser(null);
     setReviewAction(null);
     setError(null);
@@ -365,7 +374,7 @@ const UserManagementPage = () => {
         </div>
 
         <div className="flex gap-2">
-          {/* Add User Button - ✅ Updated with handler */}
+          {/* Add User Button */}
           <button
             className="btn btn-secondary"
             onClick={handleAddUser}
@@ -449,141 +458,155 @@ const UserManagementPage = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
-                    <tr
-                      key={user.id}
-                      className={getStatusRowClass(user.status)}
-                    >
-                      {/* Name Column */}
-                      <td>
-                        <div className="font-bold">
-                          {user.name || "No name"}
-                        </div>
-                      </td>
-
-                      {/* Username Column */}
-                      <td>
-                        <div className="font-medium">
-                          {user.username ? `@${user.username}` : "No username"}
-                        </div>
-                      </td>
-
-                      {/* Email Column */}
-                      <td>
-                        <div className="text-sm">{user.email}</div>
-                      </td>
-
-                      {/* Role Column */}
-                      <td>
-                        <span className={getRoleBadge(user.role)}>
-                          {user.role}
-                        </span>
-                      </td>
-
-                      {/* Status Column */}
-                      <td>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(user.status)}
-                          <span className={getStatusBadge(user.status)}>
-                            {user.status}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Registration Date Column */}
-                      <td>
-                        <div className="text-sm">
-                          <div className="font-medium">
-                            {formatRegistrationDate(user.createdAt)}
+                  filteredUsers.map((user) => {
+                    // Normalize reviewedBy to always be string|null
+                    const normalizedUser = {
+                      ...user,
+                      reviewedBy: user.reviewedBy ?? null,
+                    };
+                    return (
+                      <tr
+                        key={normalizedUser.id}
+                        className={getStatusRowClass(normalizedUser.status)}
+                      >
+                        {/* Name Column */}
+                        <td>
+                          <div className="font-bold">
+                            {normalizedUser.name || "No name"}
                           </div>
-                          <div className="text-xs text-base-content/60">
-                            {new Date(user.createdAt).toLocaleTimeString(
-                              "en-US",
-                              {
+                        </td>
+
+                        {/* Username Column */}
+                        <td>
+                          <div className="font-medium">
+                            {normalizedUser.username
+                              ? `@${normalizedUser.username}`
+                              : "No username"}
+                          </div>
+                        </td>
+
+                        {/* Email Column */}
+                        <td>
+                          <div className="text-sm">{normalizedUser.email}</div>
+                        </td>
+
+                        {/* Role Column */}
+                        <td>
+                          <span className={getRoleBadge(normalizedUser.role)}>
+                            {normalizedUser.role}
+                          </span>
+                        </td>
+
+                        {/* Status Column */}
+                        <td>
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(normalizedUser.status)}
+                            <span
+                              className={getStatusBadge(normalizedUser.status)}
+                            >
+                              {normalizedUser.status}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Registration Date Column */}
+                        <td>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {formatRegistrationDate(normalizedUser.createdAt)}
+                            </div>
+                            <div className="text-xs text-base-content/60">
+                              {new Date(
+                                normalizedUser.createdAt
+                              ).toLocaleTimeString("en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
-                              }
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Reviewed By Column */}
-                      <td>
-                        {user.reviewedBy ? (
-                          <div className="text-sm">
-                            <div className="font-medium text-base-content/70">
-                              {user.reviewedBy}
-                            </div>
-                            <div className="text-xs text-base-content/50">
-                              {formatRegistrationDate(user.updatedAt)}
+                              })}
                             </div>
                           </div>
-                        ) : (
-                          <span className="text-sm text-base-content/50 italic">
-                            Not reviewed
-                          </span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Actions Column */}
-                      <td>
-                        <div className="flex gap-1">
-                          {/* Review Actions (only for INACTIVE users) */}
-                          {user.status === "INACTIVE" && (
-                            <>
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() =>
-                                  handleReviewUser(user, "APPROVE")
-                                }
-                                title="Approve User"
-                                disabled={actionLoading}
-                              >
-                                <CheckIcon className="w-4 h-4" />
-                              </button>
-                              <button
-                                className="btn btn-sm btn-error"
-                                onClick={() => handleReviewUser(user, "BAN")}
-                                title="Ban User"
-                                disabled={actionLoading}
-                              >
-                                <XMarkIcon className="w-4 h-4" />
-                              </button>
-                            </>
+                        {/* Reviewed By Column - ✅ Fixed null handling */}
+                        <td>
+                          {normalizedUser.reviewedBy ? (
+                            <div className="text-sm">
+                              <div className="font-medium text-base-content/70">
+                                {normalizedUser.reviewedBy}
+                              </div>
+                              <div className="text-xs text-base-content/50">
+                                {formatRegistrationDate(
+                                  normalizedUser.updatedAt
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-base-content/50 italic">
+                              Not reviewed
+                            </span>
                           )}
+                        </td>
 
-                          {/* View User */}
-                          <button
-                            className="btn btn-sm btn-info btn-outline"
-                            onClick={() => handleViewUser(user)}
-                            title="View User Details"
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </button>
+                        {/* Actions Column */}
+                        <td>
+                          <div className="flex gap-1">
+                            {/* Review Actions (only for INACTIVE users) */}
+                            {normalizedUser.status === "INACTIVE" && (
+                              <>
+                                <button
+                                  className="btn btn-sm btn-success"
+                                  onClick={() =>
+                                    handleReviewUser(normalizedUser, "APPROVE")
+                                  }
+                                  title="Approve User"
+                                  disabled={actionLoading}
+                                >
+                                  <CheckIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-error"
+                                  onClick={() =>
+                                    handleReviewUser(normalizedUser, "BAN")
+                                  }
+                                  title="Ban User"
+                                  disabled={actionLoading}
+                                >
+                                  <XMarkIcon className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
 
-                          {/* Edit User */}
-                          <button
-                            className="btn btn-sm btn-ghost"
-                            onClick={() => handleEditUser(user)}
-                            title="Edit User"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
+                            {/* View User */}
+                            <button
+                              className="btn btn-sm btn-info btn-outline"
+                              onClick={() => handleViewUser(normalizedUser)}
+                              title="View User Details"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
 
-                          {/* Delete User */}
-                          <button
-                            className="btn btn-sm btn-error btn-outline"
-                            onClick={() => handleDeleteUser(user)}
-                            title="Delete User"
-                            disabled={actionLoading}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            {/* Edit User */}
+                            <button
+                              className="btn btn-sm btn-ghost"
+                              onClick={() => handleEditUser(normalizedUser)}
+                              title="Edit User"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+
+                            {/* Delete User */}
+                            <button
+                              className="btn btn-sm btn-error btn-outline"
+                              onClick={() => handleDeleteUser(normalizedUser)}
+                              title="Delete User"
+                              disabled={actionLoading}
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

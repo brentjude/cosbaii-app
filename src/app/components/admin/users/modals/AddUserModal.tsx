@@ -11,7 +11,7 @@ interface User {
   status: "INACTIVE" | "ACTIVE" | "BANNED";
   createdAt: string;
   updatedAt: string;
-  reviewedBy?: string;
+  reviewedBy: string | null; // ✅ Fixed: Changed from optional to string | null
 }
 
 interface NewUserData {

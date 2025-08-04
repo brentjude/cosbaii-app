@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
-interface SessionUser {
+interface ExtendedUser {
   id: string;
-  email: string;
   name?: string | null;
-  username?: string | null;
-  role: string;
+  email?: string | null;
+  role?: string;
+  image?: string | null;
 }
 
 interface ExtendedSession {
-  user: SessionUser | null;
+  user: ExtendedUser | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
@@ -24,7 +23,6 @@ interface ExtendedSession {
 
 export const useAuthSession = (): ExtendedSession => {
   const { data: session, status } = useSession();
-  const [error, setError] = useState<string | null>(null);
 
   const loading = status === 'loading';
   const isAuthenticated = !!session?.user;
@@ -41,17 +39,10 @@ export const useAuthSession = (): ExtendedSession => {
   const isAdmin = hasRole('ADMIN');
   const isModerator = hasRole('MODERATOR');
 
-  // Clear error when session changes
-  useEffect(() => {
-    if (session) {
-      setError(null);
-    }
-  }, [session]);
-
   return {
-    user: session?.user || null,
+    user: session?.user as ExtendedUser || null,
     loading,
-    error,
+    error: null,
     isAuthenticated,
     isAdmin,
     isModerator,
