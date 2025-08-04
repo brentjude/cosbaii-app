@@ -55,15 +55,16 @@ enum CosplayerType {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  email     String     @unique
-  name      String?
-  username  String?    @unique
-  password  String
-  role      UserRole   @default(USER)
-  status    UserStatus @default(ACTIVE)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id         Int        @id @default(autoincrement())
+  email      String     @unique
+  name       String?
+  username   String?    @unique
+  password   String
+  role       UserRole   @default(USER)
+  status     UserStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  reviewedBy String? // Admin who reviewed the user registration, if applicable
 
   //Relations
   profile          Profile?

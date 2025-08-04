@@ -1,15 +1,43 @@
-import { FC, ReactNode } from "react";
+"use client";
 
-interface AuthLayoutProps {
-  children: ReactNode;
-}
+import { useState } from "react";
+import { SessionProvider } from "next-auth/react";
+import AdminHeader from "@/app/components/admin/AdminHeader";
+import AdminSidebar from "@/app/components/admin/AdminSidebar";
 
-const AuthLayout: FC<AuthLayoutProps> = ({ children }) => {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [isMinimized, setIsMinimized] = useState(false);
+
   return (
-    <>
-      <main className="w-full h-screen">{children}</main>
-    </>
-  );
-};
+    <SessionProvider>
+      <div className="min-h-screen bg-base-100">
+        {/* Sidebar */}
+        <AdminSidebar
+          isMinimized={isMinimized}
+          setIsMinimized={setIsMinimized}
+        />
 
-export default AuthLayout;
+        {/* Main Content Area */}
+        <div
+          className={`
+            transition-all duration-300 ease-in-out
+            ${isMinimized ? "ml-20" : "ml-64"}
+          `}
+        >
+          {/* Header */}
+          <AdminHeader
+            isMinimized={isMinimized}
+            setIsMinimized={setIsMinimized}
+          />
+
+          {/* Dynamic Page Content */}
+          <main className="p-6">{children}</main>
+        </div>
+      </div>
+    </SessionProvider>
+  );
+}

@@ -1,0 +1,160 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { hash } from "bcrypt";
+import { z } from "zod";
+
+// Validation schema matching your Prisma schema
+const createUserSchema = z.object({
+  name: z.string().min(1).max(100).optional().nullable(),
+  email: z.string().email().min(1),
+  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/).optional().nullable(),
+  password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/),
+  role: z.enum(["USER", "ADMIN", "MODERATOR"]).default("USER"),
+  status: z.enum(["ACTIVE", "INACTIVE", "BANNED"]).default("INACTIVE"), // Changed default to match your workflow
+});
+
+export async function GET(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR")) {
+      return NextResponse.json({ 
+        message: "Unauthorized. Admin or Moderator access required." 
+      }, { status: 401 });
+    }
+
+    // Get status filter
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+
+    // Build where clause - fix the type issue
+    const whereClause: any = {};
+    if (status && status !== "ALL" && ["INACTIVE", "ACTIVE", "BANNED"].includes(status)) {
+      whereClause.status = status as "INACTIVE" | "ACTIVE" | "BANNED";
+    }
+
+    // Fetch users (this should work now with your schema)
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        reviewedBy: true, // This field exists in your schema
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    return NextResponse.json({ 
+      users,
+      message: "Users fetched successfully" 
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return NextResponse.json({
+      message: "Internal server error",
+      error: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    
+    if (!session || session.user.role !== "ADMIN") {
+      return NextResponse.json({ 
+        message: "Unauthorized. Admin access required." 
+      }, { status: 401 });
+    }
+
+    const body = await request.json();
+
+    // Validate input
+    const validationResult = createUserSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json({
+        message: "Validation failed",
+        errors: validationResult.error.flatten().fieldErrors
+      }, { status: 400 });
+    }
+
+    const { name, email, username, password, role, status } = validationResult.data;
+
+    // Check email uniqueness
+    const existingUserByEmail = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUserByEmail) {
+      return NextResponse.json({ 
+        message: "Email is already taken." 
+      }, { status: 409 });
+    }
+
+    // Check username uniqueness if provided
+    if (username) {
+      const existingUserByUsername = await prisma.user.findUnique({
+        where: { username }
+      });
+
+      if (existingUserByUsername) {
+        return NextResponse.json({ 
+          message: "Username is already taken." 
+        }, { status: 409 });
+      }
+    }
+
+    // Hash password
+    const hashedPassword = await hash(password, 12);
+
+    // Create user - this should work with your schema
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        username,
+        password: hashedPassword,
+        role,
+        status,
+        reviewedBy: status === "ACTIVE" ? (session.user.name || session.user.email || "Admin") : null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        reviewedBy: true,
+      }
+    });
+
+    return NextResponse.json({
+      user: newUser,
+      message: "User created successfully"
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error("User creation error:", error);
+    return NextResponse.json({
+      message: "Internal server error",
+      error: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
+  }
+}
