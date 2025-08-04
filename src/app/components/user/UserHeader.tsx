@@ -1,16 +1,19 @@
 'use client'
 
 import React from 'react'
-import { ArrowRightEndOnRectangleIcon } from '@heroicons/react/16/solid'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation';
 import Image from "next/image";
 import Link from "next/link";
+import UserLogout from './UserLogout'
 
 //icons
-import UserLogout from './UserLogout'
-import UserIcon from '@heroicons/react/16/solid/UserIcon';
-import HomeIcon from '@heroicons/react/16/solid/HomeIcon';
+import { 
+  UserIcon, 
+  HomeIcon,
+  ArrowRightEndOnRectangleIcon,
+  Cog6ToothIcon
+} from '@heroicons/react/16/solid';
 
 const UserHeader = () => {
   const { data: session, status } = useSession();
@@ -20,7 +23,7 @@ const UserHeader = () => {
     <header className="w-full shadow-xs">
       <div className="navbar max-w-[1240px] mx-auto">
         <div className="navbar-start">
-            <a className="btn btn-ghost text-xl">
+            <a className="btn btn-ghost">
               <Image
                 src={"/images/cosbaii-colored-wordmark.svg"}
                 alt="Logo"
@@ -61,6 +64,7 @@ const UserHeader = () => {
                 tabIndex={0}
                 className="menu menu-sm dropdown-content bg-base-100 rounded-md z-1 mt-3 w-52 p-2 shadow">
                 <li><Link href="#" className='flex items-center gap-2 w-full text-left'><UserIcon className="w-4 h-4"/> Profile</Link></li>
+                <li><Link href="#" className='flex items-center gap-2 w-full text-left'><Cog6ToothIcon className="w-4 h-4"/> Settings</Link></li>
                 <li><button 
                   onClick={() => {
                     const modal = document.getElementById('logoutModal') as HTMLDialogElement;
