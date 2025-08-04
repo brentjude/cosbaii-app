@@ -52,6 +52,7 @@ enum ParticipantPosition {
 enum CosplayerType {
   COMPETITIVE
   HOBBY
+  PROFESSIONAL
 }
 
 model User {
