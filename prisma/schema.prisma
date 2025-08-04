@@ -68,7 +68,7 @@ model User {
   //Relations
   profile          Profile?
   competitions     Competition[]
-  participations   CompetitionParticipatant[]
+  participations   CompetitionParticipant[]
   photos           Photo[]
   userBadges       UserBadge[]
   featuredCosplays FeaturedCosplay[]
@@ -104,7 +104,7 @@ model Profile {
   youtubeUrl   String?
 
   //agreed to receive email updates
-  receiveEmailUpdates  Boolean @default(false)
+  receiveEmailUpdates Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,7 +133,7 @@ model Competition {
 
   //relations
   awards       Awards[]
-  participants CompetitionParticipatant[]
+  participants CompetitionParticipant[]
 
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -142,7 +142,7 @@ model Competition {
   @@map("competitions")
 }
 
-model CompetitionParticipatant {
+model CompetitionParticipant {
   id            Int         @id @default(autoincrement())
   userId        Int
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -200,10 +200,10 @@ model Photo {
   series    String? // Series or franchise name if applicable
 
   // Metadata for display and optizmiation
-  width   Int?
-  height  Int?
-  size    Int? // Size in bytes
-  mimType String? // MIME type of the photo (e.g., "image/jpeg", "image/png")
+  width    Int?
+  height   Int?
+  size     Int? // Size in bytes
+  mimeType String? // MIME type of the photo (e.g., "image/jpeg", "image/png")
 
   createdAt DateTime @default(now())
 
