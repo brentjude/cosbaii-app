@@ -14,7 +14,7 @@ const updateUserSchema = z.object({
 });
 
 // GET: Fetch single user
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -24,7 +24,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       }, { status: 401 });
     }
 
-    const userId = parseInt(params.id);
+    const { id } = await params; // ✅ Await params first
+    const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT: Update user
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -60,7 +61,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }, { status: 401 });
     }
 
-    const userId = parseInt(params.id);
+    const { id } = await params; // ✅ Await params first
+    const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
@@ -125,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE: Delete user
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -135,7 +137,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       }, { status: 401 });
     }
 
-    const userId = parseInt(params.id);
+    const { id } = await params; // ✅ Await params first
+    const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }

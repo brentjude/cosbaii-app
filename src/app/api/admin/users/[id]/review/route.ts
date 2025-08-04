@@ -15,7 +15,7 @@ const reviewSchema = z.object({
   )
 });
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     
@@ -25,7 +25,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }, { status: 401 });
     }
 
-    const userId = parseInt(params.id);
+    const { id } = await params; // ✅ Await params first
+    const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
     }
