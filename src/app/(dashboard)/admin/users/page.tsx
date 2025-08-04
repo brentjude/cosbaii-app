@@ -22,6 +22,9 @@ import DeleteUserModal from "@/app/components/admin/users/modals/DeleteUserModal
 import ReviewUserModal from "@/app/components/admin/users/modals/ReviewUserModal";
 import AddUserModal from "@/app/components/admin/users/modals/AddUserModal";
 
+//import loading skeleton
+import AdminUsersSkeletonDaisy from "@/app/components/skeletons/admin/AdminUsersSkeletonDaisy";
+
 // Import hooks
 import { useAdminUsers } from "@/hooks/admin/useAdminUsers";
 import { useAuthSession } from "@/hooks/auth/useAuthSession";
@@ -316,6 +319,15 @@ const UserManagementPage = () => {
       </div>
     );
   }
+
+  // ========================================
+  // LOADING STATE
+  // ========================================
+
+  if (loading) {
+    return <AdminUsersSkeletonDaisy />;
+  }
+
 
   if (!isAdmin) {
     return (

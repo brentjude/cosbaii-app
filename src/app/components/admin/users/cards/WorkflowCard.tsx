@@ -8,7 +8,7 @@ const WorkflowCard = () => {
       <div className="card-body">
         <h2 className="card-title mb-4">User Review Workflow</h2>
         <div className="flex justify-center">
-          <div className="steps steps-horizontal">
+          <div className="w-[500px] max-md:w-[300px] steps steps-horizontal">
             <div className="step step-warning">
               <div className="flex flex-col items-center">
                 <ClockIcon className="w-6 h-6 mb-1" />
