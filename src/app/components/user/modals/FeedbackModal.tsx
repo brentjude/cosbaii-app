@@ -167,7 +167,9 @@ const FeedbackModal = ({
             {/* Feedback Type Selection */}
             <div className="mb-6">
               <label className="label">
-                <span className="label-text font-medium">Feedback Type</span>
+                <span className="label-text font-medium mb-4">
+                  Feedback Type
+                </span>
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {feedbackTypes.map((type) => {
@@ -175,7 +177,7 @@ const FeedbackModal = ({
                   return (
                     <div
                       key={type.value}
-                      className={`card cursor-pointer transition-all border-2 ${
+                      className={`card rounded-md cursor-pointer transition-all border-2 ${
                         formData.type === type.value
                           ? "border-primary bg-primary/10"
                           : "border-base-300 hover:border-primary/50"
@@ -213,7 +215,7 @@ const FeedbackModal = ({
               </label>
               <input
                 type="text"
-                className={`input input-bordered w-full ${
+                className={`input input-bordered rounded-md w-full ${
                   errors.title ? "input-error" : ""
                 }`}
                 placeholder="Brief summary of your feedback"
@@ -244,7 +246,7 @@ const FeedbackModal = ({
                 </span>
               </label>
               <textarea
-                className={`textarea textarea-bordered w-full h-32 ${
+                className={`textarea textarea-bordered rounded-md w-full h-32 ${
                   errors.description ? "textarea-error" : ""
                 }`}
                 placeholder="Provide detailed information about your feedback..."
@@ -265,7 +267,7 @@ const FeedbackModal = ({
             </div>
 
             {/* Guidelines */}
-            <div className="alert alert-info mb-6">
+            <div className="alert alert-info rounded-lg mb-6">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
