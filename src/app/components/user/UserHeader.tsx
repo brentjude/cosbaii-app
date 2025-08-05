@@ -1,27 +1,27 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { usePathname } from 'next/navigation';
+import React, { useState } from "react";
+import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import UserLogout from './UserLogout'
-import ProfileSetupModal from '../skeletons/user/ProfileSetupModal';
-import { useProfile } from '@/app/context/ProfileContext'; // ✅ Import context
+import UserLogout from "./UserLogout";
+import ProfileSetupModal from "../skeletons/user/ProfileSetupModal";
+import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
 
 //icons
-import { 
-  UserIcon, 
+import {
+  UserIcon,
   HomeIcon,
   ArrowRightEndOnRectangleIcon,
-  Cog6ToothIcon
-} from '@heroicons/react/16/solid';
+  Cog6ToothIcon,
+} from "@heroicons/react/16/solid";
 
 const UserHeader = () => {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  
+
   // ✅ Use profile context instead of local state
   const { hasProfile, updateProfile, loading } = useProfile();
 
@@ -32,12 +32,12 @@ const UserHeader = () => {
   // ✅ Simplified handler using context
   const handleProfileSetupComplete = async (profileData: any) => {
     const success = await updateProfile(profileData);
-    
+
     if (success) {
       setShowProfileSetup(false);
-      console.log('Profile setup successful!');
+      console.log("Profile setup successful!");
     } else {
-      alert('Profile setup failed. Please try again.');
+      alert("Profile setup failed. Please try again.");
     }
   };
 
@@ -48,7 +48,7 @@ const UserHeader = () => {
 
   const handleLogoutClick = () => {
     closeDropdown();
-    const modal = document.getElementById('logoutModal') as HTMLDialogElement;
+    const modal = document.getElementById("logoutModal") as HTMLDialogElement;
     if (modal) {
       modal.showModal();
     }
@@ -56,8 +56,8 @@ const UserHeader = () => {
 
   // Check if route is active
   const isActiveRoute = (route: string) => {
-    if (route === '/dashboard') {
-      return pathname === '/dashboard' || pathname.startsWith('/dashboard');
+    if (route === "/dashboard") {
+      return pathname === "/dashboard" || pathname.startsWith("/dashboard");
     }
     return pathname === route;
   };
@@ -76,80 +76,87 @@ const UserHeader = () => {
               />
             </a>
           </div>
-          
+
           <div className="navbar-center hidden lg:flex">
             <ul className="menu menu-horizontal flex items-center gap-10 !p-0">
               <li>
-                <Link href="/dashboard" 
-                      className={`!p-0 flex flex-col hover:bg-white hover:text-primary ${
-                    isActiveRoute('/dashboard') ? 'text-primary' : 'text-base-400'
-                  }`}>
+                <Link
+                  href="/dashboard"
+                  className={`!p-0 flex flex-col hover:bg-white hover:text-primary ${
+                    isActiveRoute("/dashboard")
+                      ? "text-primary"
+                      : "text-base-400"
+                  }`}
+                >
                   <HomeIcon className="text-base-400 size-8" />
                 </Link>
               </li>
               <li>
-                <Link href="/profile" className={`!p-0 flex flex-col hover:bg-white hover:text-primary ${
-                  isActiveRoute('/profile') ? 'text-primary' : 'text-base-400'
-                }`}>
+                <Link
+                  href="/profile"
+                  className={`!p-0 flex flex-col hover:bg-white hover:text-primary ${
+                    isActiveRoute("/profile") ? "text-primary" : "text-base-400"
+                  }`}
+                >
                   <UserIcon className="text-base-400 size-8" />
                 </Link>
               </li>
             </ul>
           </div>
-          
+
           <div className="navbar-end flex items-center gap-2">
             {session?.user && (
-              <span className="text-sm">
-                {session.user.username}
-              </span>
+              <span className="text-sm">{session.user.username}</span>
             )}
-            
+
             {/* ✅ Uses context hasProfile state */}
             {session?.user && !hasProfile && (
-              <button 
+              <button
                 className="btn btn-primary btn-sm"
                 onClick={handleOpenProfileSetup}
               >
                 Complete Profile
               </button>
             )}
-            
+
             {session?.user ? (
               <div className="dropdown dropdown-bottom dropdown-end">
-                <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-                  <div className="w-10 rounded-full">            
+                <div
+                  tabIndex={0}
+                  role="button"
+                  className="btn btn-ghost btn-circle avatar"
+                >
+                  <div className="w-10 rounded-full">
                     <img src="https://img.daisyui.com/images/profile/demo/yellingcat@192.webp" />
                   </div>
                 </div>
-                
+
                 <ul
                   tabIndex={0}
                   className="menu menu-sm dropdown-content bg-base-100 rounded-md z-[1] mt-3 w-52 p-2 shadow"
                 >
                   <li>
-                    <Link href="/profile" className='flex items-center gap-2 w-full text-left'>
-                      <UserIcon className="w-4 h-4"/> Profile
-                    </Link>
-                  </li>
-                  <li>
-                    <button 
-                      onClick={handleOpenProfileSetup}
-                      className='flex items-center gap-2 w-full text-left'
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-2 w-full text-left"
                     >
-                      <Cog6ToothIcon className="w-4 h-4"/> Profile Setup
-                    </button>
-                  </li>
-                  <li>
-                    <Link href="#" className='flex items-center gap-2 w-full text-left'>
-                      <Cog6ToothIcon className="w-4 h-4"/> Settings
+                      <UserIcon className="w-4 h-4" /> Profile
                     </Link>
                   </li>
                   <li>
-                    <button 
+                    <Link
+                      href="#"
+                      className="flex items-center gap-2 w-full text-left"
+                    >
+                      <Cog6ToothIcon className="w-4 h-4" /> Settings
+                    </Link>
+                  </li>
+                  <li>
+                    <button
                       onClick={handleLogoutClick}
                       className="flex items-center gap-2 w-full text-left text-error hover:bg-error hover:text-error-content"
                     >
-                      <ArrowRightEndOnRectangleIcon className="w-4 h-4"/>
+                      <ArrowRightEndOnRectangleIcon className="w-4 h-4" />
                       Logout
                     </button>
                   </li>
@@ -159,7 +166,7 @@ const UserHeader = () => {
               <span className="text-sm">Guest</span>
             )}
           </div>
-          
+
           <UserLogout />
         </div>
       </header>
@@ -171,7 +178,7 @@ const UserHeader = () => {
         loading={loading}
       />
     </>
-  )
-}
+  );
+};
 
-export default UserHeader
+export default UserHeader;

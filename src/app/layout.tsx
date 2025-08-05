@@ -1,28 +1,24 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "Cosbaii",
-  description: "Platform for Cosplayers",
-  icons: {
-    icon: [
-      { url : './favicon.ico' }
-    ]
-  }
+  title: "Cosbaii - Cosplay Competition Platform",
+  description: "Join the ultimate cosplay competition platform",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" data-theme="cosbaii">
+      {/* ✅ Apply your custom theme */}
       <body>
-   
-        {children}
-   
-        </body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

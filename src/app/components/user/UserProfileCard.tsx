@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import React from 'react';
-import { useProfile } from '@/app/context/ProfileContext'; // ✅ Import context
-import Image from 'next/image';
-import { useSession } from 'next-auth/react';
-import { UserIcon, CameraIcon } from '@heroicons/react/24/outline';
+import React from "react";
+import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
+import Image from "next/image";
+import { useSession } from "next-auth/react";
+import { UserIcon, CameraIcon } from "@heroicons/react/24/outline";
 
 interface ProfileCardProps {
   champions?: number;
@@ -15,7 +15,7 @@ interface ProfileCardProps {
 const UserProfileCard: React.FC<ProfileCardProps> = ({
   champions = 0,
   placed = 0,
-  joined = 0
+  joined = 0,
 }) => {
   const { data: session } = useSession();
   const { profile, hasProfile, loading } = useProfile(); // ✅ Use context
@@ -42,9 +42,13 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
         <div className="card-body text-center">
           <div className="text-6xl mb-4">👤</div>
           <h3 className="card-title justify-center">Setup Your Profile</h3>
-          <p className="text-sm opacity-70">Complete your profile to get started!</p>
+          <p className="text-sm opacity-70">
+            Complete your profile to get started!
+          </p>
           <div className="card-actions justify-center mt-4">
-            <div className="badge badge-primary badge-outline">Profile Incomplete</div>
+            <div className="badge badge-primary badge-outline rounded-lg">
+              Profile Incomplete
+            </div>
           </div>
         </div>
       </div>
@@ -56,34 +60,29 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
   const username = session?.user?.username || "username";
   const avatar = profile.profilePicture || "/images/default-avatar.png";
   const coverImage = profile.coverImage || "/images/default-cover.jpg";
-  
+
   // ✅ Handle all cosplayer types including PROFESSIONAL
   const getCosplayerTypeDisplay = () => {
     switch (profile.cosplayerType) {
-      case 'COMPETITIVE':
-        return { text: '🏆 Competitive Cosplayer', class: 'badge-primary' };
-      case 'HOBBY':
-        return { text: '🎨 Hobby Cosplayer', class: 'badge-secondary' };
-      case 'PROFESSIONAL':
-        return { text: '💼 Professional Cosplayer', class: 'badge-accent' };
+      case "COMPETITIVE":
+        return { text: "🏆 Competitive Cosplayer", class: "badge-primary" };
+      case "HOBBY":
+        return { text: "🎨 Hobby Cosplayer", class: "badge-secondary" };
+      case "PROFESSIONAL":
+        return { text: "💼 Professional Cosplayer", class: "badge-accent" };
       default:
-        return { text: 'Cosplayer', class: 'badge-outline' };
+        return { text: "Cosplayer", class: "badge-outline" };
     }
   };
 
   const cosplayerTypeInfo = getCosplayerTypeDisplay();
 
   return (
-    <div className="card bg-base-100 shadow-xl">
+    <div className="card bg-base-100 rounded-xl shadow-lg">
       {/* Cover Image */}
       <figure className="h-32 relative bg-gradient-to-r from-primary to-secondary">
         {coverImage ? (
-          <Image
-            src={coverImage}
-            alt="Cover"
-            fill
-            className="object-cover"
-          />
+          <Image src={coverImage} alt="Cover" fill className="object-cover" />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center">
             <CameraIcon className="w-8 h-8 text-white opacity-50" />
@@ -116,7 +115,7 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
         <div className="mb-4">
           <h2 className="card-title text-lg justify-center">{displayName}</h2>
           <p className="text-sm opacity-70">@{username}</p>
-          
+
           {/* Cosplayer Type Badge */}
           <div className={`badge ${cosplayerTypeInfo.class} badge-sm mt-2`}>
             {cosplayerTypeInfo.text}
@@ -131,7 +130,7 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
         )}
 
         {/* Stats */}
-        <div className="w-full stats stats-horizontal shadow-sm mb-4 bg-base-200">
+        <div className="w-full stats stats-horizontal shadow-sm mb-4 rounded-md bg-base-200">
           <div className="stat py-2 px-3">
             <div className="stat-value text-lg">{champions}</div>
             <div className="stat-title text-xs">Champions</div>
@@ -147,14 +146,17 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
         </div>
 
         {/* Experience & Skills */}
-        {(profile.yearsOfExperience || profile.specialization || profile.skillLevel) && (
+        {(profile.yearsOfExperience ||
+          profile.specialization ||
+          profile.skillLevel) && (
           <div className="mb-4 w-full">
             <div className="grid grid-cols-1 gap-2 text-xs">
               {profile.yearsOfExperience && (
                 <div className="flex justify-between">
                   <span className="opacity-70">Experience:</span>
                   <span className="font-medium">
-                    {profile.yearsOfExperience} {profile.yearsOfExperience === 1 ? 'year' : 'years'}
+                    {profile.yearsOfExperience}{" "}
+                    {profile.yearsOfExperience === 1 ? "year" : "years"}
                   </span>
                 </div>
               )}
@@ -167,12 +169,17 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
               {profile.skillLevel && (
                 <div className="flex justify-between">
                   <span className="opacity-70">Skill Level:</span>
-                  <div className={`badge badge-xs ${
-                    profile.skillLevel === 'advanced' ? 'badge-success' :
-                    profile.skillLevel === 'intermediate' ? 'badge-warning' :
-                    'badge-info'
-                  }`}>
-                    {profile.skillLevel.charAt(0).toUpperCase() + profile.skillLevel.slice(1)}
+                  <div
+                    className={`badge badge-xs ${
+                      profile.skillLevel === "advanced"
+                        ? "badge-success"
+                        : profile.skillLevel === "intermediate"
+                        ? "badge-warning"
+                        : "badge-info"
+                    }`}
+                  >
+                    {profile.skillLevel.charAt(0).toUpperCase() +
+                      profile.skillLevel.slice(1)}
                   </div>
                 </div>
               )}
@@ -182,9 +189,7 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
 
         {/* Actions */}
         <div className="card-actions justify-center w-full">
-          <button className="btn btn-primary btn-sm w-full">
-            SEE PROFILE
-          </button>
+          <button className="btn btn-primary btn-sm w-full">SEE PROFILE</button>
           <button className="btn btn-outline btn-sm w-full">
             Edit Profile
           </button>

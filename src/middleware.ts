@@ -1,13 +1,18 @@
+// src/middleware.ts
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
-
-    const token = req.nextauth.token; // Get the authentication token from the request
-    const { pathname } = req.nextUrl; // Get the current request path
+    const token = req.nextauth.token;
+    const { pathname } = req.nextUrl;
 
     console.log("Middleware - Path:", pathname, "User:", token?.email, "Role:", token?.role);
+
+    // Skip API routes
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.next();
+    }
 
     // Admin routes - only ADMIN can access
     if (pathname.startsWith("/admin")) {
@@ -25,50 +30,33 @@ export default withAuth(
       }
     }
 
-    // Redirect based on role after login
-    if (pathname === "/") {
-      if (token?.role === "ADMIN") {
-        return NextResponse.redirect(new URL("/admin", req.url));
-      } else if (token?.role === "USER") {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
-      }
-    }
-
-    console.log(`Access granted: User ${token?.email} with role ${token?.role} accessing ${pathname}`);
     return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl;
-        
-        // Public routes that don't need authentication
-        const publicRoutes = [
-          "/", 
-          "/login", 
-          "/register", 
-          "/about", 
-          "/contact",
-          "/unauthorized"
-        ];
-        
-        // Allow public routes
-        if (publicRoutes.some(route => pathname.startsWith(route))) {
+        // Allow all API routes
+        if (req.nextUrl.pathname.startsWith("/api/")) {
           return true;
         }
-
-        // All other routes need authentication
+        
+        // Allow public routes
+        if (req.nextUrl.pathname === "/" || 
+            req.nextUrl.pathname === "/login" || 
+            req.nextUrl.pathname === "/register") {
+          return true;
+        }
+        
+        // Require authentication for protected routes
         return !!token;
       },
     },
   }
 );
 
-// Configure which routes the middleware should run on
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/dashboard/:path*",
-    "/profile/:path*"
-  ]
+    // Match all paths except static files and API routes that should be public
+    "/((?!_next/static|_next/image|favicon.ico|images/).*)",
+  ],
 };

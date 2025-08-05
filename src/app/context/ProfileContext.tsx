@@ -1,23 +1,19 @@
-'use client'
+// src/app/context/ProfileContext.tsx
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
-// ✅ Define types
 interface Profile {
   id: number;
   displayName: string;
-  bio: string;
-  cosplayerType: 'COMPETITIVE' | 'HOBBY' | 'PROFESSIONAL';
+  bio: string | null;
+  cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
   specialization: string;
-  skillLevel: 'beginner' | 'intermediate' | 'advanced';
+  skillLevel: "beginner" | "intermediate" | "advanced";
   profilePicture: string;
   coverImage: string;
   yearsOfExperience: number | null;
-  instagramUrl?: string;
-  facebookUrl?: string;
-  twitterUrl?: string;
-  tiktokUrl?: string;
 }
 
 interface ProfileContextType {
@@ -28,28 +24,51 @@ interface ProfileContextType {
   updateProfile: (profileData: any) => Promise<boolean>;
 }
 
-// ✅ Create context
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-// ✅ Provider component
-export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { data: session, status } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [hasProfile, setHasProfile] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
-    if (!session?.user?.id) return;
+    if (status !== "authenticated" || !session?.user) {
+      setLoading(false);
+      return;
+    }
 
-    setLoading(true);
     try {
-      const response = await fetch('/api/user/profile/setup');
-      const data = await response.json();
-      
-      setProfile(data.profile);
-      setHasProfile(!!data.profile);
+      setLoading(true);
+      // ✅ Fix: Use absolute API path
+      const response = await fetch("/api/user/profile/setup", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // ✅ Include credentials for auth
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.profile) {
+          setProfile(data.profile);
+          setHasProfile(true);
+        } else {
+          setProfile(null);
+          setHasProfile(false);
+        }
+      } else if (response.status === 404) {
+        // Profile doesn't exist yet
+        setProfile(null);
+        setHasProfile(false);
+      } else {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error("Error fetching profile:", error);
       setProfile(null);
       setHasProfile(false);
     } finally {
@@ -63,61 +82,62 @@ export const ProfileProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const updateProfile = async (profileData: any): Promise<boolean> => {
     try {
-      const response = await fetch('/api/user/profile/setup', {
-        method: 'POST',
+      // ✅ Fix: Use absolute API path
+      const response = await fetch("/api/user/profile/setup", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(profileData)
+        credentials: "include", // ✅ Include credentials for auth
+        body: JSON.stringify(profileData),
       });
 
       const responseData = await response.json();
 
       if (response.ok) {
-        // ✅ Update context state immediately
         setProfile(responseData.profile);
         setHasProfile(true);
         return true;
       } else {
-        throw new Error(responseData.message || 'Profile update failed');
+        console.error("Profile update failed:", responseData);
+        throw new Error(responseData.message || "Profile update failed");
       }
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       return false;
     }
   };
 
-  // ✅ Fetch profile when user is authenticated
+  // ✅ Only fetch profile when user is authenticated
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === "authenticated") {
       fetchProfile();
-    } else if (status === 'unauthenticated') {
-      // Reset profile state when logged out
+    } else if (status === "unauthenticated") {
       setProfile(null);
       setHasProfile(false);
+      setLoading(false);
     }
-  }, [session, status]);
-
-  const value = {
-    profile,
-    hasProfile,
-    loading,
-    refreshProfile,
-    updateProfile
-  };
+  }, [status, session?.user?.id]);
 
   return (
-    <ProfileContext.Provider value={value}>
+    <ProfileContext.Provider
+      value={{
+        profile,
+        hasProfile,
+        loading,
+        refreshProfile,
+        updateProfile,
+      }}
+    >
       {children}
     </ProfileContext.Provider>
   );
 };
 
-// ✅ Custom hook to use profile context
 export const useProfile = () => {
   const context = useContext(ProfileContext);
   if (context === undefined) {
-    throw new Error('useProfile must be used within a ProfileProvider');
+    throw new Error("useProfile must be used within a ProfileProvider");
   }
   return context;
 };

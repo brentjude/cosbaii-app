@@ -11,7 +11,7 @@ const profileSetupSchema = z.object({
   specialization: z.string().min(1, "Specialization is required").max(100),
   skillLevel: z.enum(["beginner", "intermediate", "advanced"]),
   displayName: z.string().min(2, "Display name must be at least 2 characters").max(50),
-  bio: z.string().max(500).optional(),
+  bio: z.string().max(200, "Bio must be 160 character or less").optional(),
   profilePicture: z.string().optional(),
   coverImage: z.string().optional(),
 });

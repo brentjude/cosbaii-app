@@ -328,7 +328,6 @@ const UserManagementPage = () => {
     return <AdminUsersSkeletonDaisy />;
   }
 
-
   if (!isAdmin) {
     return (
       <div className="space-y-6">

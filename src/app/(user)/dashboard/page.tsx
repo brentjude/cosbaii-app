@@ -9,6 +9,9 @@ const DashboardPage = () => {
   const { data: session, status } = useSession();
   const { hasProfile, loading } = useProfile(); // ✅ Use context
 
+  // Get display name
+  const displayName = session?.user?.username || session?.user?.name;
+
   // Show skeleton while session or profile is loading
   if (status === "loading" || loading) {
     return <UserDashboardSkeleton />;
@@ -18,23 +21,47 @@ const DashboardPage = () => {
     <div className="p-6 max-w-[1240px] mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {session?.user?.username || session?.user?.name}!
+          Welcome back{displayName ? `, ${displayName}` : ""}!
         </h1>
         <p className="text-gray-600 mt-2">Here is your Cosbaii dashboard</p>
       </div>
 
       {/* ✅ Profile Setup Prompt - now uses context */}
       {!hasProfile && (
-        <div className="alert alert-info mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        <div className="alert alert-info mb-6 rounded-lg text-gray-700">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="stroke-current shrink-0 w-6 h-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
           </svg>
           <div>
             <h3 className="font-bold">Complete your profile setup!</h3>
-            <div className="text-xs">Set up your cosplay profile to get the most out of COSBAII.</div>
+            <div className="text-xs">
+              Set up your cosplay profile to get the most out of COSBAII.
+            </div>
           </div>
         </div>
       )}
+
+      <div className="bg-gradient-to-r from-primary to-secondary rounded-lg my-4 p-6 text-white">
+        <h1 className="text-3xl mb-2 font-paytone">
+          Cosbaii is still in Beta!
+        </h1>
+        <p className="text-white/90">
+          Cosbaii is in early access. Features may change as we continue
+          development
+          <br /> You may experience bugs and glitches. Don't forget to submit a
+          feedback!
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* ✅ Profile Card - now uses context automatically */}
@@ -49,8 +76,18 @@ const DashboardPage = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-full">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    ></path>
                   </svg>
                 </div>
                 <div className="ml-4">
@@ -63,8 +100,18 @@ const DashboardPage = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-3 bg-green-100 rounded-full">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                  <svg
+                    className="w-6 h-6 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    ></path>
                   </svg>
                 </div>
                 <div className="ml-4">
@@ -77,8 +124,18 @@ const DashboardPage = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-3 bg-purple-100 rounded-full">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  <svg
+                    className="w-6 h-6 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    ></path>
                   </svg>
                 </div>
                 <div className="ml-4">
@@ -92,20 +149,31 @@ const DashboardPage = () => {
           {/* Recent Activity */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Recent Activity
+              </h2>
             </div>
             <div className="p-6">
               <div className="text-center py-8">
                 <div className="text-gray-400 mb-4">
-                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                  <svg
+                    className="w-12 h-12 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    ></path>
                   </svg>
                 </div>
                 <p className="text-gray-600">
-                  {!hasProfile 
-                    ? "No activity yet. Start by completing your profile!" 
-                    : "No recent activity. Start exploring!"
-                  }
+                  {!hasProfile
+                    ? "No activity yet. Start by completing your profile!"
+                    : "No recent activity. Start exploring!"}
                 </p>
               </div>
             </div>
