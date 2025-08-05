@@ -64,7 +64,7 @@ const UserHeader = () => {
 
   return (
     <>
-      <header className="w-full shadow-xs">
+      <header className="w-full shadow-xs sticky top-0 z-50 bg-base-100">
         <div className="navbar max-w-[1240px] mx-auto">
           <div className="navbar-start">
             <a className="btn btn-ghost">

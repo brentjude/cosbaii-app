@@ -1,3 +1,4 @@
+// src/app/components/admin/AdminSidebar.tsx
 "use client";
 
 import Image from "next/image";
@@ -15,6 +16,7 @@ import {
   XMarkIcon,
   ChartBarIcon,
   ShieldCheckIcon,
+  ChatBubbleLeftEllipsisIcon, // ✅ Add feedback icon
 } from "@heroicons/react/24/outline";
 
 interface MenuItem {
@@ -30,6 +32,13 @@ const menuItems: MenuItem[] = [
   { name: "Competitions", href: "/admin/competitions", icon: TrophyIcon },
   { name: "Photos", href: "/admin/photos", icon: PhotoIcon },
   { name: "Blogs", href: "/admin/blogs", icon: DocumentTextIcon },
+  // ✅ Add Feedback menu item
+  {
+    name: "Feedback",
+    href: "/admin/feedback",
+    icon: ChatBubbleLeftEllipsisIcon,
+    badge: 3, // You can make this dynamic later
+  },
   {
     name: "Notifications",
     href: "/admin/notifications",
