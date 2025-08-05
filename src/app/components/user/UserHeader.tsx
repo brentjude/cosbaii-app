@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import UserLogout from "./UserLogout";
-import ProfileSetupModal from "../skeletons/user/ProfileSetupModal";
+import ProfileSetupModal from "../user/modals/ProfileSetupModal"; // ✅ Import modal
 import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
 
 //icons
