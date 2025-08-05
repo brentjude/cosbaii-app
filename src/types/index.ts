@@ -20,6 +20,16 @@ export type {
   AuthSession,
 } from './auth';
 
+//Feedback-related types
+export type {
+  Feedback,
+  FeedbackFormData,
+  FeedbackType,
+  FeedbackStatus,
+  FeedbackPriority,
+  CreateFeedbackResponse,
+} from './feedback';
+
 // Add more exports as you create them
 // export type { Competition, Tournament } from './competition';
 // export type { ApiResponse, ErrorResponse } from './api';

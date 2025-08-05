@@ -4,6 +4,10 @@ import { useSession } from "next-auth/react";
 import UserDashboardSkeleton from "@/app/components/skeletons/user/UserDashboardSkeleton";
 import UserProfileCard from "@/app/components/user/UserProfileCard";
 import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
+import SubmitFeedbackCard from "@/app/components/user/SubmitFeedbackCard";
+
+//Hero icons
+import { CheckBadgeIcon } from "@heroicons/react/16/solid";
 
 const DashboardPage = () => {
   const { data: session, status } = useSession();
@@ -28,7 +32,7 @@ const DashboardPage = () => {
 
       {/* ✅ Profile Setup Prompt - now uses context */}
       {!hasProfile && (
-        <div className="alert alert-info mb-6 rounded-lg text-gray-700">
+        <div className="alert alert-info mb-4 rounded-lg text-gray-700">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -51,7 +55,7 @@ const DashboardPage = () => {
         </div>
       )}
 
-      <div className="bg-gradient-to-r from-primary to-secondary rounded-lg my-4 p-6 text-white">
+      <div className="bg-gradient-to-r from-primary to-secondary rounded-lg mb-4 p-6 text-white">
         <h1 className="text-3xl mb-2 font-paytone">
           Cosbaii is still in Beta!
         </h1>
@@ -67,6 +71,7 @@ const DashboardPage = () => {
         {/* ✅ Profile Card - now uses context automatically */}
         <div className="lg:col-span-1">
           <UserProfileCard />
+          <SubmitFeedbackCard />
         </div>
 
         {/* Dashboard Content */}
@@ -76,22 +81,12 @@ const DashboardPage = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="p-3 bg-blue-100 rounded-full">
-                  <svg
-                    className="w-6 h-6 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    ></path>
-                  </svg>
+                  <CheckBadgeIcon className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Followers</p>
+                  <p className="text-sm font-medium text-gray-600">
+                    Badges Earned
+                  </p>
                   <p className="text-2xl font-semibold text-gray-900">24</p>
                 </div>
               </div>

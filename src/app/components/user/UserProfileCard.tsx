@@ -40,7 +40,13 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body text-center">
-          <div className="text-6xl mb-4">👤</div>
+          <Image
+            src={"/images/cosbaii-logo-black.webp"}
+            alt="Cosbaii Logo Black"
+            className="mx-auto p-2 rounded-full bg-gray-200"
+            width={80}
+            height={80}
+          />
           <h3 className="card-title justify-center">Setup Your Profile</h3>
           <p className="text-sm opacity-70">
             Complete your profile to get started!

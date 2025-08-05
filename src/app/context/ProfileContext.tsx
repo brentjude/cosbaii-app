@@ -42,17 +42,26 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       setLoading(true);
-      // ✅ Fix: Use absolute API path
+      console.log("🔍 Fetching profile for user:", session.user.id);
+
       const response = await fetch("/api/user/profile/setup", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // ✅ Include credentials for auth
+        credentials: "include",
       });
+
+      console.log(
+        "📡 Profile fetch response:",
+        response.status,
+        response.statusText
+      );
 
       if (response.ok) {
         const data = await response.json();
+        console.log("✅ Profile data received:", data);
+
         if (data.profile) {
           setProfile(data.profile);
           setHasProfile(true);
@@ -61,14 +70,16 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({
           setHasProfile(false);
         }
       } else if (response.status === 404) {
-        // Profile doesn't exist yet
+        console.log("📝 No profile found - user needs to set up profile");
         setProfile(null);
         setHasProfile(false);
       } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Profile fetch error:", response.status, errorData);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("💥 Error fetching profile:", error);
       setProfile(null);
       setHasProfile(false);
     } finally {

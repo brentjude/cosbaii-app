@@ -75,6 +75,7 @@ model User {
   userBadges       UserBadge[]
   featuredCosplays FeaturedCosplay[]
   blogs            Blog[]
+  feedback         Feedback[]
   notifications    Notification[]
 
   @@map("users") // Database table will be named "users" instead of "User"
@@ -95,8 +96,8 @@ model Profile {
 
   displayName    String?
   bio            String? //Cosplayers bio
-  profilePicture String? //URL to profile picture
-  coverImage     String? //URL to cover image
+  profilePicture String? @default("/images/default-avatar,png") //URL to profile picture
+  coverImage     String? @default("/images/default-cover.jpg") //URL to cover image
 
   //social media links
   instagramUrl String?
@@ -282,19 +283,36 @@ model Blog {
   updatedAt DateTime @updatedAt
 }
 
+model Feedback {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  type        String // BUG, FEATURE_REQUEST, IMPROVEMENT
+  title       String
+  description String   @db.Text
+  status      String   @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade) // ✅ Fix: change 'users' to 'user'
+
+  @@map("feedback")
+}
+
 model Notification {
-  id     Int  @id @default(autoincrement())
-  userId Int //admin user who should see this
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type    String // "NEW REGISTRATION", "COMPETITION SUBMITTED", "AWARD WON", etc.
-  title   String // Title of the notification
-  message String // Detailed message of the notification
-  data    Json? // Additional data related to the notification (e.g., competition ID, user ID, etc.)
-
-  read Boolean @default(false) // Whether the notification has been read by the user
-
+  id        Int      @id @default(autoincrement())
+  userId    Int // Admin user who should see this notification
+  type      String // FEEDBACK, USER_REGISTRATION, etc.
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false) // ✅ Fix: change 'read' to 'isRead' to match your code
+  relatedId Int? // ID of related entity (feedback ID, user ID, etc.)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("notifications") // Database table will be named "notifications" instead of "Notification"
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }

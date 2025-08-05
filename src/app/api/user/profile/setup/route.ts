@@ -4,18 +4,19 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
-// ✅ Updated schema to include PROFESSIONAL
+// ✅ Updated schema with 160 character bio limit
 const profileSetupSchema = z.object({
   cosplayerType: z.enum(["COMPETITIVE", "HOBBY", "PROFESSIONAL"]),
   yearsOfExperience: z.number().nullable().optional(),
   specialization: z.string().min(1, "Specialization is required").max(100),
   skillLevel: z.enum(["beginner", "intermediate", "advanced"]),
   displayName: z.string().min(2, "Display name must be at least 2 characters").max(50),
-  bio: z.string().max(200, "Bio must be 160 character or less").optional(),
+  bio: z.string().max(160, "Bio must be 160 characters or less").optional(),
   profilePicture: z.string().optional(),
   coverImage: z.string().optional(),
 });
 
+// POST: Create or update user profile
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -27,18 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    console.log("Received profile data:", body); // ✅ Debug log
-
-    const validationResult = profileSetupSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      console.log("Validation errors:", validationResult.error.flatten().fieldErrors); // ✅ Debug log
-      return NextResponse.json({
-        message: "Validation failed",
-        errors: validationResult.error.flatten().fieldErrors
-      }, { status: 400 });
-    }
-
+    const validatedData = profileSetupSchema.parse(body);
+    
     const {
       cosplayerType,
       yearsOfExperience,
@@ -47,8 +38,8 @@ export async function POST(request: NextRequest) {
       displayName,
       bio,
       profilePicture,
-      coverImage
-    } = validationResult.data;
+      coverImage,
+    } = validatedData;
 
     // ✅ Convert string ID to number safely
     const userId = parseInt(session.user.id);
@@ -76,7 +67,6 @@ export async function POST(request: NextRequest) {
           skillLevel,
           displayName,
           bio: bio || null,
-          // ✅ Fix: Use consistent default images
           profilePicture: profilePicture || "/images/default-avatar.png",
           coverImage: coverImage || "/images/default-cover.jpg",
           updatedAt: new Date(),
@@ -93,7 +83,6 @@ export async function POST(request: NextRequest) {
           skillLevel,
           displayName,
           bio: bio || null,
-          // ✅ Fix: Use consistent default images
           profilePicture: profilePicture || "/images/default-avatar.png",
           coverImage: coverImage || "/images/default-cover.jpg",
         }
@@ -108,7 +97,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error setting up profile:", error);
     
-    // ✅ Better error handling
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ 
+        message: "Validation failed",
+        errors: error.issues
+      }, { status: 400 });
+    }
+    
     if (error instanceof Error) {
       return NextResponse.json({ 
         message: "Profile setup failed",
@@ -165,7 +160,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching profile:", error);
     
-    // ✅ Better error handling
     if (error instanceof Error) {
       return NextResponse.json({ 
         message: "Failed to fetch profile",
