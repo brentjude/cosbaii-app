@@ -197,20 +197,25 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
               />
             </Link>
           )}
+
+          <label className="input">
+            <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <g
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                strokeWidth="2.5"
+                fill="none"
+                stroke="currentColor"
+              >
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </g>
+            </svg>
+            <input type="search" required placeholder="Search" />
+          </label>
         </div>
 
-        <div className="navbar-center flex-1 max-w-lg mx-8">
-          {/* Search Bar */}
-          <div className="relative w-full">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-base-content/60" />
-            <input
-              type="text"
-              placeholder="Search users, competitions, photos..."
-              className="input input-bordered w-full pl-10 bg-base-100"
-            />
-          </div>
-        </div>
-
+      
         <div className="navbar-end flex items-center gap-4">
           {/* ✅ Updated: Notification Bell with new styling */}
           <div className="dropdown dropdown-end">
