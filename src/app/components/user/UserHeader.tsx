@@ -67,14 +67,14 @@ const UserHeader = () => {
       <header className="w-full shadow-xs sticky top-0 z-50 bg-base-100">
         <div className="navbar max-w-[1240px] mx-auto">
           <div className="navbar-start">
-            <a className="btn btn-ghost">
+            <Link className="ml-2 hover:bg-gray-50 cursor-pointer" href="/dashboard">
               <Image
                 src={"/images/cosbaii-colored-wordmark.svg"}
                 alt="Logo"
                 width={150}
                 height={30}
               />
-            </a>
+            </Link>
           </div>
 
           <div className="navbar-center hidden lg:flex">
