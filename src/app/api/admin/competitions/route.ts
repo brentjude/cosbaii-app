@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { updateCompetitionSchema } from "@/lib/schemas/competition";
 
 // Allow any valid date (past or future)
 const createCompetitionSchema = z.object({
@@ -18,7 +19,9 @@ const createCompetitionSchema = z.object({
     .optional(),
   eventDate: z
     .string()
-    .refine((date) => !isNaN(new Date(date).getTime()), "Event date must be a valid date"),
+    .min(1, "Event date is required") // Ensure it's not empty
+    .transform((date) => new Date(date))
+    .refine((date) => !isNaN(date.getTime())),
   location: z
     .string()
     .max(200, "Location must be less than 200 characters")
@@ -33,6 +36,7 @@ const createCompetitionSchema = z.object({
   rivalryType: z.enum(["SOLO", "DUO", "GROUP"]),
   level: z.enum(["BARANGAY", "LOCAL", "REGIONAL", "NATIONAL", "WORLDWIDE"]),
 });
+
 
 // GET: Fetch competitions
 export async function GET(request: NextRequest) {

@@ -114,18 +114,41 @@ const ViewCompetitionModal = ({
           {/* Competition Info */}
           <div className="bg-base-200 rounded-lg p-6">
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <h4 className="font-bold text-xl">{competition.name}</h4>
-                <div className="flex gap-2 mt-2">
-                  <span className="badge badge-outline">
-                    {formatEnumValue(competition.competitionType)}
-                  </span>
-                  <span className="badge badge-info">
-                    {formatEnumValue(competition.rivalryType)}
-                  </span>
-                  <span className="badge badge-accent">
-                    {formatEnumValue(competition.level)}
-                  </span>
+              <div className="flex items-start gap-4">
+                {/* Logo with fallback */}
+                <img
+                  src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
+                  alt="Competition Logo"
+                  className="w-16 h-16 object-contain rounded bg-white border border-base-300"
+                  onError={(e) => {
+                    e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
+                  }}
+                />
+                <div>
+                  <h4 className="font-bold text-xl">{competition.name}</h4>
+                  <div className="flex gap-2 mt-2">
+                    <span className="badge badge-outline">
+                      {formatEnumValue(competition.competitionType)}
+                    </span>
+                    <span className="badge badge-info">
+                      {formatEnumValue(competition.rivalryType)}
+                    </span>
+                    <span className="badge badge-accent">
+                      {formatEnumValue(competition.level)}
+                    </span>
+                  </div>
+
+                  {/* Instagram URL (shown in header as well) */}
+                  {competition.instagramUrl && (
+                    <a
+                      href={competition.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="link link-primary text-sm mt-2 inline-block"
+                    >
+                      {competition.instagramUrl}
+                    </a>
+                  )}
                 </div>
               </div>
               <div
@@ -181,18 +204,17 @@ const ViewCompetitionModal = ({
               <div className="space-y-2">
                 {competition.logoUrl && (
                   <div>
-                    <p className="text-sm font-medium mb-1">
-                      Competition Logo:
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={competition.logoUrl}
-                        alt="Competition Logo"
-                        className="w-16 h-16 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
+                  <p className="text-sm font-medium mb-1">Competition Logo:</p>
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
+                      alt="Competition Logo"
+                      className="w-16 h-16 object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
+                      }}
+                    />
+                    {competition.logoUrl && (
                       <a
                         href={competition.logoUrl}
                         target="_blank"
@@ -201,8 +223,9 @@ const ViewCompetitionModal = ({
                       >
                         View Full Image
                       </a>
-                    </div>
+                    )}
                   </div>
+                </div>
                 )}
                 {competition.eventUrl && (
                   <div>

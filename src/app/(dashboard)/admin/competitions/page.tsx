@@ -24,6 +24,7 @@ import AddCompetitionModal from "@/app/components/admin/competitions/modals/AddC
 import ReviewCompetitionModal from "@/app/components/admin/competitions/modals/ReviewCompetitionModal";
 import DeleteCompetitionModal from "@/app/components/admin/competitions/modals/DeleteCompetitionModal";
 import ViewCompetitionModal from "@/app/components/admin/competitions/modals/ViewCompetitionModal";
+import EditCompetitionModal from "@/app/components/admin/competitions/modals/EditCompetitionModal";
 
 // Types
 type CompetitionStatus =
@@ -99,6 +100,23 @@ interface NewCompetitionData {
   referenceLinks: string | null;
 }
 
+interface EditCompetitionData {
+  name: string;
+  description: string | null;
+  eventDate: string;
+  location: string | null;
+  organizer: string | null;
+  competitionType: CompetitionType;
+  rivalryType: RivalryType;
+  level: CompetitionLevel;
+  logoUrl: string | null;
+  eventUrl: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  referenceLinks: string | null;
+}
+
+
 const CompetitionsManagementPage = () => {
   const { isAdmin, loading: authLoading } = useAuthSession();
 
@@ -107,8 +125,8 @@ const CompetitionsManagementPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  // NEW: error shown inside AddCompetitionModal
   const [addModalError, setAddModalError] = useState<string | null>(null);
+  const [editModalError, setEditModalError] = useState<string | null>(null); // ✅ Move this inside the component
 
   // Filter states
   const [selectedStatus, setSelectedStatus] = useState<
@@ -274,6 +292,33 @@ const CompetitionsManagementPage = () => {
     }
   };
 
+  // Add the confirmUpdate function
+const confirmUpdate = async (data: EditCompetitionData) => {
+  if (!selectedCompetition) return;
+
+  setActionLoading(true);
+  setEditModalError(null);
+  try {
+    const response = await fetch(`/api/admin/competitions/${selectedCompetition.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      closeModals();
+      await fetchCompetitions();
+    } else {
+      const error = await response.json();
+      setEditModalError(error.message || "Failed to update competition");
+    }
+  } catch (error) {
+    setEditModalError("Failed to update competition");
+  } finally {
+    setActionLoading(false);
+  }
+};
+
   const confirmDelete = async () => {
     if (!selectedCompetition) return;
 
@@ -300,18 +345,19 @@ const CompetitionsManagementPage = () => {
     }
   };
 
-  const closeModals = () => {
-    setShowAddModal(false);
-    setShowViewModal(false);
-    setShowEditModal(false);
-    setShowDeleteModal(false);
-    setShowReviewModal(false);
-    setSelectedCompetition(null);
-    setReviewAction(null);
-    setRejectionReason("");
-    setError(null);
-    setAddModalError(null);
-  };
+ const closeModals = () => {
+  setShowAddModal(false);
+  setShowViewModal(false);
+  setShowEditModal(false);
+  setShowDeleteModal(false);
+  setShowReviewModal(false);
+  setSelectedCompetition(null);
+  setReviewAction(null);
+  setRejectionReason("");
+  setError(null);
+  setAddModalError(null);
+  setEditModalError(null); // Add this line
+};
 
   // Utility functions
   const getStatusBadgeClass = (status: CompetitionStatus) => {
@@ -645,6 +691,17 @@ const CompetitionsManagementPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Competition Modal */}
+      <EditCompetitionModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        onSave={confirmUpdate}
+        competition={selectedCompetition}
+        loading={actionLoading}
+        errorMessage={editModalError}
+        onClearError={() => setEditModalError(null)}
+      />
 
       {/* View Competition Modal */}
       <ViewCompetitionModal
