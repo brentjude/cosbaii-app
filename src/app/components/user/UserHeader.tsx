@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -18,12 +18,19 @@ import {
 } from "@heroicons/react/16/solid";
 
 const UserHeader = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
-  // ✅ Use profile context instead of local state
+  // ✅ Use profile context
   const { hasProfile, updateProfile, loading } = useProfile();
+
+  // ✅ Ensure component is mounted on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const closeDropdown = () => {
     (document.activeElement as HTMLElement)?.blur();
@@ -110,7 +117,7 @@ const UserHeader = () => {
             )}
 
             {/* ✅ Uses context hasProfile state */}
-            {session?.user && !hasProfile && (
+            {isClient && status !== "loading" && session?.user && !hasProfile && (
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleOpenProfileSetup}
@@ -171,12 +178,15 @@ const UserHeader = () => {
         </div>
       </header>
 
-      <ProfileSetupModal
-        isOpen={showProfileSetup}
-        onClose={() => setShowProfileSetup(false)}
-        onComplete={handleProfileSetupComplete}
-        loading={loading}
-      />
+      {/* ✅ Only render modal after client mount */}
+      {isClient && (
+        <ProfileSetupModal
+          isOpen={showProfileSetup}
+          onClose={() => setShowProfileSetup(false)}
+          onComplete={handleProfileSetupComplete}
+          loading={loading}
+        />
+      )}
     </>
   );
 };

@@ -1,10 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useProfile } from "@/app/context/ProfileContext";
 import Image from "next/image";
 import { UserIcon } from "@heroicons/react/24/outline";
+import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
+import AddCredentialsModal from "@/app/components/user/modals/AddCredentialsModal";
+
 
 import {
   PencilSquareIcon,
@@ -12,27 +15,84 @@ import {
   PencilIcon,
   TrophyIcon,
   FunnelIcon,
+  BriefcaseIcon,
+  PaintBrushIcon
 } from "@heroicons/react/16/solid";
 
 const ProfilePage = () => {
   const { data: session } = useSession();
-  const { profile, loading } = useProfile();
+  const { profile, loading, updateProfile } = useProfile();
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+
+  // Add this state to your ProfilePage component
+const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
 
   // ✅ Handle all cosplayer types including PROFESSIONAL
   const getCosplayerTypeDisplay = () => {
     switch (profile?.cosplayerType) {
       case "COMPETITIVE":
-        return { text: "🏆 Competitive Cosplayer", class: "badge-primary" };
+        return { text: ( 
+        <> <TrophyIcon className='w-4 h-4'/> <span>Competitive Cosplayer</span> </>
+      ), class: "badge-primary" };
       case "HOBBY":
-        return { text: "🎨 Hobby Cosplayer", class: "badge-secondary" };
+        return { text: ( 
+        <> <PaintBrushIcon className='w-4 h-4'/> <span>Hobby Cosplayer</span> </>
+      ), class: "badge-secondary" };
       case "PROFESSIONAL":
-        return { text: "💼 Professional Cosplayer", class: "badge-accent" };
+        return { text: ( 
+        <> <BriefcaseIcon className='w-4 h-4'/> <span>Pro Cosplayer</span> </>
+      ), class: "badge-accent" };
       default:
         return { text: "Cosplayer", class: "badge-outline" };
     }
   };
 
+  // Handle edit profile
+  const handleEditProfile = () => {
+    setShowEditModal(true);
+  };
+
+  // Handle save profile changes
+  const handleSaveProfile = async (editedData: any) => {
+    setEditLoading(true);
+    try {
+      const success = await updateProfile(editedData);
+      if (success) {
+        setShowEditModal(false);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const cosplayerTypeInfo = getCosplayerTypeDisplay();
+
+  // Prepare profile data for editing
+  const getEditableProfileData = () => {
+    if (!profile) return null;
+    
+    return {
+      displayName: profile.displayName || "",
+      bio: profile.bio || "",
+      profilePicture: profile.profilePicture || "/images/default-avatar.png",
+      coverImage: profile.coverImage || "/images/default-cover.jpg",
+      cosplayerType: profile.cosplayerType,
+      yearsOfExperience: profile.yearsOfExperience,
+      specialization: profile.specialization || "",
+      skillLevel: profile.skillLevel || "beginner",
+      featured: [
+        // This would come from your featuredCosplays relation
+        // For now, using placeholder data
+        { title: "", description: "", imageUrl: "", character: "", series: "" },
+        { title: "", description: "", imageUrl: "", character: "", series: "" },
+        { title: "", description: "", imageUrl: "", character: "", series: "" },
+      ],
+    };
+  };
+
 
   if (loading) {
     return (
@@ -47,6 +107,7 @@ const ProfilePage = () => {
   }
 
   return (
+    <>
     <main className="w-full bg-primary/5 p-6">
       <div className="max-w-[1240px] mx-auto">
         <div className="bg-white rounded-2xl border border-gray-200">
@@ -129,10 +190,11 @@ const ProfilePage = () => {
                 />
                 Cosbaii Card
               </button>
-              <button className="btn">
-                <PencilSquareIcon className="w-4 h-4" />
-                Edit Profile
-              </button>
+              {/* ✅ Updated Edit Profile button */}
+                <button className="btn" onClick={handleEditProfile}>
+                  <PencilSquareIcon className="w-4 h-4" />
+                  Edit Profile
+                </button>
             </div>
             <div className="divider"></div>
             <div className="flex flex-row justify-between items-center">
@@ -287,7 +349,10 @@ const ProfilePage = () => {
               <div className="flex flex-row justify-between items-center">
                 <h2 className="text-xl font-bold">Competitions Joined</h2>
                 <div className="flex flex-row items-center gap-2">
-                  <button className="btn btn-primary btn-sm text-white">
+                  <button 
+                    className="btn btn-primary btn-sm text-white"
+                    onClick={() => setShowAddCredentialsModal(true)}
+                  >
                     <PlusCircleIcon className="w-4 h-4" />
                     Add Credentials
                   </button>
@@ -337,6 +402,29 @@ const ProfilePage = () => {
         </div>
       </div>
     </main>
+
+    {/* ✅ Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveProfile}
+        profileData={getEditableProfileData()}
+        loading={editLoading}
+      />
+
+
+      {/* Add Credentials Modal */}
+      <AddCredentialsModal
+        isOpen={showAddCredentialsModal}
+        onClose={() => setShowAddCredentialsModal(false)}
+        onSuccess={() => {
+          setShowAddCredentialsModal(false);
+          // Optionally refresh page data
+        }}
+      />
+
+      
+    </>
   );
 };
 
