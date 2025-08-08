@@ -18,10 +18,10 @@ const page = () => {
       // Role-based redirect
       if (session.user.role === "ADMIN") {
         console.log("Redirecting admin to /admin");
-        window.location.href = "/admin";
+        router.replace("/admin");
       } else {
         console.log("Redirecting user to /dashboard");
-        window.location.href = "/dashboard";
+        router.replace("/dashboard");
       }
     }
   }, [session, status, router]);

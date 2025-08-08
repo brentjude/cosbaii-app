@@ -69,13 +69,13 @@ const LoginForm = () => {
         let redirectPath: string;
         
         if (session?.user?.role === 'ADMIN') {
-          redirectPath = '/admin/dashboard';  // or '/dashboard/admin'
+          redirectPath = '/admin';  // or '/dashboard/admin'
         } else {
           redirectPath = '/dashboard';  // or '/user/dashboard'
         }
         
         console.log("Redirecting to:", redirectPath);
-        router.push(redirectPath);
+        router.replace(redirectPath);
         router.refresh();
       }
     } catch (error) {
