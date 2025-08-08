@@ -26,6 +26,27 @@ enum UserStatus {
   BANNED
 }
 
+enum CompetitionType {
+  GENERAL
+  ARMOR
+  CLOTH
+  SINGING
+}
+
+enum RivalryType {
+  SOLO
+  DUO
+  GROUP
+}
+
+enum CompetitionLevel {
+  BARANGAY
+  LOCAL
+  REGIONAL
+  NATIONAL
+  WORLDWIDE
+}
+
 enum CompetitionStatus {
   DRAFT
   SUBMITTED
@@ -123,6 +144,18 @@ model Competition {
   eventDate   DateTime //when the competition happened
   location    String? //Location of the competition
   organizer   String? //Organizer of the competition
+
+  // ✅ Add new fields
+  competitionType CompetitionType  @default(GENERAL) // Type of competition
+  rivalryType     RivalryType      @default(SOLO) // Solo, duo, or group
+  level           CompetitionLevel @default(LOCAL) // Competition level
+
+  // ✅ NEW: Logo and reference links for verification
+  logoUrl        String? // Competition logo/poster image URL
+  eventUrl       String? // Official event website or page
+  facebookUrl    String? // Facebook event or page URL
+  instagramUrl   String? // Instagram page URL
+  referenceLinks String? // Additional reference links (JSON string or comma-separated)
 
   //User who submitted the competition
   submittedById Int
