@@ -1,34 +1,141 @@
+// Update: src/app/(user)/profile/page.tsx
 "use client";
 
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useProfile } from "@/app/context/ProfileContext";
+import { useUserCredentials } from "@/hooks/user/useUserCredentials";
 import Image from "next/image";
 import { UserIcon } from "@heroicons/react/24/outline";
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import AddCredentialsModal from "@/app/components/user/modals/AddCredentialsModal";
-
+import FeaturedCosplaysEditor from "@/app/components/user/modals/FeaturedCosplaysEditor";
 
 import {
   PencilSquareIcon,
   PlusCircleIcon,
-  PencilIcon,
   TrophyIcon,
   FunnelIcon,
   BriefcaseIcon,
-  PaintBrushIcon
+  PaintBrushIcon,
+  ClockIcon,
+  CheckBadgeIcon,
 } from "@heroicons/react/16/solid";
+
+interface FeaturedItem {
+  id?: number;
+  title: string;
+  description: string;
+  imageUrl: string;
+  character?: string;
+  series?: string;
+  competitionId?: number;
+}
 
 const ProfilePage = () => {
   const { data: session } = useSession();
   const { profile, loading, updateProfile } = useProfile();
+  const { credentials, loading: credentialsLoading, refetch: refetchCredentials } = useUserCredentials();
+  
+  // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
+  const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
+  const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
 
-  // Add this state to your ProfilePage component
-const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
+  // Featured cosplays state - initialize from profile or empty array
+  const [featuredCosplays, setFeaturedCosplays] = useState<FeaturedItem[]>([
+    { title: "", description: "", imageUrl: "", character: "", series: "" },
+    { title: "", description: "", imageUrl: "", character: "", series: "" },
+    { title: "", description: "", imageUrl: "", character: "", series: "" },
+  ]);
 
-  // ✅ Handle all cosplayer types including PROFESSIONAL
+  // Helper functions remain the same...
+  const getPositionInfo = (position: string) => {
+    switch (position) {
+      case 'CHAMPION':
+        return { 
+          text: 'Champion', 
+          bgColor: 'bg-yellow-100', 
+          textColor: 'text-yellow-800',
+          icon: <TrophyIcon className="w-3 h-3" />
+        };
+      case 'FIRST_PLACE':
+        return { 
+          text: '1st Place', 
+          bgColor: 'bg-yellow-100', 
+          textColor: 'text-yellow-700',
+          icon: <TrophyIcon className="w-3 h-3" />
+        };
+      case 'SECOND_PLACE':
+        return { 
+          text: '2nd Place', 
+          bgColor: 'bg-gray-100', 
+          textColor: 'text-gray-700',
+          icon: <TrophyIcon className="w-3 h-3" />
+        };
+      case 'THIRD_PLACE':
+        return { 
+          text: '3rd Place', 
+          bgColor: 'bg-orange-100', 
+          textColor: 'text-orange-700',
+          icon: <TrophyIcon className="w-3 h-3" />
+        };
+      default:
+        return { 
+          text: 'Participant', 
+          bgColor: 'bg-blue-100', 
+          textColor: 'text-blue-700',
+          icon: null
+        };
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const eventYear = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.getFullYear();
+  };
+
+  // Featured cosplay handlers
+  const handleFeaturedSave = async (featured: FeaturedItem[]) => {
+    try {
+      // Update local state
+      setFeaturedCosplays(featured);
+      
+      // Here you would also save to backend/database
+      // const response = await fetch('/api/user/featured', {
+      //   method: 'PUT',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ featured })
+      // });
+      
+      setShowFeaturedEditor(false);
+      
+      // Optional: show success toast
+      console.log('Featured cosplays saved:', featured);
+    } catch (error) {
+      console.error('Error saving featured cosplays:', error);
+    }
+  };
+
+  // Stats calculations
+  const championCount = credentials.filter(c => c.position === 'CHAMPION').length;
+  const placedCount = credentials.filter(c => 
+    ['CHAMPION', 'FIRST_PLACE', 'SECOND_PLACE', 'THIRD_PLACE'].includes(c.position)
+  ).length;
+  const totalCompetitions = credentials.length;
+
   const getCosplayerTypeDisplay = () => {
     switch (profile?.cosplayerType) {
       case "COMPETITIVE":
@@ -48,12 +155,10 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
     }
   };
 
-  // Handle edit profile
   const handleEditProfile = () => {
     setShowEditModal(true);
   };
 
-  // Handle save profile changes
   const handleSaveProfile = async (editedData: any) => {
     setEditLoading(true);
     try {
@@ -70,7 +175,6 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
 
   const cosplayerTypeInfo = getCosplayerTypeDisplay();
 
-  // Prepare profile data for editing
   const getEditableProfileData = () => {
     if (!profile) return null;
     
@@ -83,16 +187,9 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
       yearsOfExperience: profile.yearsOfExperience,
       specialization: profile.specialization || "",
       skillLevel: profile.skillLevel || "beginner",
-      featured: [
-        // This would come from your featuredCosplays relation
-        // For now, using placeholder data
-        { title: "", description: "", imageUrl: "", character: "", series: "" },
-        { title: "", description: "", imageUrl: "", character: "", series: "" },
-        { title: "", description: "", imageUrl: "", character: "", series: "" },
-      ],
+      featured: featuredCosplays,
     };
   };
-
 
   if (loading) {
     return (
@@ -151,7 +248,6 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
                 <p className="text-sm text-gray-400">
                   @{session?.user?.username || "username"}
                 </p>
-                {/* Cosplayer Type Badge */}
                 <div
                   className={`badge ${cosplayerTypeInfo.class} badge-sm mt-4`}
                 >
@@ -159,25 +255,24 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
                 </div>
               </div>
             </div>
+            {/* Stats cards */}
             <div className="flex flex-row max-md:justify-center gap-2 basis-2/3">
-              <div className="card basis-1/3 flex flex-col justify-center items-center bg-white bases-[200px] p-4 shadow-lg rounded-lg">
-                <h2 className="text-[32px] font-semibold mb-2">32</h2>
+              <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+                <h2 className="text-[32px] font-semibold mb-2">{championCount}</h2>
                 <span className="text-sm text-gray-500">Champion</span>
               </div>
               <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
-                <h2 className="text-[32px]  font-semibold mb-2">32</h2>
+                <h2 className="text-[32px] font-semibold mb-2">{placedCount}</h2>
                 <span className="text-sm text-gray-500">Placed</span>
               </div>
               <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
-                <h2 className="text-[32px]  font-semibold mb-2">35</h2>
-                <span className="text-sm text-gray-500">
-                  Competition Joined
-                </span>
+                <h2 className="text-[32px] font-semibold mb-2">{totalCompetitions}</h2>
+                <span className="text-sm text-gray-500">Competitions Joined</span>
               </div>
             </div>
           </div>
 
-          {/* Profile Info */}
+          {/* Profile info section */}
           <div className="relative px-6 pb-6">
             <div className="flex flex-row gap-2 justify-end max-md:justify-center mt-4">
               <button className="btn btn-primary text-white">
@@ -190,35 +285,26 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
                 />
                 Cosbaii Card
               </button>
-              {/* ✅ Updated Edit Profile button */}
-                <button className="btn" onClick={handleEditProfile}>
-                  <PencilSquareIcon className="w-4 h-4" />
-                  Edit Profile
-                </button>
+              <button className="btn" onClick={handleEditProfile}>
+                <PencilSquareIcon className="w-4 h-4" />
+                Edit Profile
+              </button>
             </div>
             <div className="divider"></div>
             <div className="flex flex-row justify-between items-center">
               <div>
                 <ul className="flex flex-row gap-6 text-sm text-gray-600 font-bold">
                   <li>
-                    <a href="#" className="hover:text-primary">
-                      INFO
-                    </a>
+                    <a href="#" className="hover:text-primary">INFO</a>
                   </li>
                   <li>
-                    <a href="#" className="hover:text-primary">
-                      FEATURED
-                    </a>
+                    <a href="#" className="hover:text-primary">FEATURED</a>
                   </li>
                   <li>
-                    <a href="#" className="hover:text-primary">
-                      CREDENTIALS
-                    </a>
+                    <a href="#" className="hover:text-primary">CREDENTIALS</a>
                   </li>
                   <li>
-                    <a href="#" className="hover:text-primary">
-                      PHOTOS
-                    </a>
+                    <a href="#" className="hover:text-primary">PHOTOS</a>
                   </li>
                 </ul>
               </div>
@@ -253,6 +339,7 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
         </div>
 
         <div className="flex flex-row items-start gap-4 mt-4">
+          {/* Left sidebar */}
           <div className="basis-1/3 bg-white rounded-2xl p-6 border border-gray-200">
             <div>
               <h2 className="text-xl font-bold">
@@ -262,85 +349,126 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
                   "No Display Name"}
               </h2>
 
-              {/* Bio */}
               {profile?.bio && (
                 <p className="text-gray-400 mt-4 text-md">{profile.bio}</p>
               )}
 
-              {profile?.yearsOfExperience !== null &&
-                profile?.yearsOfExperience !== undefined && (
-                  <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full">
-                    {profile.yearsOfExperience === 0
-                      ? "Just starting"
-                      : `${profile.yearsOfExperience} years experience`}
+              <div className="flex flex-wrap gap-2 mt-4">
+                {profile?.yearsOfExperience !== null &&
+                  profile?.yearsOfExperience !== undefined && (
+                    <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-sm">
+                      {profile.yearsOfExperience === 0
+                        ? "Just starting"
+                        : `${profile.yearsOfExperience} years experience`}
+                    </span>
+                  )}
+
+                {profile?.specialization && (
+                  <span className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm">
+                    {profile.specialization}
                   </span>
                 )}
-
-              {profile?.specialization && (
-                <span className="px-3 py-1 bg-accent/10 text-accent rounded-full">
-                  {profile.specialization}
-                </span>
-              )}
+              </div>
             </div>
             <div className="mt-8">
               <h2 className="text-xl font-bold">Badges</h2>
+              <p className="text-sm text-gray-500 mt-2">No badges earned yet</p>
             </div>
           </div>
 
           <div className="basis-2/3 flex flex-col gap-4">
-            {/* Featured Competitions */}
+            {/* Featured section with working edit button */}
             <div className="relative h-100 bg-white rounded-2xl border border-gray-200">
-              <div className="absolute l-4 flex justify-betweem items-center w-full">
-                <h2 className="absolute top-4 left-4 text-xl font-bold mb-4 text-white">
+              <div className="absolute l-4 flex justify-between items-center w-full z-10">
+                <h2 className="absolute top-4 left-4 text-xl font-bold text-white drop-shadow-lg">
                   Featured
                 </h2>
 
-                {/* Edit Featured Button */}
                 <button
-                  className="absolute btn btn-primary btn-sm py-6 rounded-full top-2 right-4 tooltip tooltip-white"
+                  className="absolute btn btn-primary btn-sm py-6 rounded-full top-2 right-4 tooltip tooltip-left"
                   data-tip="Edit Featured Cosplay"
+                  onClick={() => setShowFeaturedEditor(true)}
                 >
                   <PencilSquareIcon className="w-6 h-6 text-white" />
                 </button>
               </div>
 
-              {/* Placeholder for featured cosplay and competitions*/}
-              <div className="flex flex-row">
-                {/* First Card Feature */}
-                <div
-                  className="basis-1/3 flex flex-row items-end h-100 bg-gray-100 rounded-l-lg"
-                  style={{
-                    backgroundImage: "url(/images/sample-featured.png)",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                >
-                  {/* Competition Placeholder */}
-                  <div className="flex flex-col w-60 mx-auto py-2 px-6 mb-4 bg-white rounded-2xl shadow-md">
-                    <div className="flex flex-row gap-2">
-                      <h3 className="text-xs font-bold">
-                        {" "}
-                        2018 | Otakufest Dou Cosplay Competition
-                      </h3>
-                      <div className="flex flex-col items-center text-yellow-500">
-                        <TrophyIcon className="w-4 h-4 " />
-                        <span className="text-[10px]">Champion</span>
+              <div className="flex flex-row h-100">
+                {/* Display featured cosplays or placeholder */}
+                {featuredCosplays.some(item => item.imageUrl) ? (
+                  featuredCosplays.map((featured, index) => (
+                    <div
+                      key={index}
+                      className={`basis-1/3 flex flex-row items-end h-full ${
+                        index === 0 ? 'rounded-l-lg' : index === 2 ? 'rounded-r-lg' : ''
+                      } bg-gray-100 relative overflow-hidden`}
+                      style={{
+                        backgroundImage: featured.imageUrl ? `url(${featured.imageUrl})` : "none",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    >
+                      {featured.title && (
+                        <div className="w-full mx-auto py-2 px-4 mb-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-md m-4">
+                          <div className="flex flex-row gap-2 items-center">
+                            <div className="flex-1">
+                              <h3 className="text-xs font-bold line-clamp-1">
+                                {featured.title}
+                              </h3>
+                              {featured.character && (
+                                <p className="text-[10px] text-gray-600">
+                                  {featured.character}
+                                  {featured.series && ` • ${featured.series}`}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-center text-yellow-500">
+                              <TrophyIcon className="w-4 h-4" />
+                              <span className="text-[8px]">Featured</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div
+                      className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
+                      style={{
+                        backgroundImage: "url(/images/sample-featured.png)",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    >
+                      <div className="flex flex-col w-60 mx-auto py-2 px-6 mb-4 bg-white rounded-2xl shadow-md">
+                        <div className="flex flex-row gap-2">
+                          <h3 className="text-xs font-bold">
+                            2018 | Otakufest Duo Cosplay Competition
+                          </h3>
+                          <div className="flex flex-col items-center text-yellow-500">
+                            <TrophyIcon className="w-4 h-4 " />
+                            <span className="text-[10px]">Champion</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-row justify-between items-center p-2">
+                          <span className="text-[10px] text-gray-500">
+                            Cosplay Name
+                          </span>
+                          <span className="text-[10px] font-bold ml-2">
+                            Mikasa Ackerman
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-row justify-between items-center p-2">
-                      <span className="text-[10px] text-gray-500">
-                        Cosplay Name
-                      </span>
-                      <span className="text-[10px] font-bold ml-2">
-                        Mikasa Ackerman
-                      </span>
+                    <div className="basis-1/3 h-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Empty Slot</span>
                     </div>
-                  </div>
-                </div>
-                {/* Second Card Feature */}
-                <div className="basis-1/3 h-100 bg-gray-200"></div>
-                {/* Third Card Feature */}
-                <div className="basis-1/3 h-100 bg-gray-300 rounded-r-lg"></div>
+                    <div className="basis-1/3 h-full bg-gray-300 rounded-r-lg flex items-center justify-center">
+                      <span className="text-gray-600 text-sm">Empty Slot</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -369,61 +497,162 @@ const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
                       tabIndex={0}
                       className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
                     >
-                      <li>
-                        <a>All Users</a>
-                      </li>
-                      <li>
-                        <a>All Users</a>
-                      </li>
-                      <li>
-                        <a>All Users</a>
-                      </li>
-                      <li>
-                        <a>All Users</a>
-                      </li>
+                      <li><a>All Competitions</a></li>
+                      <li><a>Champion Only</a></li>
+                      <li><a>Recent First</a></li>
+                      <li><a>By Position</a></li>
                     </ul>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-row gap-2">
-                {/* Competition List */}
-                <div className="flex flex-row">
-                  <Image
-                    src="/icons/cosbaii-icon-primary.svg"
-                    alt="Cosbaii Icon"
-                    width={32}
-                    height={32}
-                    className="w-12 h-12 mr-2"
-                  />
+
+              {/* Dynamic Credentials Grid */}
+              {credentialsLoading ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="flex items-center gap-3 p-4 bg-gray-200 rounded-lg">
+                        <div className="w-16 h-16 bg-gray-300 rounded-lg"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-300 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ) : credentials.length > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {credentials.map((credential) => {
+                    const positionInfo = getPositionInfo(credential.position);
+                    
+                    return (
+                      <div
+                        key={credential.id}
+                        className="flex items-center gap-3 p-4 bg-base-50 rounded-lg border border-base-200 hover:shadow-md transition-shadow relative"
+                      >
+                        {/* Verification Status Indicator */}
+                        <div className="absolute top-2 right-2">
+                          {credential.verified ? (
+                            <div className="tooltip tooltip-left" data-tip="Verified by admin">
+                              <CheckBadgeIcon className="w-5 h-5 text-green-500" />
+                            </div>
+                          ) : (
+                            <div className="tooltip tooltip-left" data-tip="Under review">
+                              <ClockIcon className="w-5 h-5 text-orange-500 animate-pulse" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="relative flex-shrink-0">
+                          <Image
+                            src={credential.competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
+                            alt="Competition Logo"
+                            width={64}
+                            height={64}
+                            className="w-16 h-16 rounded-lg bg-white p-1 border border-base-200"
+                          />
+                          
+                          {/* Position Badge */}
+                          {positionInfo.icon && (
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                              <TrophyIcon className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm text-gray-900 truncate">
+                            {credential.competition.name} {eventYear(credential.competition.eventDate)}
+                          </h3>
+                          <p className="text-xs text-gray-500 mb-1">
+                            {credential.competition.competitionType} • {credential.competition.rivalryType}
+                          </p>
+                          
+                          {credential.cosplayTitle && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-600">Character:</span>
+                              <span className="text-xs font-medium text-gray-900 truncate">
+                                {credential.cosplayTitle}
+                              </span>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-600">Date:</span>
+                            <span className="text-xs font-medium text-gray-900">
+                              {formatDate(credential.competition.eventDate)}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 flex items-center gap-2">
+                            <span 
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${positionInfo.bgColor} ${positionInfo.textColor}`}
+                            >
+                              {positionInfo.text}
+                            </span>
+                            
+                            {!credential.verified && (
+                              <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
+                                Under Review
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <TrophyIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No competitions yet
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Start building your cosplay credentials by adding your competition participations.
+                  </p>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => setShowAddCredentialsModal(true)}
+                  >
+                    <PlusCircleIcon className="w-5 h-5" />
+                    Add Your First Credential
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </main>
 
-    {/* ✅ Edit Profile Modal */}
-      <EditProfileModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSave={handleSaveProfile}
-        profileData={getEditableProfileData()}
-        loading={editLoading}
-      />
+    {/* All Modals */}
+    <EditProfileModal
+      isOpen={showEditModal}
+      onClose={() => setShowEditModal(false)}
+      onSave={handleSaveProfile}
+      profileData={getEditableProfileData()}
+      loading={editLoading}
+    />
 
+    <AddCredentialsModal
+      isOpen={showAddCredentialsModal}
+      onClose={() => setShowAddCredentialsModal(false)}
+      onSuccess={() => {
+        setShowAddCredentialsModal(false);
+        refetchCredentials();
+      }}
+    />
 
-      {/* Add Credentials Modal */}
-      <AddCredentialsModal
-        isOpen={showAddCredentialsModal}
-        onClose={() => setShowAddCredentialsModal(false)}
-        onSuccess={() => {
-          setShowAddCredentialsModal(false);
-          // Optionally refresh page data
-        }}
-      />
-
-      
+    {/* Featured Cosplays Editor - Now properly connected */}
+    <FeaturedCosplaysEditor
+      isOpen={showFeaturedEditor}
+      onClose={() => setShowFeaturedEditor(false)}
+      onSave={handleFeaturedSave}
+      initialFeatured={featuredCosplays}
+    />
     </>
   );
 };
