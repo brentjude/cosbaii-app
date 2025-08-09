@@ -5,31 +5,10 @@ import { useState, useEffect, useRef } from "react";
 import { XMarkIcon, CameraIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import FeaturedCosplaysEditor from "./FeaturedCosplaysEditor";
+import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
 
-type CosplayerType = "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
-type SkillLevel = "beginner" | "intermediate" | "advanced";
-
-interface FeaturedItem {
-  id?: number;
-  title: string;
-  description: string;
-  imageUrl: string;
-  character?: string;
-  series?: string;
-  competitionId?: number;
-}
-
-interface EditProfileData {
-  displayName: string; // Keep for compatibility but won't be editable
-  bio: string;
-  profilePicture: string;
-  coverImage: string;
-  cosplayerType: CosplayerType;
-  yearsOfExperience: number | null;
-  specialization: string;
-  skillLevel: SkillLevel;
-  featured: FeaturedItem[];
-}
+// In both EditProfileModal.tsx and page.tsx
+import { EditProfileData, SkillLevel, CosplayerType, FeaturedItem } from "@/types/profile";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -60,9 +39,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const [errors, setErrors] = useState<Partial<EditProfileData>>({});
   const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
+  const [imageUploading, setImageUploading] = useState<{
+    profile: boolean;
+    cover: boolean;
+  }>({ profile: false, cover: false });
 
   const profileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const { uploadImage, uploading, error: uploadError } = useCloudinaryUpload();
 
   const specializationOptions = [
     "Sewing & Tailoring",
@@ -84,31 +69,64 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   }, [profileData]);
 
-  // Handle image upload for profile/cover
-  const handleImageUpload = (
+  // Handle image upload with Cloudinary
+  const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
     type: "profile" | "cover"
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
-      return;
-    }
+    setImageUploading(prev => ({ ...prev, [type]: true }));
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB");
-      return;
-    }
+    try {
+      const uploadResult = await uploadImage(file, {
+        uploadPreset: 'cosbaii-profiles', // Create this preset in Cloudinary
+        folder: `cosbaii/profiles/${type}`,
+        onSuccess: (result) => {
+          console.log('Upload successful:', result);
+        },
+        onError: (error) => {
+          console.error('Upload error:', error);
+        }
+      });
 
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setFormData(prev => ({
-      ...prev,
-      [type === "profile" ? "profilePicture" : "coverImage"]: previewUrl,
-    }));
+      if (uploadResult) {
+        // Update form data with new image URL
+        setFormData(prev => ({
+          ...prev,
+          [type === "profile" ? "profilePicture" : "coverImage"]: uploadResult.url,
+        }));
+
+        // Save to database
+        const response = await fetch('/api/upload/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageUrl: uploadResult.url,
+            imageType: type,
+            publicId: uploadResult.publicId,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save image to database');
+        }
+
+        const data = await response.json();
+        console.log('Image saved to database:', data);
+      }
+
+    } catch (error) {
+      console.error(`Error uploading ${type} image:`, error);
+      alert(`Failed to upload ${type} image. Please try again.`);
+    } finally {
+      setImageUploading(prev => ({ ...prev, [type]: false }));
+      // Clear the input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   // Form validation (removed displayName validation)
@@ -165,11 +183,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               <button
                 onClick={handleClose}
                 className="btn btn-sm btn-circle btn-ghost"
-                disabled={loading}
+                disabled={loading || uploading}
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Upload Error Display */}
+            {uploadError && (
+              <div className="mx-6 mt-4 alert alert-error">
+                <span>{uploadError}</span>
+              </div>
+            )}
 
             {/* Scrollable Content */}
             <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(95vh-140px)]">
@@ -186,7 +211,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     </label>
                     <div 
                       className="h-40 bg-base-200 rounded-lg overflow-hidden relative group cursor-pointer border-2 border-dashed border-base-300 hover:border-primary"
-                      onClick={() => coverInputRef.current?.click()}
+                      onClick={() => !imageUploading.cover && coverInputRef.current?.click()}
                     >
                       <Image
                         src={formData.coverImage}
@@ -196,8 +221,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="text-center text-white">
-                          <CameraIcon className="w-8 h-8 mx-auto mb-2" />
-                          <p className="text-sm">Click to change cover</p>
+                          {imageUploading.cover ? (
+                            <>
+                              <span className="loading loading-spinner loading-lg mb-2"></span>
+                              <p className="text-sm">Uploading cover image...</p>
+                            </>
+                          ) : (
+                            <>
+                              <CameraIcon className="w-8 h-8 mx-auto mb-2" />
+                              <p className="text-sm">Click to change cover</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -207,6 +241,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       accept="image/*"
                       onChange={(e) => handleImageUpload(e, "cover")}
                       className="hidden"
+                      disabled={imageUploading.cover}
                     />
                   </div>
 
@@ -229,21 +264,34 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                         <button
                           type="button"
                           className="absolute bottom-0 right-0 btn btn-circle btn-sm btn-primary"
-                          onClick={() => profileInputRef.current?.click()}
+                          onClick={() => !imageUploading.profile && profileInputRef.current?.click()}
+                          disabled={imageUploading.profile}
                         >
-                          <CameraIcon className="w-4 h-4" />
+                          {imageUploading.profile ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            <CameraIcon className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                       <div>
                         <button
                           type="button"
                           className="btn btn-outline btn-sm"
-                          onClick={() => profileInputRef.current?.click()}
+                          onClick={() => !imageUploading.profile && profileInputRef.current?.click()}
+                          disabled={imageUploading.profile}
                         >
-                          Change Photo
+                          {imageUploading.profile ? (
+                            <>
+                              <span className="loading loading-spinner loading-sm"></span>
+                              Uploading...
+                            </>
+                          ) : (
+                            "Change Photo"
+                          )}
                         </button>
                         <p className="text-xs text-base-content/60 mt-1">
-                          JPG, PNG, GIF up to 5MB
+                          JPG, PNG, GIF up to 10MB
                         </p>
                       </div>
                     </div>
@@ -253,10 +301,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       accept="image/*"
                       onChange={(e) => handleImageUpload(e, "profile")}
                       className="hidden"
+                      disabled={imageUploading.profile}
                     />
                   </div>
                 </div>
 
+                {/* Rest of your form sections remain the same... */}
                 {/* Basic Information */}
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Basic Information</h3>
@@ -459,14 +509,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   type="button"
                   onClick={handleClose}
                   className="btn btn-ghost"
-                  disabled={loading}
+                  disabled={loading || uploading || imageUploading.profile || imageUploading.cover}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={loading}
+                  disabled={loading || uploading || imageUploading.profile || imageUploading.cover}
                 >
                   {loading ? (
                     <>

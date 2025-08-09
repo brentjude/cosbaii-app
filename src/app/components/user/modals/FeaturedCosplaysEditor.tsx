@@ -1,9 +1,9 @@
-// Create: src/app/components/user/modals/FeaturedCosplaysEditor.tsx
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { XMarkIcon, CameraIcon, PlusIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
+import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload"; // Add this import
 
 interface Competition {
   id: number;
@@ -61,8 +61,14 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
   const [searchTerms, setSearchTerms] = useState<string[]>(["", "", ""]);
   const [showDropdowns, setShowDropdowns] = useState<boolean[]>([false, false, false]);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
+  
+  // Add missing state for image uploading
+  const [imageUploading, setImageUploading] = useState<Record<number, boolean>>({});
 
   const featuredInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
+
+  // Add the Cloudinary upload hook
+  const { uploadImage, uploading: cloudinaryUploading, error: uploadError } = useCloudinaryUpload();
 
   // Initialize featured data
   useEffect(() => {
@@ -162,27 +168,78 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     setSearchTerms(newSearchTerms);
   };
 
-  const handleFeaturedImageUpload = (
+  // Fixed handleFeaturedImageUpload function
+  const handleFeaturedImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
     index: number
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file");
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB");
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      alert("File size must be less than 10MB");
       return;
     }
 
-    const previewUrl = URL.createObjectURL(file);
-    const newFeatured = [...featured];
-    newFeatured[index] = { ...newFeatured[index], imageUrl: previewUrl };
-    setFeatured(newFeatured);
+    setImageUploading(prev => ({ ...prev, [index]: true }));
+
+    try {
+      const uploadResult = await uploadImage(file, {
+        uploadPreset: 'cosbaii-featured', // Make sure this preset exists in Cloudinary
+        folder: `cosbaii/featured-cosplays`,
+        onSuccess: (result) => {
+          console.log('Featured image upload successful:', result);
+        },
+        onError: (error) => {
+          console.error('Featured image upload error:', error);
+        }
+      });
+
+      if (uploadResult) {
+        const newFeatured = [...featured];
+        newFeatured[index] = { 
+          ...newFeatured[index], 
+          imageUrl: uploadResult.url 
+        };
+        setFeatured(newFeatured);
+
+        // Optionally save to database immediately
+        try {
+          const response = await fetch('/api/upload/featured', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageUrl: uploadResult.url,
+              publicId: uploadResult.publicId,
+              featuredIndex: index,
+            }),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to save featured image to database');
+          }
+        } catch (dbError) {
+          console.error('Database save error:', dbError);
+          // Don't throw here - the image is already uploaded to Cloudinary
+        }
+      }
+
+    } catch (error) {
+      console.error('Error uploading featured image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setImageUploading(prev => ({ ...prev, [index]: false }));
+      // Clear the input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
   };
 
   const handleFeaturedChange = (
@@ -232,11 +289,18 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
               <button
                 onClick={handleClose}
                 className="btn btn-sm btn-circle btn-ghost"
-                disabled={loading}
+                disabled={loading || cloudinaryUploading}
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Upload Error Display */}
+            {uploadError && (
+              <div className="mx-6 mt-4 alert alert-error">
+                <span>{uploadError}</span>
+              </div>
+            )}
 
             {/* Content */}
             <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(95vh-140px)]">
@@ -355,7 +419,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                           </label>
                           <div 
                             className="h-32 bg-base-200 rounded-lg overflow-hidden relative group cursor-pointer border-2 border-dashed border-base-300 hover:border-primary"
-                            onClick={() => featuredInputRefs.current[index]?.click()}
+                            onClick={() => !imageUploading[index] && featuredInputRefs.current[index]?.click()}
                           >
                             {item.imageUrl ? (
                               <Image
@@ -372,9 +436,23 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                                 </div>
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <CameraIcon className="w-6 h-6 text-white" />
-                            </div>
+                            
+                            {/* Loading overlay */}
+                            {imageUploading[index] && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <div className="text-center text-white">
+                                  <span className="loading loading-spinner loading-lg mb-2"></span>
+                                  <p className="text-xs">Uploading image...</p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Hover overlay */}
+                            {!imageUploading[index] && (
+                              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <CameraIcon className="w-6 h-6 text-white" />
+                              </div>
+                            )}
                           </div>
                           <input
                             ref={(el) => setFeaturedInputRef(el, index)}
@@ -382,6 +460,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                             accept="image/*"
                             onChange={(e) => handleFeaturedImageUpload(e, index)}
                             className="hidden"
+                            disabled={imageUploading[index]}
                           />
                         </div>
 
@@ -429,14 +508,14 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                   type="button"
                   onClick={handleClose}
                   className="btn btn-ghost"
-                  disabled={loading}
+                  disabled={loading || cloudinaryUploading || Object.values(imageUploading).some(Boolean)}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={loading}
+                  disabled={loading || cloudinaryUploading || Object.values(imageUploading).some(Boolean)}
                 >
                   {loading ? (
                     <>

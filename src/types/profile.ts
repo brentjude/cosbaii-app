@@ -1,4 +1,29 @@
 // src/types/profile.ts
+export type CosplayerType = "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
+export type SkillLevel = "beginner" | "intermediate" | "advanced";
+
+export interface FeaturedItem {
+  id?: number;
+  title: string;
+  description: string;
+  imageUrl: string;
+  character?: string;
+  series?: string;
+  competitionId?: number;
+}
+
+export interface EditProfileData {
+  displayName: string;
+  bio: string;
+  profilePicture: string;
+  coverImage: string;
+  cosplayerType: CosplayerType;
+  yearsOfExperience: number | null;
+  specialization: string;
+  skillLevel: SkillLevel;
+  featured: FeaturedItem[];
+}
+
 export interface Profile {
   id: number;
   displayName: string;

@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import UserLogout from "./UserLogout";
-import ProfileSetupModal from "../user/modals/ProfileSetupModal"; // ✅ Import modal
-import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
+import ProfileSetupModal from "./modals/ProfileSetupModal";
+import { useProfile } from "@/app/context/ProfileContext";
 
 //icons
 import {
@@ -22,29 +22,38 @@ const UserHeader = () => {
   const pathname = usePathname();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  // ✅ Add missing setupLoading state
+  const [setupLoading, setSetupLoading] = useState(false);
 
-  // ✅ Use profile context
-  const { hasProfile, updateProfile, loading } = useProfile();
+  // ✅ Use profile context - get profile to access profilePicture
+  const { profile, hasProfile, updateProfile, setupProfile, loading } = useProfile();
 
   // ✅ Ensure component is mounted on client
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-
   const closeDropdown = () => {
     (document.activeElement as HTMLElement)?.blur();
   };
 
-  // ✅ Simplified handler using context
+  // ✅ Fix handler to use setupProfile instead of updateProfile for setup
   const handleProfileSetupComplete = async (profileData: any) => {
-    const success = await updateProfile(profileData);
-
-    if (success) {
-      setShowProfileSetup(false);
-      console.log("Profile setup successful!");
-    } else {
+    setSetupLoading(true);
+    try {
+      const result = await setupProfile(profileData);
+      
+      if (result.success) {
+        setShowProfileSetup(false);
+        console.log("Profile setup successful!");
+      } else {
+        throw new Error(result.error || 'Failed to setup profile');
+      }
+    } catch (error) {
+      console.error('Profile setup error:', error);
       alert("Profile setup failed. Please try again.");
+    } finally {
+      setSetupLoading(false);
     }
   };
 
@@ -67,6 +76,14 @@ const UserHeader = () => {
       return pathname === "/dashboard" || pathname.startsWith("/dashboard");
     }
     return pathname === route;
+  };
+
+  // ✅ Get avatar image source with fallback
+  const getAvatarSrc = () => {
+    if (profile?.profilePicture && profile.profilePicture !== "/images/default-avatar.png") {
+      return profile.profilePicture;
+    }
+    return "/images/cosbaii-logo-black.webp";
   };
 
   return (
@@ -121,8 +138,16 @@ const UserHeader = () => {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleOpenProfileSetup}
+                disabled={setupLoading}
               >
-                Complete Profile
+                {setupLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Setting up...
+                  </>
+                ) : (
+                  "Complete Profile"
+                )}
               </button>
             )}
 
@@ -133,8 +158,24 @@ const UserHeader = () => {
                   role="button"
                   className="btn btn-ghost btn-circle avatar"
                 >
-                  <div className="w-10 rounded-full">
-                    <img src="https://img.daisyui.com/images/profile/demo/yellingcat@192.webp" />
+                  {/* ✅ Updated avatar with user profile picture or fallback */}
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-base-200">
+                    {profile?.profilePicture && profile.profilePicture !== "/images/default-avatar.png" ? (
+                      <div 
+                        className="w-full h-full bg-cover bg-center bg-no-repeat"
+                        style={{
+                          backgroundImage: `url(${profile.profilePicture})`
+                        }}
+                      />
+                    ) : (
+                      <Image
+                        src="/images/cosbaii-logo-black.webp"
+                        alt="Default Avatar"
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -184,7 +225,7 @@ const UserHeader = () => {
           isOpen={showProfileSetup}
           onClose={() => setShowProfileSetup(false)}
           onComplete={handleProfileSetupComplete}
-          loading={loading}
+          loading={setupLoading}
         />
       )}
     </>

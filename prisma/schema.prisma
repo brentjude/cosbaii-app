@@ -115,10 +115,14 @@ model Profile {
   specialization    String? // Specific areas of expertise (e.g., sewing, makeup, prop
   skillLevel        String? // Skill level (beginner, intermediate, advanced)
 
+  // Add public IDs for Cloudinary image management
+  profilePicturePublicId String? // Store Cloudinary public ID for deletion
+  coverImagePublicId     String? // Store Cloudinary public ID for deletion
+
   displayName    String?
   bio            String? //Cosplayers bio
-  profilePicture String? @default("/images/default-avatar,png") //URL to profile picture
-  coverImage     String? @default("/images/default-cover.jpg") //URL to cover image
+  profilePicture String? @default("/images/default-avatar.png")
+  coverImage     String? @default("/images/default-cover.jpg")
 
   //social media links
   instagramUrl String?

@@ -1,4 +1,3 @@
-// Update: src/app/(user)/profile/page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -22,15 +21,7 @@ import {
   CheckBadgeIcon,
 } from "@heroicons/react/16/solid";
 
-interface FeaturedItem {
-  id?: number;
-  title: string;
-  description: string;
-  imageUrl: string;
-  character?: string;
-  series?: string;
-  competitionId?: number;
-}
+import { EditProfileData, SkillLevel, CosplayerType, FeaturedItem } from "@/types/profile";
 
 const ProfilePage = () => {
   const { data: session } = useSession();
@@ -113,19 +104,22 @@ const ProfilePage = () => {
       // Update local state
       setFeaturedCosplays(featured);
       
-      // Here you would also save to backend/database
-      // const response = await fetch('/api/user/featured', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ featured })
-      // });
+      // Save to backend
+      const response = await fetch('/api/user/featured', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save featured cosplays');
+      }
       
       setShowFeaturedEditor(false);
-      
-      // Optional: show success toast
       console.log('Featured cosplays saved:', featured);
     } catch (error) {
       console.error('Error saving featured cosplays:', error);
+      alert('Failed to save featured cosplays. Please try again.');
     }
   };
 
@@ -159,7 +153,7 @@ const ProfilePage = () => {
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = async (editedData: any) => {
+  const handleSaveProfile = async (editedData: EditProfileData) => {
     setEditLoading(true);
     try {
       const success = await updateProfile(editedData);
@@ -175,7 +169,8 @@ const ProfilePage = () => {
 
   const cosplayerTypeInfo = getCosplayerTypeDisplay();
 
-  const getEditableProfileData = () => {
+  // ✅ Fix the getEditableProfileData function with proper type casting
+  const getEditableProfileData = (): EditProfileData | null => {
     if (!profile) return null;
     
     return {
@@ -186,7 +181,8 @@ const ProfilePage = () => {
       cosplayerType: profile.cosplayerType,
       yearsOfExperience: profile.yearsOfExperience,
       specialization: profile.specialization || "",
-      skillLevel: profile.skillLevel || "beginner",
+      // ✅ Cast skillLevel to proper SkillLevel type with fallback
+      skillLevel: (profile.skillLevel as SkillLevel) || "beginner",
       featured: featuredCosplays,
     };
   };
@@ -222,25 +218,24 @@ const ProfilePage = () => {
             )}
           </div>
 
-          <div className="flex flex-row max-md:flex-col gap-[20%] max-md:gap-4 justify-between mt-[-50px] max-md:mt-[-20px] z-10 relative">
+          <div className="flex flex-row max-md:flex-col max-md:gap-4 justify-between mt-[-50px] max-md:mt-[-20px] z-10 relative">
             <div className="flex flex-row gap-1 basis-1/3 bg-white rounded-r-full rounded-tl-full rounded-bl-full ml-[-30px] max-md:ml-[0px] shadow-lg">
-              <div className="w-32 h-32 rounded-full border-4 border-white bg-base-200 overflow-hidden ">
-                {profile?.profilePicture ? (
-                  <Image
-                    src={profile.profilePicture}
-                    alt="Profile"
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-base-300">
-                    <UserIcon className="w-16 h-16 text-base-content/50" />
-                  </div>
-                )}
-              </div>
+              <div className="w-32 h-32 rounded-full border-4 border-white bg-base-200 overflow-hidden">
+                  {profile?.profilePicture ? (
+                    <div 
+                      className="w-full h-full bg-cover bg-center bg-no-repeat"
+                      style={{
+                        backgroundImage: `url(${profile.profilePicture})`
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-base-300">
+                      <UserIcon className="w-16 h-16 text-base-content/50" />
+                    </div>
+                  )}
+                </div>
               <div className="flex flex-col w-auto items-left pl-4 pr-4 ">
-                <h1 className="text-3xl max-md:text-2xl font-bold text-gray-900 mt-4">
+                <h1 className="text-2xl max-md:text-2xl font-bold text-gray-900 mt-4">
                   {profile?.displayName ||
                     session?.user?.name ||
                     "No Display Name"}
@@ -256,7 +251,7 @@ const ProfilePage = () => {
               </div>
             </div>
             {/* Stats cards */}
-            <div className="flex flex-row max-md:justify-center gap-2 basis-2/3">
+            <div className="flex flex-row max-w-[600px] max-md:justify-center gap-2 mr-[-10px] basis-2/3">
               <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
                 <h2 className="text-[32px] font-semibold mb-2">{championCount}</h2>
                 <span className="text-sm text-gray-500">Champion</span>
@@ -547,12 +542,13 @@ const ProfilePage = () => {
 
                         <div className="relative flex-shrink-0">
                           <Image
-                            src={credential.competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
-                            alt="Competition Logo"
-                            width={64}
-                            height={64}
-                            className="w-16 h-16 rounded-lg bg-white p-1 border border-base-200"
+                            src={credential.imageUrl || credential.competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
+                            alt={credential.imageUrl ? "Cosplay Photo" : "Competition Logo"}
+                            width={200}
+                            height={200}
+                            className="w-30 h-30 rounded-lg bg-white p-1 border border-base-200 object-cover"
                           />
+  
                           
                           {/* Position Badge */}
                           {positionInfo.icon && (
