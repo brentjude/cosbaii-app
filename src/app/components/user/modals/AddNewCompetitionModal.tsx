@@ -1,7 +1,7 @@
+// Update: src/app/components/user/modals/AddNewCompetitionModal.tsx
 import { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
-// Separate modal for adding new competition
 const AddNewCompetitionModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -48,95 +48,126 @@ const AddNewCompetitionModal: React.FC<{
   ];
 
   const validateForm = (): boolean => {
-  const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {};
 
-  if (!formData.name.trim()) {
-    newErrors.name = "Competition name is required";
-  } else if (formData.name.length > 200) {
-    newErrors.name = "Competition name must be less than 200 characters";
-  }
-
-  if (!formData.eventDate) {
-    newErrors.eventDate = "Event date is required";
-  }
-
-  // Validate URLs if provided
-  const validateUrl = (url: string, fieldName: string) => {
-    if (url.trim()) {
-      try {
-        new URL(url.trim());
-      } catch {
-        newErrors[fieldName] = "Please enter a valid URL";
-      }
+    // ✅ Only validate essential required fields
+    if (!formData.name.trim()) {
+      newErrors.name = "Competition name is required";
+    } else if (formData.name.length > 200) {
+      newErrors.name = "Competition name must be less than 200 characters";
     }
+
+    if (!formData.eventDate) {
+      newErrors.eventDate = "Event date is required";
+    }
+
+    // ✅ Validate dropdown selections (these have defaults, but just to be safe)
+    if (!formData.competitionType) {
+      newErrors.competitionType = "Competition type is required";
+    }
+
+    if (!formData.rivalryType) {
+      newErrors.rivalryType = "Rivalry type is required";
+    }
+
+    if (!formData.level) {
+      newErrors.level = "Level is required";
+    }
+
+    // ✅ Optional field validations (only if provided)
+    const validateUrl = (url: string, fieldName: string) => {
+      if (url.trim()) {
+        try {
+          new URL(url.trim());
+        } catch {
+          newErrors[fieldName] = "Please enter a valid URL";
+        }
+      }
+    };
+
+    validateUrl(formData.logoUrl, 'logoUrl');
+    validateUrl(formData.eventUrl, 'eventUrl');
+    validateUrl(formData.facebookUrl, 'facebookUrl');
+    validateUrl(formData.instagramUrl, 'instagramUrl');
+
+    // Optional field length validations
+    if (formData.description && formData.description.length > 1000) {
+      newErrors.description = "Description must be less than 1000 characters";
+    }
+
+    if (formData.location && formData.location.length > 200) {
+      newErrors.location = "Location must be less than 200 characters";
+    }
+
+    if (formData.organizer && formData.organizer.length > 200) {
+      newErrors.organizer = "Organizer name must be less than 200 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  validateUrl(formData.logoUrl, 'logoUrl');
-  validateUrl(formData.eventUrl, 'eventUrl');
-  validateUrl(formData.facebookUrl, 'facebookUrl');
-  validateUrl(formData.instagramUrl, 'instagramUrl');
-
-  if (formData.description && formData.description.length > 1000) {
-    newErrors.description = "Description must be less than 1000 characters";
-  }
-
-  if (formData.location && formData.location.length > 200) {
-    newErrors.location = "Location must be less than 200 characters";
-  }
-
-  if (formData.organizer && formData.organizer.length > 200) {
-    newErrors.organizer = "Organizer name must be less than 200 characters";
-  }
-
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
-
-  const handleSubmit = async () => {
+  // Update: src/app/components/user/modals/AddNewCompetitionModal.tsx
+const handleSubmit = async () => {
   if (!validateForm()) return;
 
   setLoading(true);
   try {
-    // Clean the form data before sending
-    const cleanedData = {
-      name: formData.name.trim(),
-      description: formData.description.trim() || null,
-      eventDate: formData.eventDate,
-      location: formData.location.trim() || null,
-      organizer: formData.organizer.trim() || null,
-      competitionType: formData.competitionType,
-      rivalryType: formData.rivalryType,
-      level: formData.level,
-      logoUrl: formData.logoUrl.trim() || null,
-      eventUrl: formData.eventUrl.trim() || null,
-      facebookUrl: formData.facebookUrl.trim() || null,
-      instagramUrl: formData.instagramUrl.trim() || null,
-      referenceLinks: formData.referenceLinks.trim() || null,
-    };
+      // ✅ Clean the form data before sending (handle empty strings properly)
+      const cleanedData = {
+        name: formData.name.trim(),
+        eventDate: formData.eventDate,
+        competitionType: formData.competitionType,
+        rivalryType: formData.rivalryType,
+        level: formData.level,
+        // Optional fields - send as null if empty
+        description: formData.description.trim() || null,
+        location: formData.location.trim() || null,
+        organizer: formData.organizer.trim() || null,
+        logoUrl: formData.logoUrl.trim() || null,
+        eventUrl: formData.eventUrl.trim() || null,
+        facebookUrl: formData.facebookUrl.trim() || null,
+        instagramUrl: formData.instagramUrl.trim() || null,
+        referenceLinks: formData.referenceLinks.trim() || null,
+      };
 
-    const response = await fetch('/api/user/competitions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleanedData),
-    });
+      console.log('Sending competition data:', cleanedData);
 
-    const responseData = await response.json();
-
-    if (response.ok) {
-      onSuccess();
-    } else {
-      console.error('API Error:', responseData);
-      setErrors({ 
-        submit: responseData.message || "Failed to submit competition" 
+      const response = await fetch('/api/user/competitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanedData),
       });
+
+      const responseData = await response.json();
+      console.log('API Response:', responseData);
+
+      if (response.ok) {
+        console.log('Competition submitted successfully!');
+        console.log('Notification created:', responseData.notificationCreated);
+        
+        onSuccess();
+        onClose();
+        
+        // ✅ Add a success message to help with debugging
+        if (responseData.notificationCreated) {
+          console.log('✅ Notification was created successfully');
+        } else {
+          console.warn('⚠️ Notification was not created');
         }
+      } else {
+        console.error('API Error:', responseData);
+        setErrors({ 
+          submit: responseData.error || "Failed to submit competition" 
+        });
+      }
     } catch (error) {
-        console.error('Network Error:', error);
-        setErrors({ submit: "Failed to submit competition" });
+      console.error('Network Error:', error);
+      setErrors({ submit: "Failed to submit competition" });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   const resetForm = () => {
     setFormData({
@@ -219,6 +250,24 @@ const AddNewCompetitionModal: React.FC<{
 
                   <div className="form-control">
                     <label className="label">
+                      <span className="label-text font-medium">Event Date *</span>
+                    </label>
+                    <input
+                      type="date"
+                      className={`input input-bordered ${errors.eventDate ? 'input-error' : ''}`}
+                      value={formData.eventDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, eventDate: e.target.value }))}
+                      disabled={loading}
+                    />
+                    {errors.eventDate && (
+                      <label className="label">
+                        <span className="label-text-alt text-error">{errors.eventDate}</span>
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label">
                       <span className="label-text font-medium">Description</span>
                     </label>
                     <textarea
@@ -233,24 +282,6 @@ const AddNewCompetitionModal: React.FC<{
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Event Date *</span>
-                      </label>
-                      <input
-                        type="date"
-                        className={`input input-bordered ${errors.eventDate ? 'input-error' : ''}`}
-                        value={formData.eventDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, eventDate: e.target.value }))}
-                        disabled={loading}
-                      />
-                      {errors.eventDate && (
-                        <label className="label">
-                          <span className="label-text-alt text-error">{errors.eventDate}</span>
-                        </label>
-                      )}
-                    </div>
-
-                    <div className="form-control">
-                      <label className="label">
                         <span className="label-text font-medium">Location</span>
                       </label>
                       <input
@@ -262,34 +293,34 @@ const AddNewCompetitionModal: React.FC<{
                         disabled={loading}
                       />
                     </div>
-                  </div>
 
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">Organizer</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered"
-                      placeholder="Event organizer (optional)"
-                      value={formData.organizer}
-                      onChange={(e) => setFormData(prev => ({ ...prev, organizer: e.target.value }))}
-                      disabled={loading}
-                    />
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-medium">Organizer</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="input input-bordered"
+                        placeholder="Event organizer (optional)"
+                        value={formData.organizer}
+                        onChange={(e) => setFormData(prev => ({ ...prev, organizer: e.target.value }))}
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Competition Details */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Competition Details</h3>
+                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Competition Details *</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Competition Type</span>
+                        <span className="label-text font-medium">Competition Type *</span>
                       </label>
                       <select
-                        className="select select-bordered"
+                        className={`select select-bordered ${errors.competitionType ? 'select-error' : ''}`}
                         value={formData.competitionType}
                         onChange={(e) => setFormData(prev => ({ ...prev, competitionType: e.target.value }))}
                         disabled={loading}
@@ -300,14 +331,19 @@ const AddNewCompetitionModal: React.FC<{
                           </option>
                         ))}
                       </select>
+                      {errors.competitionType && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.competitionType}</span>
+                        </label>
+                      )}
                     </div>
 
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Rivalry Type</span>
+                        <span className="label-text font-medium">Rivalry Type *</span>
                       </label>
                       <select
-                        className="select select-bordered"
+                        className={`select select-bordered ${errors.rivalryType ? 'select-error' : ''}`}
                         value={formData.rivalryType}
                         onChange={(e) => setFormData(prev => ({ ...prev, rivalryType: e.target.value }))}
                         disabled={loading}
@@ -318,14 +354,19 @@ const AddNewCompetitionModal: React.FC<{
                           </option>
                         ))}
                       </select>
+                      {errors.rivalryType && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.rivalryType}</span>
+                        </label>
+                      )}
                     </div>
 
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Level</span>
+                        <span className="label-text font-medium">Level *</span>
                       </label>
                       <select
-                        className="select select-bordered"
+                        className={`select select-bordered ${errors.level ? 'select-error' : ''}`}
                         value={formData.level}
                         onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value }))}
                         disabled={loading}
@@ -336,6 +377,11 @@ const AddNewCompetitionModal: React.FC<{
                           </option>
                         ))}
                       </select>
+                      {errors.level && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.level}</span>
+                        </label>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -354,12 +400,17 @@ const AddNewCompetitionModal: React.FC<{
                       </label>
                       <input
                         type="url"
-                        className="input input-bordered"
+                        className={`input input-bordered ${errors.logoUrl ? 'input-error' : ''}`}
                         placeholder="https://example.com/logo.png"
                         value={formData.logoUrl}
                         onChange={(e) => setFormData(prev => ({ ...prev, logoUrl: e.target.value }))}
                         disabled={loading}
                       />
+                      {errors.logoUrl && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.logoUrl}</span>
+                        </label>
+                      )}
                     </div>
 
                     <div className="form-control">
@@ -368,12 +419,17 @@ const AddNewCompetitionModal: React.FC<{
                       </label>
                       <input
                         type="url"
-                        className="input input-bordered"
+                        className={`input input-bordered ${errors.eventUrl ? 'input-error' : ''}`}
                         placeholder="https://example.com/event"
                         value={formData.eventUrl}
                         onChange={(e) => setFormData(prev => ({ ...prev, eventUrl: e.target.value }))}
                         disabled={loading}
                       />
+                      {errors.eventUrl && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.eventUrl}</span>
+                        </label>
+                      )}
                     </div>
 
                     <div className="form-control">
@@ -382,12 +438,17 @@ const AddNewCompetitionModal: React.FC<{
                       </label>
                       <input
                         type="url"
-                        className="input input-bordered"
+                        className={`input input-bordered ${errors.facebookUrl ? 'input-error' : ''}`}
                         placeholder="https://facebook.com/event"
                         value={formData.facebookUrl}
                         onChange={(e) => setFormData(prev => ({ ...prev, facebookUrl: e.target.value }))}
                         disabled={loading}
                       />
+                      {errors.facebookUrl && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.facebookUrl}</span>
+                        </label>
+                      )}
                     </div>
 
                     <div className="form-control">
@@ -396,12 +457,17 @@ const AddNewCompetitionModal: React.FC<{
                       </label>
                       <input
                         type="url"
-                        className="input input-bordered"
+                        className={`input input-bordered ${errors.instagramUrl ? 'input-error' : ''}`}
                         placeholder="https://instagram.com/event"
                         value={formData.instagramUrl}
                         onChange={(e) => setFormData(prev => ({ ...prev, instagramUrl: e.target.value }))}
                         disabled={loading}
                       />
+                      {errors.instagramUrl && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">{errors.instagramUrl}</span>
+                        </label>
+                      )}
                     </div>
                   </div>
 
@@ -433,7 +499,7 @@ const AddNewCompetitionModal: React.FC<{
                     <ul className="mt-1 space-y-1">
                       <li>• Your competition will be reviewed by our admin team</li>
                       <li>• You'll receive a notification once it's approved</li>
-                      <li>• Provide as much detail as possible for faster approval</li>
+                      <li>• Only name, date, and competition details are required</li>
                     </ul>
                   </div>
                 </div>
@@ -474,4 +540,4 @@ const AddNewCompetitionModal: React.FC<{
   );
 };
 
-export default AddNewCompetitionModal
+export default AddNewCompetitionModal;

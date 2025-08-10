@@ -1,17 +1,21 @@
+// Update: src/app/(user)/dashboard/page.tsx
 "use client";
 
 import { useSession } from "next-auth/react";
 import UserDashboardSkeleton from "@/app/components/skeletons/user/UserDashboardSkeleton";
 import UserProfileCard from "@/app/components/user/UserProfileCard";
-import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
+import { useProfile } from "@/app/context/ProfileContext";
 import SubmitFeedbackCard from "@/app/components/user/SubmitFeedbackCard";
+import NotificationCard from "@/app/components/user/NotificationCard";
+import { useNotifications } from "@/hooks/user/useNotifications";
 
 //Hero icons
-import { CheckBadgeIcon } from "@heroicons/react/16/solid";
+import { CheckBadgeIcon, BellIcon } from "@heroicons/react/16/solid";
 
 const DashboardPage = () => {
   const { data: session, status } = useSession();
-  const { hasProfile, loading } = useProfile(); // ✅ Use context
+  const { hasProfile, loading } = useProfile();
+  const { notifications, loading: notificationsLoading, markAsRead, markAllAsRead } = useNotifications(5);
 
   // Get display name
   const displayName = session?.user?.username || session?.user?.name;
@@ -20,6 +24,8 @@ const DashboardPage = () => {
   if (status === "loading" || loading) {
     return <UserDashboardSkeleton />;
   }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <div className="p-6 max-w-[1240px] mx-auto">
@@ -30,7 +36,7 @@ const DashboardPage = () => {
         <p className="text-gray-600 mt-2">Here is your Cosbaii dashboard</p>
       </div>
 
-      {/* ✅ Profile Setup Prompt - now uses context */}
+      {/* Profile Setup Prompt */}
       {!hasProfile && (
         <div className="alert alert-info mb-4 rounded-lg text-gray-700">
           <svg
@@ -68,7 +74,7 @@ const DashboardPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* ✅ Profile Card - now uses context automatically */}
+        {/* Profile Card */}
         <div className="lg:col-span-1">
           <UserProfileCard />
           <SubmitFeedbackCard />
@@ -111,7 +117,7 @@ const DashboardPage = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Likes</p>
-                  <p className="text-2xl font-semibel text-gray-900">156</p>
+                  <p className="text-2xl font-semibold text-gray-900">156</p>
                 </div>
               </div>
             </div>
@@ -141,36 +147,79 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Recent Activity */}
+          {/* ✅ Updated Recent Activity with Notifications */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Recent Activity
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="text-center py-8">
-                <div className="text-gray-400 mb-4">
-                  <svg
-                    className="w-12 h-12 mx-auto"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    ></path>
-                  </svg>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BellIcon className="w-5 h-5 text-gray-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Recent Activity
+                  </h2>
+                  {unreadCount > 0 && (
+                    <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
                 </div>
-                <p className="text-gray-600">
-                  {!hasProfile
-                    ? "No activity yet. Start by completing your profile!"
-                    : "No recent activity. Start exploring!"}
-                </p>
+                
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    Mark all as read
+                  </button>
+                )}
               </div>
+            </div>
+            
+            <div className="p-6">
+              {notificationsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="flex items-start gap-3 p-4 bg-gray-100 rounded-lg">
+                        <div className="w-5 h-5 bg-gray-300 rounded"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                          <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
+                          <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : notifications.length > 0 ? (
+                <div className="space-y-3">
+                  {notifications.map((notification) => (
+                    <NotificationCard
+                      key={notification.id}
+                      notification={notification}
+                      onMarkAsRead={(id) => { markAsRead([id]); }}
+                    />
+                  ))}
+                  
+                  {notifications.length === 5 && (
+                    <div className="text-center pt-4">
+                      <button className="text-sm text-gray-600 hover:text-gray-800 transition-colors">
+                        View all notifications →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 mb-4">
+                    <BellIcon className="w-12 h-12 mx-auto" />
+                  </div>
+                  <p className="text-gray-600">
+                    {!hasProfile
+                      ? "No activity yet. Start by completing your profile!"
+                      : "No recent activity. Start exploring!"}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
