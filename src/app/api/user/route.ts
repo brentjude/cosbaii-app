@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hash } from "bcrypt";
 import { z } from "zod";
+import { BadgeTriggers } from '@/lib/badgeTriggers';
 
 //Defining schema for input validation
 const userSchema = z.object({
@@ -76,6 +77,9 @@ export async function POST(req: Request) {
                 password: hashedPassword
             }
         })
+
+        // ✅ Trigger badge check for new user
+        await BadgeTriggers.onUserRegistration(newUser.id);
 
         // Exclude the password from the response
         // This will ensure that the password is not exposed in the response

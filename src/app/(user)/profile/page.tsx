@@ -9,6 +9,7 @@ import { UserIcon } from "@heroicons/react/24/outline";
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import AddCredentialsModal from "@/app/components/user/modals/AddCredentialsModal";
 import FeaturedCosplaysEditor from "@/app/components/user/modals/FeaturedCosplaysEditor";
+import BadgeSection from "@/app/components/user/BadgeSection";
 
 import {
   PencilSquareIcon,

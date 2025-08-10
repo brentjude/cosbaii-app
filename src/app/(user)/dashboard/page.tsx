@@ -8,6 +8,7 @@ import { useProfile } from "@/app/context/ProfileContext";
 import SubmitFeedbackCard from "@/app/components/user/SubmitFeedbackCard";
 import NotificationCard from "@/app/components/user/NotificationCard";
 import { useNotifications } from "@/hooks/user/useNotifications";
+import BadgesSection from "@/app/components/user/BadgeSection";
 
 //Hero icons
 import { CheckBadgeIcon, BellIcon } from "@heroicons/react/16/solid";
@@ -145,6 +146,10 @@ const DashboardPage = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div>
+            <BadgesSection />
           </div>
 
           {/* ✅ Updated Recent Activity with Notifications */}

@@ -58,9 +58,10 @@ enum CompetitionStatus {
 }
 
 enum BadgeType {
+  PARTICIPATION
   COMPETITION_MILESTONE
   SPECIAL_ACHIEVEMENT
-  PARTICIPATION
+  PROFILE_COMPLETION
 }
 
 enum ParticipantPosition {
@@ -275,23 +276,19 @@ model FeaturedCosplay {
 }
 
 model Badge {
-  id          Int       @id @default(autoincrement())
-  name        String // Name of the badge
-  description String? // Description of the badge
-  iconUrl     String? // URL of the badge icon
-  type        BadgeType // Type of the badge (e.g., competition milestone, special achievement,
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String
+  iconUrl     String
+  type        BadgeType // ✅ Add this field
+  requirement Int?     // Optional requirement (for milestone badges)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  //Badge criteria
-  requirement Int?
-
-  // Relations
   userBadges UserBadge[]
 
-  createdAt DateTime @default(now())
-
-  @@map("badges") // Database table will be named "badges" instead of "Badge"
+  @@map("badges")
 }
-
 model UserBadge {
   id      Int   @id @default(autoincrement())
   userId  Int
@@ -337,18 +334,19 @@ model Feedback {
   @@map("feedback")
 }
 
+// Update: prisma/schema.prisma
 model Notification {
   id        Int      @id @default(autoincrement())
-  userId    Int // Admin user who should see this notification
-  type      String // FEEDBACK, USER_REGISTRATION, etc.
+  userId    Int
+  type      String
   title     String
-  message   String   @db.Text
-  isRead    Boolean  @default(false) // ✅ Fix: change 'read' to 'isRead' to match your code
-  relatedId Int? // ID of related entity (feedback ID, user ID, etc.)
+  message   String
+  data      String?  // JSON string for additional data
+  isRead    Boolean  @default(false) // ✅ Changed from 'read' to 'isRead'
+  relatedId Int?     // ✅ Added relatedId field for badge references
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")

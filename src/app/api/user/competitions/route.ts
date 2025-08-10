@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCompetitionSubmittedNotification } from '@/lib/notification';
+import { BadgeTriggers } from '@/lib/badgeTriggers';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,6 +94,15 @@ export async function POST(request: NextRequest) {
         status: 'SUBMITTED',
       },
     });
+
+    // ✅ Trigger badge check for competition submission
+    try {
+      console.log('Triggering badge check for competition submission...');
+      await BadgeTriggers.onCompetitionSubmission(userId);
+      console.log('Badge check completed for competition submission');
+    } catch (badgeError) {
+      console.error('Error checking badges after competition submission:', badgeError);
+    }
 
     console.log('Competition created successfully:', competition.id, competition.name);
 

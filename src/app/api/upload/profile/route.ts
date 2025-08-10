@@ -12,84 +12,95 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { imageUrl, imageType, publicId } = await request.json();
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const type = formData.get('type') as string; // 'profile' or 'cover'
 
-    if (!imageUrl || !imageType || !['profile', 'cover'].includes(imageType)) {
+    console.log('Upload request received:', { fileName: file?.name, type });
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    if (!type || !['profile', 'cover'].includes(type)) {
+      return NextResponse.json({ error: 'Invalid upload type. Must be "profile" or "cover"' }, { status: 400 });
+    }
+
+    // ✅ Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid image data' },
+        { error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' },
         { status: 400 }
       );
     }
 
-    const userId = parseInt(session.user.id);
-
-    // Get current profile to check for existing images
-    const currentProfile = await prisma.profile.findUnique({
-      where: { userId },
-      select: {
-        profilePicture: true,
-        profilePicturePublicId: true,
-        coverImage: true,
-        coverImagePublicId: true,
-      },
-    });
-
-    // Determine which field to update
-    const isProfile = imageType === 'profile';
-    const currentImageUrl = isProfile ? currentProfile?.profilePicture : currentProfile?.coverImage;
-    const currentPublicId = isProfile ? currentProfile?.profilePicturePublicId : currentProfile?.coverImagePublicId;
-
-    // Delete old image from Cloudinary if it exists and is not a default image
-    if (currentImageUrl && 
-        !currentImageUrl.includes('/images/default-') && 
-        currentImageUrl.includes('res.cloudinary.com')) {
-      
-      try {
-        // Use stored public ID or extract from URL
-        const oldPublicId = currentPublicId || extractPublicIdFromUrl(currentImageUrl);
-        
-        if (oldPublicId) {
-          await deleteImageFromCloudinary(oldPublicId);
-          console.log(`Deleted old ${imageType} image:`, oldPublicId);
-        }
-      } catch (deleteError) {
-        console.error(`Error deleting old ${imageType} image:`, deleteError);
-        // Continue with upload even if deletion fails
-      }
+    // ✅ Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 5MB.' },
+        { status: 400 }
+      );
     }
 
-    // Update profile with new image URL and public ID
-    const updateData = isProfile 
-      ? { 
-          profilePicture: imageUrl,
-          profilePicturePublicId: publicId 
-        }
-      : { 
-          coverImage: imageUrl,
-          coverImagePublicId: publicId 
-        };
+    console.log(`Uploading ${type} image:`, file.name, 'Size:', file.size, 'bytes');
 
-    const profile = await prisma.profile.upsert({
-      where: { userId },
-      update: updateData,
-      create: {
-        userId,
-        ...updateData,
-      },
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // ✅ Upload to Cloudinary with proper folder structure
+    const folder = `cosbaii/${type === 'profile' ? 'profiles' : 'covers'}`;
+    const result = await uploadToCloudinary(buffer, folder, {
+      // Add transformations for optimization
+      quality: 'auto:good',
+      fetch_format: 'auto',
+      ...(type === 'profile' && {
+        width: 400,
+        height: 400,
+        crop: 'fill',
+        gravity: 'face'
+      }),
+      ...(type === 'cover' && {
+        width: 1200,
+        height: 300,
+        crop: 'fill'
+      })
+    });
+
+    console.log('Cloudinary upload successful:', {
+      public_id: result.public_id,
+      secure_url: result.secure_url,
+      width: result.width,
+      height: result.height
     });
 
     return NextResponse.json({
       success: true,
-      imageUrl,
-      publicId,
-      message: `${imageType} image updated successfully`,
-      deletedOld: currentImageUrl ? true : false,
+      url: result.secure_url,
+      publicId: result.public_id,
+      width: result.width,
+      height: result.height,
+      message: `${type === 'profile' ? 'Profile' : 'Cover'} image uploaded successfully`
     });
 
   } catch (error) {
-    console.error('Error updating profile image:', error);
+    console.error('Error uploading profile image:', error);
+    
+    // ✅ Handle specific Cloudinary errors
+    if (error && typeof error === 'object' && 'error' in error) {
+      const cloudinaryError = error as any;
+      if (cloudinaryError.error?.message) {
+        return NextResponse.json(
+          { error: `Upload failed: ${cloudinaryError.error.message}` },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to update profile image' },
+      { error: 'Failed to upload image', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
