@@ -5,10 +5,13 @@ import { useState, useEffect, useRef } from "react";
 import { XMarkIcon, CameraIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import FeaturedCosplaysEditor from "./FeaturedCosplaysEditor";
-import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
-
 // In both EditProfileModal.tsx and page.tsx
-import { EditProfileData, SkillLevel, CosplayerType, FeaturedItem } from "@/types/profile";
+import {
+  EditProfileData,
+  SkillLevel,
+  CosplayerType,
+  FeaturedItem,
+} from "@/types/profile";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -47,11 +50,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const profileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  const { uploadImage, uploading, error: uploadError } = useCloudinaryUpload();
-
   const specializationOptions = [
     "Sewing & Tailoring",
-    "Armor Crafting", 
+    "Armor Crafting",
     "Makeup & SFX",
     "Prop Making",
     "Wig Styling",
@@ -77,54 +78,50 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setImageUploading(prev => ({ ...prev, [type]: true }));
+    // Validate file
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setImageUploading((prev) => ({ ...prev, [type]: true }));
 
     try {
-      const uploadResult = await uploadImage(file, {
-        uploadPreset: 'cosbaii-profiles', // Create this preset in Cloudinary
-        folder: `cosbaii/profiles/${type}`,
-        onSuccess: (result) => {
-          console.log('Upload successful:', result);
-        },
-        onError: (error) => {
-          console.error('Upload error:', error);
-        }
+      // ✅ Use your existing upload API route
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+
+      const response = await fetch("/api/upload/profile", {
+        method: "POST",
+        body: formData,
       });
 
-      if (uploadResult) {
-        // Update form data with new image URL
-        setFormData(prev => ({
-          ...prev,
-          [type === "profile" ? "profilePicture" : "coverImage"]: uploadResult.url,
-        }));
-
-        // Save to database
-        const response = await fetch('/api/upload/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageUrl: uploadResult.url,
-            imageType: type,
-            publicId: uploadResult.publicId,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save image to database');
-        }
-
-        const data = await response.json();
-        console.log('Image saved to database:', data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload image");
       }
 
+      const data = await response.json();
+      console.log("Upload successful:", data);
+
+      // ✅ Update form data with the returned URL
+      setFormData((prev) => ({
+        ...prev,
+        [type === "profile" ? "profilePicture" : "coverImage"]: data.url,
+      }));
     } catch (error) {
       console.error(`Error uploading ${type} image:`, error);
       alert(`Failed to upload ${type} image. Please try again.`);
     } finally {
-      setImageUploading(prev => ({ ...prev, [type]: false }));
-      // Clear the input
+      setImageUploading((prev) => ({ ...prev, [type]: false }));
       if (event.target) {
-        event.target.value = '';
+        event.target.value = "";
       }
     }
   };
@@ -158,7 +155,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   };
 
   const handleFeaturedSave = (featured: FeaturedItem[]) => {
-    setFormData(prev => ({ ...prev, featured }));
+    setFormData((prev) => ({ ...prev, featured }));
     setShowFeaturedEditor(false);
   };
 
@@ -168,50 +165,52 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     <>
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 z-50" onClick={handleClose} />
-      
+
       {/* Modal */}
       <div className="fixed inset-4 z-50 overflow-y-auto">
         <div className="min-h-full flex items-center justify-center p-4">
           <div className="bg-base-100 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden">
-            
             {/* Fixed Header */}
             <div className="flex justify-between items-center p-6 border-b border-base-200 bg-base-100">
               <div>
                 <h2 className="text-2xl font-bold">Edit Profile</h2>
-                <p className="text-base-content/70">Update your basic profile information</p>
+                <p className="text-base-content/70">
+                  Update your basic profile information
+                </p>
               </div>
               <button
                 onClick={handleClose}
                 className="btn btn-sm btn-circle btn-ghost"
-                disabled={loading || uploading}
+                disabled={loading}
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Upload Error Display */}
-            {uploadError && (
-              <div className="mx-6 mt-4 alert alert-error">
-                <span>{uploadError}</span>
-              </div>
-            )}
-
             {/* Scrollable Content */}
-            <form onSubmit={handleSubmit} className="overflow-y-auto max-h-[calc(95vh-140px)]">
+            <form
+              onSubmit={handleSubmit}
+              className="overflow-y-auto max-h-[calc(95vh-140px)]"
+            >
               <div className="p-6 space-y-8">
-                
                 {/* Profile Images Section */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Profile Images</h3>
-                  
+                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
+                    Profile Images
+                  </h3>
+
                   {/* Cover Image */}
                   <div className="space-y-2">
                     <label className="label">
-                      <span className="label-text font-medium">Cover Image</span>
+                      <span className="label-text font-medium">
+                        Cover Image
+                      </span>
                     </label>
-                    <div 
+                    <div
                       className="h-40 bg-base-200 rounded-lg overflow-hidden relative group cursor-pointer border-2 border-dashed border-base-300 hover:border-primary"
-                      onClick={() => !imageUploading.cover && coverInputRef.current?.click()}
+                      onClick={() =>
+                        !imageUploading.cover && coverInputRef.current?.click()
+                      }
                     >
                       <Image
                         src={formData.coverImage}
@@ -224,7 +223,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                           {imageUploading.cover ? (
                             <>
                               <span className="loading loading-spinner loading-lg mb-2"></span>
-                              <p className="text-sm">Uploading cover image...</p>
+                              <p className="text-sm">
+                                Uploading cover image...
+                              </p>
                             </>
                           ) : (
                             <>
@@ -248,7 +249,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   {/* Profile Picture */}
                   <div className="space-y-2">
                     <label className="label">
-                      <span className="label-text font-medium">Profile Picture</span>
+                      <span className="label-text font-medium">
+                        Profile Picture
+                      </span>
                     </label>
                     <div className="flex items-center gap-4">
                       <div className="relative">
@@ -264,7 +267,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                         <button
                           type="button"
                           className="absolute bottom-0 right-0 btn btn-circle btn-sm btn-primary"
-                          onClick={() => !imageUploading.profile && profileInputRef.current?.click()}
+                          onClick={() =>
+                            !imageUploading.profile &&
+                            profileInputRef.current?.click()
+                          }
                           disabled={imageUploading.profile}
                         >
                           {imageUploading.profile ? (
@@ -278,7 +284,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                         <button
                           type="button"
                           className="btn btn-outline btn-sm"
-                          onClick={() => !imageUploading.profile && profileInputRef.current?.click()}
+                          onClick={() =>
+                            !imageUploading.profile &&
+                            profileInputRef.current?.click()
+                          }
                           disabled={imageUploading.profile}
                         >
                           {imageUploading.profile ? (
@@ -309,13 +318,19 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 {/* Rest of your form sections remain the same... */}
                 {/* Basic Information */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Basic Information</h3>
-                  
+                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
+                    Basic Information
+                  </h3>
+
                   {/* Display Name - Read Only with Info */}
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Display Name</span>
-                      <span className="label-text-alt text-info">Can only be changed once every 7 days</span>
+                      <span className="label-text font-medium">
+                        Display Name
+                      </span>
+                      <span className="label-text-alt text-info">
+                        Can only be changed once every 7 days
+                      </span>
                     </label>
                     <input
                       type="text"
@@ -335,14 +350,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-medium">Bio</span>
-                      <span className="label-text-alt">{formData.bio.length}/160</span>
+                      <span className="label-text-alt">
+                        {formData.bio.length}/160
+                      </span>
                     </label>
                     <textarea
-                      className={`textarea textarea-bordered h-20 ${errors.bio ? 'textarea-error' : ''}`}
+                      className={`textarea textarea-bordered h-20 ${
+                        errors.bio ? "textarea-error" : ""
+                      }`}
                       value={formData.bio}
                       onChange={(e) => {
                         if (e.target.value.length <= 160) {
-                          setFormData(prev => ({ ...prev, bio: e.target.value }));
+                          setFormData((prev) => ({
+                            ...prev,
+                            bio: e.target.value,
+                          }));
                         }
                       }}
                       placeholder="Tell us about yourself and your cosplay journey..."
@@ -350,7 +372,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     />
                     {errors.bio && (
                       <label className="label">
-                        <span className="label-text-alt text-error">{errors.bio}</span>
+                        <span className="label-text-alt text-error">
+                          {errors.bio}
+                        </span>
                       </label>
                     )}
                   </div>
@@ -358,40 +382,56 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
                 {/* Cosplayer Information */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Cosplayer Information</h3>
-                  
+                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
+                    Cosplayer Information
+                  </h3>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Cosplayer Type */}
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Cosplayer Type</span>
+                        <span className="label-text font-medium">
+                          Cosplayer Type
+                        </span>
                       </label>
                       <select
                         className="select select-bordered"
                         value={formData.cosplayerType}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          cosplayerType: e.target.value as CosplayerType 
-                        }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            cosplayerType: e.target.value as CosplayerType,
+                          }))
+                        }
                       >
                         <option value="HOBBY">🎨 Hobby Cosplayer</option>
-                        <option value="COMPETITIVE">🏆 Competitive Cosplayer</option>
-                        <option value="PROFESSIONAL">💼 Professional Cosplayer</option>
+                        <option value="COMPETITIVE">
+                          🏆 Competitive Cosplayer
+                        </option>
+                        <option value="PROFESSIONAL">
+                          💼 Professional Cosplayer
+                        </option>
                       </select>
                     </div>
 
                     {/* Years of Experience */}
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Years of Experience</span>
+                        <span className="label-text font-medium">
+                          Years of Experience
+                        </span>
                       </label>
                       <select
                         className="select select-bordered"
                         value={formData.yearsOfExperience || ""}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          yearsOfExperience: e.target.value ? parseInt(e.target.value) : null 
-                        }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            yearsOfExperience: e.target.value
+                              ? parseInt(e.target.value)
+                              : null,
+                          }))
+                        }
                       >
                         <option value="">Select experience</option>
                         <option value="0">Just starting</option>
@@ -408,12 +448,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     {/* Main Specialization */}
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Main Specialization *</span>
+                        <span className="label-text font-medium">
+                          Main Specialization *
+                        </span>
                       </label>
                       <select
-                        className={`select select-bordered ${errors.specialization ? 'select-error' : ''}`}
+                        className={`select select-bordered ${
+                          errors.specialization ? "select-error" : ""
+                        }`}
                         value={formData.specialization}
-                        onChange={(e) => setFormData(prev => ({ ...prev, specialization: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            specialization: e.target.value,
+                          }))
+                        }
                         required
                       >
                         <option value="">Select your main skill</option>
@@ -425,7 +474,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       </select>
                       {errors.specialization && (
                         <label className="label">
-                          <span className="label-text-alt text-error">{errors.specialization}</span>
+                          <span className="label-text-alt text-error">
+                            {errors.specialization}
+                          </span>
                         </label>
                       )}
                     </div>
@@ -433,15 +484,19 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     {/* Skill Level */}
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Skill Level</span>
+                        <span className="label-text font-medium">
+                          Skill Level
+                        </span>
                       </label>
                       <select
                         className="select select-bordered"
                         value={formData.skillLevel}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          skillLevel: e.target.value as SkillLevel 
-                        }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            skillLevel: e.target.value as SkillLevel,
+                          }))
+                        }
                       >
                         <option value="beginner">Beginner</option>
                         <option value="intermediate">Intermediate</option>
@@ -456,13 +511,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   <div className="flex justify-between items-center border-b border-base-200 pb-2">
                     <h3 className="text-lg font-semibold">Featured Cosplays</h3>
                     <span className="text-sm text-base-content/60">
-                      {formData.featured.filter(f => f.title || f.imageUrl).length}/3 slots filled
+                      {
+                        formData.featured.filter((f) => f.title || f.imageUrl)
+                          .length
+                      }
+                      /3 slots filled
                     </span>
                   </div>
-                  
+
                   <div className="bg-base-200/30 rounded-lg p-4">
                     <p className="text-sm text-base-content/70 mb-3">
-                      Showcase your best cosplay work. Select from your competition credentials and add custom details.
+                      Showcase your best cosplay work. Select from your
+                      competition credentials and add custom details.
                     </p>
                     <button
                       type="button"
@@ -472,12 +532,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       Edit Featured Cosplays
                     </button>
                   </div>
-                  
+
                   {/* Featured Preview */}
-                  {formData.featured.some(f => f.title || f.imageUrl) && (
+                  {formData.featured.some((f) => f.title || f.imageUrl) && (
                     <div className="grid grid-cols-3 gap-2">
                       {formData.featured.map((item, index) => (
-                        <div key={index} className="aspect-square bg-base-200 rounded-lg overflow-hidden relative">
+                        <div
+                          key={index}
+                          className="aspect-square bg-base-200 rounded-lg overflow-hidden relative"
+                        >
                           {item.imageUrl ? (
                             <Image
                               src={item.imageUrl}
@@ -500,7 +563,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     </div>
                   )}
                 </div>
-
               </div>
 
               {/* Fixed Footer */}
@@ -509,14 +571,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   type="button"
                   onClick={handleClose}
                   className="btn btn-ghost"
-                  disabled={loading || uploading || imageUploading.profile || imageUploading.cover}
+                  disabled={
+                    loading || imageUploading.profile || imageUploading.cover
+                  }
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={loading || uploading || imageUploading.profile || imageUploading.cover}
+                  disabled={
+                    loading || imageUploading.profile || imageUploading.cover
+                  }
                 >
                   {loading ? (
                     <>

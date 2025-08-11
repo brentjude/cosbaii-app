@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { deleteImageFromCloudinary, extractPublicIdFromUrl } from '@/lib/cloudinary';
+import { 
+  deleteImageFromCloudinary, 
+  extractPublicIdFromUrl,
+  uploadToCloudinary  // ✅ Add this import
+} from '@/lib/cloudinary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string; // 'profile' or 'cover'
+    const type = formData.get('type') as string;
 
     console.log('Upload request received:', { fileName: file?.name, type });
 
@@ -23,25 +27,25 @@ export async function POST(request: NextRequest) {
     }
 
     if (!type || !['profile', 'cover'].includes(type)) {
-      return NextResponse.json({ error: 'Invalid upload type. Must be "profile" or "cover"' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Invalid upload type. Must be "profile" or "cover"' 
+      }, { status: 400 });
     }
 
-    // ✅ Validate file type
+    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.'
+      }, { status: 400 });
     }
 
-    // ✅ Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 5MB.' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        error: 'File too large. Maximum size is 5MB.'
+      }, { status: 400 });
     }
 
     console.log(`Uploading ${type} image:`, file.name, 'Size:', file.size, 'bytes');
@@ -53,7 +57,6 @@ export async function POST(request: NextRequest) {
     // ✅ Upload to Cloudinary with proper folder structure
     const folder = `cosbaii/${type === 'profile' ? 'profiles' : 'covers'}`;
     const result = await uploadToCloudinary(buffer, folder, {
-      // Add transformations for optimization
       quality: 'auto:good',
       fetch_format: 'auto',
       ...(type === 'profile' && {
@@ -88,20 +91,19 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error uploading profile image:', error);
     
-    // ✅ Handle specific Cloudinary errors
+    // Handle specific Cloudinary errors
     if (error && typeof error === 'object' && 'error' in error) {
       const cloudinaryError = error as any;
       if (cloudinaryError.error?.message) {
-        return NextResponse.json(
-          { error: `Upload failed: ${cloudinaryError.error.message}` },
-          { status: 400 }
-        );
+        return NextResponse.json({
+          error: `Upload failed: ${cloudinaryError.error.message}`
+        }, { status: 400 });
       }
     }
     
-    return NextResponse.json(
-      { error: 'Failed to upload image', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      error: 'Failed to upload image',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

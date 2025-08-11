@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import Image from "next/image";
+import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
 import {
   UserIcon,
   CameraIcon,
@@ -69,6 +70,8 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [profilePictureLoading, setProfilePictureLoading] = useState(false);
   const [coverImageLoading, setCoverImageLoading] = useState(false);
 
+  const { uploadImage, uploading, error: uploadError } = useCloudinaryUpload();
+
   const totalSteps = 4;
 
   const specializationOptions = [
@@ -87,13 +90,11 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const handleFileUpload = async (file: File, type: "profile" | "cover") => {
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file");
       return;
     }
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB");
       return;
@@ -104,32 +105,24 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
     setLoading(true);
 
     try {
-      // Create preview URL for immediate display
-      const previewUrl = URL.createObjectURL(file);
+      const uploadResult = await uploadImage(file, {
+        uploadPreset: "cosbaii-profiles",
+        folder: `cosbaii/profiles/${type}`,
+        onSuccess: (result) => {
+          console.log("Upload successful:", result);
+        },
+        onError: (error) => {
+          console.error("Upload error:", error);
+        },
+      });
 
-      // Update form data with preview URL
-      setFormData((prev) => ({
-        ...prev,
-        [type === "profile" ? "profilePicture" : "coverImage"]: previewUrl,
-      }));
-
-      // TODO: In production, upload to cloud storage
-      // const formData = new FormData();
-      // formData.append('file', file);
-      // formData.append('type', type);
-      //
-      // const response = await fetch('/api/upload/profile-images', {
-      //   method: 'POST',
-      //   body: formData
-      // });
-      //
-      // const data = await response.json();
-      // if (response.ok) {
-      //   setFormData(prev => ({
-      //     ...prev,
-      //     [type === 'profile' ? 'profilePicture' : 'coverImage']: data.imageUrl
-      //   }));
-      // }
+      if (uploadResult) {
+        setFormData((prev) => ({
+          ...prev,
+          [type === "profile" ? "profilePicture" : "coverImage"]:
+            uploadResult.url,
+        }));
+      }
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Failed to upload image. Please try again.");

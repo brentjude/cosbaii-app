@@ -1,4 +1,4 @@
-// Create: src/app/api/upload/signature/route.ts
+// src/app/api/upload/signature/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -12,6 +12,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { timestamp, upload_preset, folder } = await request.json();
+
+    // Validate environment variables
+    if (!process.env.CLOUDINARY_CLOUD_NAME) {
+      console.error('CLOUDINARY_CLOUD_NAME is not set');
+      return NextResponse.json({ error: 'Cloudinary configuration missing' }, { status: 500 });
+    }
+
+    if (!process.env.CLOUDINARY_API_KEY) {
+      console.error('CLOUDINARY_API_KEY is not set');
+      return NextResponse.json({ error: 'Cloudinary configuration missing' }, { status: 500 });
+    }
 
     // Validate required fields
     if (!timestamp || !upload_preset) {
