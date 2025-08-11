@@ -78,16 +78,17 @@ enum CosplayerType {
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  email      String     @unique
-  name       String?
-  username   String?    @unique
-  password   String
-  role       UserRole   @default(USER)
-  status     UserStatus @default(ACTIVE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  reviewedBy String? // Admin who reviewed the user registration, if applicable
+  id            Int        @id @default(autoincrement())
+  email         String     @unique
+  name          String?
+  username      String?    @unique
+  password      String
+  role          UserRole   @default(USER)
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  reviewedBy    String? // Admin who reviewed the user registration, if applicable
+  isPremiumUser Boolean    @default(false)
 
   //Relations
   profile          Profile?
@@ -99,6 +100,7 @@ model User {
   blogs            Blog[]
   feedback         Feedback[]
   notifications    Notification[]
+  featuredItems    FeaturedItem[]
 
   @@map("users") // Database table will be named "users" instead of "User"
 }
@@ -141,6 +143,30 @@ model Profile {
   @@map("profiles") // Database table will be named "profiles" instead of "Profile"
 }
 
+//Feature Items for every profile
+model FeaturedItem {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  title         String
+  description   String?
+  imageUrl      String
+  character     String?
+  series        String?
+  type          String   @default("cosplay") // "competition" or "cosplay"
+  competitionId Int?
+  position      String?
+  award         String?
+  order         Int // For ordering (0, 1, 2 for the 3 slots)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+
+  @@map("featured_items")
+}
+
 //this represents completed competitions
 model Competition {
   id          Int      @id @default(autoincrement())
@@ -173,8 +199,9 @@ model Competition {
   rejectionReason String? // Reason for rejection if applicable
 
   //relations
-  awards       Awards[]
-  participants CompetitionParticipant[]
+  awards        Awards[]
+  participants  CompetitionParticipant[]
+  featuredItems FeaturedItem[]
 
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -276,19 +303,20 @@ model FeaturedCosplay {
 }
 
 model Badge {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
   description String
   iconUrl     String
   type        BadgeType // ✅ Add this field
-  requirement Int?     // Optional requirement (for milestone badges)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  requirement Int? // Optional requirement (for milestone badges)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   userBadges UserBadge[]
 
   @@map("badges")
 }
+
 model UserBadge {
   id      Int   @id @default(autoincrement())
   userId  Int
@@ -341,9 +369,9 @@ model Notification {
   type      String
   title     String
   message   String
-  data      String?  // JSON string for additional data
+  data      String? // JSON string for additional data
   isRead    Boolean  @default(false) // ✅ Changed from 'read' to 'isRead'
-  relatedId Int?     // ✅ Added relatedId field for badge references
+  relatedId Int? // ✅ Added relatedId field for badge references
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

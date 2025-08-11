@@ -314,7 +314,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     />
                   </div>
                 </div>
-
                 {/* Rest of your form sections remain the same... */}
                 {/* Basic Information */}
                 <div className="space-y-6">
@@ -379,7 +378,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     )}
                   </div>
                 </div>
-
                 {/* Cosplayer Information */}
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
@@ -486,7 +484,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                       <label className="label">
                         <span className="label-text font-medium">
                           Skill Level
-                        </span>
+                        </span>{" "}
+                        <br />
                       </label>
                       <select
                         className="select select-bordered"
@@ -506,62 +505,69 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   </div>
                 </div>
 
-                {/* Featured Cosplays Section */}
+                {/* Social Media Links */}
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b border-base-200 pb-2">
-                    <h3 className="text-lg font-semibold">Featured Cosplays</h3>
-                    <span className="text-sm text-base-content/60">
-                      {
-                        formData.featured.filter((f) => f.title || f.imageUrl)
-                          .length
+                  <h3 className="text-lg font-semibold">Social Media Links</h3>
+
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">
+                        Facebook URL
+                      </span>
+                    </label>
+                    <input
+                      type="url"
+                      className="input input-bordered"
+                      placeholder="https://facebook.com/yourprofile"
+                      value={formData.facebookUrl || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          facebookUrl: e.target.value || null,
+                        }))
                       }
-                      /3 slots filled
-                    </span>
+                    />
                   </div>
 
-                  <div className="bg-base-200/30 rounded-lg p-4">
-                    <p className="text-sm text-base-content/70 mb-3">
-                      Showcase your best cosplay work. Select from your
-                      competition credentials and add custom details.
-                    </p>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => setShowFeaturedEditor(true)}
-                    >
-                      Edit Featured Cosplays
-                    </button>
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">
+                        Instagram URL
+                      </span>
+                    </label>
+                    <input
+                      type="url"
+                      className="input input-bordered"
+                      placeholder="https://instagram.com/yourprofile"
+                      value={formData.instagramUrl || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          instagramUrl: e.target.value || null,
+                        }))
+                      }
+                    />
                   </div>
 
-                  {/* Featured Preview */}
-                  {formData.featured.some((f) => f.title || f.imageUrl) && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {formData.featured.map((item, index) => (
-                        <div
-                          key={index}
-                          className="aspect-square bg-base-200 rounded-lg overflow-hidden relative"
-                        >
-                          {item.imageUrl ? (
-                            <Image
-                              src={item.imageUrl}
-                              alt={item.title || `Featured ${index + 1}`}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-base-content/50">
-                              <span className="text-xs">Empty</span>
-                            </div>
-                          )}
-                          {item.title && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-1">
-                              <p className="text-xs truncate">{item.title}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium">
+                        Twitter/X URL
+                      </span>
+                    </label>
+                    <input
+                      type="url"
+                      className="input input-bordered"
+                      placeholder="https://twitter.com/yourprofile"
+                      value={formData.twitterUrl || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          twitterUrl: e.target.value || null,
+                        }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 

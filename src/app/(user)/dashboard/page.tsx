@@ -16,7 +16,12 @@ import { CheckBadgeIcon, BellIcon } from "@heroicons/react/16/solid";
 const DashboardPage = () => {
   const { data: session, status } = useSession();
   const { hasProfile, loading } = useProfile();
-  const { notifications, loading: notificationsLoading, markAsRead, markAllAsRead } = useNotifications(5);
+  const {
+    notifications,
+    loading: notificationsLoading,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications(5);
 
   // Get display name
   const displayName = session?.user?.username || session?.user?.name;
@@ -26,7 +31,7 @@ const DashboardPage = () => {
     return <UserDashboardSkeleton />;
   }
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="p-6 max-w-[1240px] mx-auto">
@@ -39,7 +44,7 @@ const DashboardPage = () => {
 
       {/* Profile Setup Prompt */}
       {!hasProfile && (
-        <div className="alert alert-info mb-4 rounded-lg text-gray-700">
+        <div className="alert alert-info mb-4 rounded-lg text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -56,7 +61,10 @@ const DashboardPage = () => {
           <div>
             <h3 className="font-bold">Complete your profile setup!</h3>
             <div className="text-xs">
-              Set up your cosplay profile to get the most out of COSBAII.
+              You’ve got 7 days to fully set up your Cosbaii profile.
+              <br />
+              We’ll check if everything’s complete, and if not, your profile
+              will be removed to make space for new members.
             </div>
           </div>
         </div>
@@ -167,7 +175,7 @@ const DashboardPage = () => {
                     </span>
                   )}
                 </div>
-                
+
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
@@ -178,7 +186,7 @@ const DashboardPage = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="p-6">
               {notificationsLoading ? (
                 <div className="space-y-3">
@@ -201,10 +209,12 @@ const DashboardPage = () => {
                     <NotificationCard
                       key={notification.id}
                       notification={notification}
-                      onMarkAsRead={(id) => { markAsRead([id]); }}
+                      onMarkAsRead={(id) => {
+                        markAsRead([id]);
+                      }}
                     />
                   ))}
-                  
+
                   {notifications.length === 5 && (
                     <div className="text-center pt-4">
                       <button className="text-sm text-gray-600 hover:text-gray-800 transition-colors">

@@ -1,13 +1,13 @@
 // Update: src/app/context/ProfileContext.tsx
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 
 interface Profile {
   id: number;
   userId: number;
-  cosplayerType: 'COMPETITIVE' | 'HOBBY' | 'PROFESSIONAL';
+  cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
   yearsOfExperience: number | null;
   specialization: string | null;
   skillLevel: string | null;
@@ -27,140 +27,149 @@ interface Profile {
   updatedAt: string;
 }
 
+interface FeaturedItem {
+  id?: number;
+  title: string;
+  description: string;
+  imageUrl: string;
+  character?: string;
+  series?: string;
+  type: "competition" | "cosplay";
+  competitionId?: number;
+  competition?: any;
+  position?: string;
+  award?: string;
+}
+
 interface ProfileContextType {
   profile: Profile | null;
   hasProfile: boolean;
   loading: boolean;
   updateProfile: (profileData: any) => Promise<boolean>;
-  setupProfile: (profileData: any) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
+  setupProfile: (
+    profileData: any
+  ) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
   fetchProfile: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data: session, status } = useSession();
+const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { data: session } = useSession(); // ✅ Add this missing line
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
+  const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
     if (!session?.user?.id) {
-      setProfile(null);
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('/api/user/profile');
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data.profile);
-      } else if (response.status === 404) {
-        // Profile doesn't exist yet
-        setProfile(null);
-      } else {
-        throw new Error('Failed to fetch profile');
+      setLoading(true);
+
+      // Fetch profile data
+      const profileResponse = await fetch("/api/user/profile");
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        setProfile(profileData.profile);
+        setHasProfile(!!profileData.profile); // ✅ Set hasProfile based on profile existence
+      }
+
+      // Fetch featured items
+      const featuredResponse = await fetch("/api/user/featured");
+      if (featuredResponse.ok) {
+        const featuredData = await featuredResponse.json();
+        setFeaturedItems(featuredData.featured || []);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
-      setProfile(null);
+      console.error("Error fetching profile data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Fixed updateProfile method
-  const updateProfile = async (profileData: any): Promise<boolean> => {
-    setLoading(true);
+  const setupProfile = async (
+    profileData: any
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('Updating profile with data:', profileData);
-      
-      const response = await fetch('/api/user/profile', {
-        method: 'PUT',
+      const response = await fetch("/api/user/profile/setup", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profileData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Profile update response:', data);
-        setProfile(data.profile);
-        return true;
-      } else {
-        // Log error details
-        const errorData = await response.json();
-        console.error('Profile update failed:', errorData);
-        throw new Error(errorData.error || 'Failed to update profile');
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setupProfile = async (profileData: any): Promise<{ success: boolean; error?: string; profile?: Profile }> => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/user/profile/setup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(profileData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to setup profile');
+        throw new Error(errorData.error || "Failed to setup profile");
       }
 
       const data = await response.json();
+
+      // Update context state
       setProfile(data.profile);
-      
-      return { success: true, profile: data.profile };
-    } catch (error: any) {
-      console.error('Setup profile error:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setLoading(false);
+      setHasProfile(true);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error setting up profile:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Setup failed",
+      };
+    }
+  };
+
+  const updateProfile = async (data: any): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        await fetchProfile(); // Refresh profile data
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      return false;
     }
   };
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      fetchProfile();
-    } else if (status === 'unauthenticated') {
-      setProfile(null);
-      setLoading(false);
-    }
-  }, [session, status]);
+    fetchProfile();
+  }, [session?.user?.id]);
 
-  const hasProfile = profile !== null;
-
-  const contextValue: ProfileContextType = {
+  const value = {
     profile,
+    featuredItems,
     hasProfile,
     loading,
     updateProfile,
     setupProfile,
-    fetchProfile,
+    fetchProfile, // ✅ Fix the function name
   };
 
   return (
-    <ProfileContext.Provider value={contextValue}>
-      {children}
-    </ProfileContext.Provider>
+    <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>
   );
 };
+
+export const ProfileProvider = ProfileContextProvider;
 
 export const useProfile = () => {
   const context = useContext(ProfileContext);
   if (context === undefined) {
-    throw new Error('useProfile must be used within a ProfileProvider');
+    throw new Error("useProfile must be used within a ProfileProvider");
   }
   return context;
 };

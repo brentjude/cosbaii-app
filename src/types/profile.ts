@@ -2,6 +2,7 @@
 export type CosplayerType = "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
 export type SkillLevel = "beginner" | "intermediate" | "advanced";
 
+// updated to add types competition or cosplay
 export interface FeaturedItem {
   id?: number;
   title: string;
@@ -9,7 +10,25 @@ export interface FeaturedItem {
   imageUrl: string;
   character?: string;
   series?: string;
+  
+  // Add type field to distinguish between competition and custom cosplay
+  type: 'competition' | 'cosplay';
+  
+  // Competition-related fields (only used when type is 'competition')
   competitionId?: number;
+  competition?: {
+    id: number;
+    name: string;
+    eventDate: string;
+    location?: string;
+    competitionType: string;
+    rivalryType: string;
+    level: string;
+  };
+  
+  // Additional fields for competition results
+  position?: string;
+  award?: string;
 }
 
 export interface EditProfileData {
@@ -22,6 +41,10 @@ export interface EditProfileData {
   specialization: string;
   skillLevel: SkillLevel;
   featured: FeaturedItem[];
+  // Add social media fields
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  twitterUrl?: string | null; // or xUrl
 }
 
 export interface Profile {
