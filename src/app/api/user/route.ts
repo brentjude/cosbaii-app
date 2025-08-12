@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { hash } from "bcrypt";
 import { z } from "zod";
 import { BadgeTriggers } from '@/lib/badgeTriggers';
+import { sendWelcomeEmail } from '@/lib/email';
 
 //Defining schema for input validation
 const userSchema = z.object({
@@ -78,8 +79,26 @@ export async function POST(req: Request) {
             }
         })
 
-        // ✅ Trigger badge check for new user
+        // Trigger badges
+        try {
+        const { BadgeTriggers } = await import('@/lib/badgeTriggers');
         await BadgeTriggers.onUserRegistration(newUser.id);
+        } catch (badgeError) {
+        console.error('Error triggering badges:', badgeError);
+        }
+
+        // Send welcome email after user creation
+        try {
+        const emailResult = await sendWelcomeEmail(newUser.email, newUser.name || 'Cosplayer');
+        if (emailResult.success) {
+            console.log('Welcome email sent to:', newUser.email);
+        } else {
+            console.error('Failed to send welcome email:', emailResult.error);
+        }
+        } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't fail the registration if email fails
+        }
 
         // Exclude the password from the response
         // This will ensure that the password is not exposed in the response

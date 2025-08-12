@@ -185,6 +185,22 @@ export const authOptions: NextAuthOptions = {
             // Create default profile
             console.log("New Google user created:", newUser.id);
 
+            // ✅ Send welcome email for Google users
+            try {
+          console.log("Attempting to send welcome email to:", newUser.email);
+          
+          const { sendWelcomeEmail } = await import('@/lib/email');
+          const emailResult = await sendWelcomeEmail(newUser.email, newUser.name || 'Cosplayer');
+          
+          if (emailResult.success) {
+            console.log('✅ Welcome email sent successfully to Google user:', newUser.email);
+          } else {
+            console.error('❌ Failed to send welcome email:', emailResult.error);
+          }
+        } catch (emailError) {
+          console.error('❌ Error importing or calling sendWelcomeEmail:', emailError);
+        }
+
             // Trigger badge check
             try {
               const { BadgeTriggers } = await import('@/lib/badgeTriggers');
