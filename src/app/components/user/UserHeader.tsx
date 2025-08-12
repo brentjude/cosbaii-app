@@ -26,7 +26,8 @@ const UserHeader = () => {
   const [setupLoading, setSetupLoading] = useState(false);
 
   // ✅ Use profile context - get profile to access profilePicture
-  const { profile, hasProfile, updateProfile, setupProfile, loading } = useProfile();
+  const { profile, hasProfile, updateProfile, setupProfile, loading } =
+    useProfile();
 
   // ✅ Ensure component is mounted on client
   useEffect(() => {
@@ -42,15 +43,15 @@ const UserHeader = () => {
     setSetupLoading(true);
     try {
       const result = await setupProfile(profileData);
-      
+
       if (result.success) {
         setShowProfileSetup(false);
         console.log("Profile setup successful!");
       } else {
-        throw new Error(result.error || 'Failed to setup profile');
+        throw new Error(result.error || "Failed to setup profile");
       }
     } catch (error) {
-      console.error('Profile setup error:', error);
+      console.error("Profile setup error:", error);
       alert("Profile setup failed. Please try again.");
     } finally {
       setSetupLoading(false);
@@ -80,7 +81,10 @@ const UserHeader = () => {
 
   // ✅ Get avatar image source with fallback
   const getAvatarSrc = () => {
-    if (profile?.profilePicture && profile.profilePicture !== "/images/default-avatar.png") {
+    if (
+      profile?.profilePicture &&
+      profile.profilePicture !== "/images/default-avatar.png"
+    ) {
       return profile.profilePicture;
     }
     return "/images/cosbaii-logo-black.webp";
@@ -91,7 +95,10 @@ const UserHeader = () => {
       <header className="w-full shadow-xs sticky top-0 z-50 bg-base-100">
         <div className="navbar max-w-[1240px] mx-auto">
           <div className="navbar-start">
-            <Link className="ml-2 hover:bg-gray-50 cursor-pointer" href="/dashboard">
+            <Link
+              className="ml-2 hover:bg-gray-50 cursor-pointer"
+              href="/dashboard"
+            >
               <Image
                 src={"/images/cosbaii-colored-wordmark.svg"}
                 alt="Logo"
@@ -134,22 +141,25 @@ const UserHeader = () => {
             )}
 
             {/* ✅ Uses context hasProfile state */}
-            {isClient && status !== "loading" && session?.user && !hasProfile && (
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleOpenProfileSetup}
-                disabled={setupLoading}
-              >
-                {setupLoading ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Setting up...
-                  </>
-                ) : (
-                  "Complete Profile"
-                )}
-              </button>
-            )}
+            {isClient &&
+              status !== "loading" &&
+              session?.user &&
+              !hasProfile && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleOpenProfileSetup}
+                  disabled={setupLoading}
+                >
+                  {setupLoading ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Setting up...
+                    </>
+                  ) : (
+                    "Complete Profile"
+                  )}
+                </button>
+              )}
 
             {session?.user ? (
               <div className="dropdown dropdown-bottom dropdown-end">
@@ -160,11 +170,12 @@ const UserHeader = () => {
                 >
                   {/* ✅ Updated avatar with user profile picture or fallback */}
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-base-200">
-                    {profile?.profilePicture && profile.profilePicture !== "/images/default-avatar.png" ? (
-                      <div 
+                    {profile?.profilePicture &&
+                    profile.profilePicture !== "/images/default-avatar.png" ? (
+                      <div
                         className="w-full h-full bg-cover bg-center bg-no-repeat"
                         style={{
-                          backgroundImage: `url(${profile.profilePicture})`
+                          backgroundImage: `url(${profile.profilePicture})`,
                         }}
                       />
                     ) : (
@@ -193,7 +204,7 @@ const UserHeader = () => {
                   </li>
                   <li>
                     <Link
-                      href="#"
+                      href="/settings"
                       className="flex items-center gap-2 w-full text-left"
                     >
                       <Cog6ToothIcon className="w-4 h-4" /> Settings

@@ -82,15 +82,30 @@ model User {
   email         String     @unique
   name          String?
   username      String?    @unique
-  password      String
+  password      String? // ✅ Make password optional for OAuth users
+  image         String? // ✅ Add image field for Google profile pictures
   role          UserRole   @default(USER)
   status        UserStatus @default(ACTIVE)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  reviewedBy    String? // Admin who reviewed the user registration, if applicable
+  reviewedBy    String?
   isPremiumUser Boolean    @default(false)
 
-  //Relations
+  // Email verification fields
+  emailVerified            DateTime?
+  emailVerificationToken   String?
+  emailVerificationExpires DateTime?
+
+  // Email change fields
+  pendingEmail        String?
+  pendingEmailToken   String?
+  pendingEmailExpires DateTime?
+
+  // ✅ Add NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Existing relations
   profile          Profile?
   competitions     Competition[]
   participations   CompetitionParticipant[]
@@ -101,8 +116,68 @@ model User {
   feedback         Feedback[]
   notifications    Notification[]
   featuredItems    FeaturedItem[]
+  settings         UserSettings?
 
-  @@map("users") // Database table will be named "users" instead of "User"
+  @@map("users")
+}
+
+//Account for Google auth
+model Account {
+  id                String  @id @default(cuid())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model UserSettings {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Profile visibility settings
+  showCompetitionCounter Boolean @default(true)
+  showBadges             Boolean @default(true)
+
+  // Display name change tracking
+  lastDisplayNameChange DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
 }
 
 model Profile {

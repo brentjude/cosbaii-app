@@ -43,6 +43,7 @@ interface FeaturedItem {
 
 interface ProfileContextType {
   profile: Profile | null;
+  featuredItems: FeaturedItem[];
   hasProfile: boolean;
   loading: boolean;
   updateProfile: (profileData: any) => Promise<boolean>;

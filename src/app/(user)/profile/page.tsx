@@ -43,6 +43,7 @@ const ProfilePage = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
   const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
+  const [userSettings, setUserSettings] = useState<any>(null);
 
   // Featured cosplays state - initialize from profile or empty array
   const [featuredCosplays, setFeaturedCosplays] = useState<FeaturedItem[]>([
@@ -71,6 +72,22 @@ const ProfilePage = () => {
       type: "cosplay",
     },
   ]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch("/api/user/settings");
+        if (response.ok) {
+          const data = await response.json();
+          setUserSettings(data.settings);
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     if (featuredItems.length > 0) {
@@ -269,7 +286,6 @@ const ProfilePage = () => {
 
   const cosplayerTypeInfo = getCosplayerTypeDisplay();
 
-  // ✅ Fix the getEditableProfileData function with proper type casting
   const getEditableProfileData = (): EditProfileData | null => {
     if (!profile) return null;
 
@@ -354,28 +370,30 @@ const ProfilePage = () => {
                 </div>
               </div>
               {/* Stats cards */}
-              <div className="flex flex-row max-w-[600px] max-md:justify-center gap-2 mr-[-10px] basis-2/3">
-                <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
-                  <h2 className="text-[32px] font-semibold mb-2">
-                    {championCount}
-                  </h2>
-                  <span className="text-sm text-gray-500">Champion</span>
+              {userSettings?.showCompetitionCounter && (
+                <div className="flex flex-row max-w-[600px] max-md:justify-center gap-2 mr-[-10px] basis-2/3">
+                  <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+                    <h2 className="text-[32px] font-semibold mb-2">
+                      {championCount}
+                    </h2>
+                    <span className="text-sm text-gray-500">Champion</span>
+                  </div>
+                  <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+                    <h2 className="text-[32px] font-semibold mb-2">
+                      {placedCount}
+                    </h2>
+                    <span className="text-sm text-gray-500">Placed</span>
+                  </div>
+                  <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+                    <h2 className="text-[32px] font-semibold mb-2">
+                      {totalCompetitions}
+                    </h2>
+                    <span className="text-sm text-gray-500">
+                      Competitions Joined
+                    </span>
+                  </div>
                 </div>
-                <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
-                  <h2 className="text-[32px] font-semibold mb-2">
-                    {placedCount}
-                  </h2>
-                  <span className="text-sm text-gray-500">Placed</span>
-                </div>
-                <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
-                  <h2 className="text-[32px] font-semibold mb-2">
-                    {totalCompetitions}
-                  </h2>
-                  <span className="text-sm text-gray-500">
-                    Competitions Joined
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Profile info section */}
@@ -505,12 +523,14 @@ const ProfilePage = () => {
                   )}
                 </div>
               </div>
-              <div className="mt-8">
-                <h2 className="text-xl font-bold">Badges</h2>
-                <p className="text-sm text-gray-500 mt-2">
-                  No badges earned yet
-                </p>
-              </div>
+              {userSettings?.showBadges && (
+                <div className="mt-8">
+                  <h2 className="text-xl font-bold">Badges</h2>
+                  <p className="text-sm text-gray-500 mt-2">
+                    No badges earned yet
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="basis-2/3 flex flex-col gap-4">
@@ -546,7 +566,7 @@ const ProfilePage = () => {
                         style={{
                           backgroundImage: featured.imageUrl
                             ? `url(${featured.imageUrl})`
-                            : "none",
+                            : `url('/images/feature-placeholder.png')`,
                           backgroundSize: "cover",
                           backgroundPosition: "center",
                         }}
@@ -640,39 +660,38 @@ const ProfilePage = () => {
                       <div
                         className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
                         style={{
-                          backgroundImage: "url(/images/sample-featured.png)",
+                          backgroundImage:
+                            "url(/images/feature-placeholder.png",
                           backgroundSize: "cover",
                           backgroundPosition: "center",
                         }}
                       >
-                        <div className="flex flex-col w-60 mx-auto py-2 px-6 mb-4 bg-white rounded-2xl shadow-md">
-                          <div className="flex flex-row gap-2 items-center">
-                            <div className="flex-1">
-                              <h3 className="text-xs font-bold">
-                                2018 | Otakufest Duo Competition
-                              </h3>
-                              <div className="flex flex-row justify-between items-center pt-1">
-                                <span className="text-[10px] text-gray-500">
-                                  Cosplay Character
-                                </span>
-                                <span className="text-[10px] font-bold">
-                                  Mikasa Ackerman
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-center text-yellow-500">
-                              <TrophyIcon className="w-4 h-4" />
-                              <span className="text-[10px]">Champion</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="basis-1/3 h-full bg-gray-200 flex items-center justify-center">
                         <span className="text-gray-500 text-sm">
                           Empty Slot
                         </span>
                       </div>
-                      <div className="basis-1/3 h-full bg-gray-300 rounded-r-lg flex items-center justify-center">
+                      <div
+                        className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
+                        style={{
+                          backgroundImage:
+                            "url(/images/feature-placeholder.png",
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      >
+                        <span className="text-gray-500 text-sm">
+                          Empty Slot
+                        </span>
+                      </div>
+                      <div
+                        className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
+                        style={{
+                          backgroundImage:
+                            "url(/images/feature-placeholder.png",
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      >
                         <span className="text-gray-600 text-sm">
                           Empty Slot
                         </span>
