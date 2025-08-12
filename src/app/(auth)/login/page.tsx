@@ -1,3 +1,4 @@
+// Update: src/app/(auth)/login/page.tsx
 "use client";
 
 import Image from "next/image";
@@ -6,27 +7,30 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const page = () => {
-   const { data: session, status } = useSession();
+const LoginPage = () => {
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    // If user is already authenticated, redirect based on role
-    if (status === "authenticated" && session?.user) {
-      console.log("User already logged in:", session.user.email, "Role:", session.user.role);
-      
-      // Role-based redirect
-      if (session.user.role === "ADMIN") {
-        console.log("Redirecting admin to /admin");
-        router.replace("/admin");
-      } else {
-        console.log("Redirecting user to /dashboard");
-        router.replace("/dashboard");
-      }
-    }
-  }, [session, status, router]);
+    // ✅ Only redirect if user is authenticated and we have session data
+    if (status === "authenticated" && session?.user?.id) {
+      console.log(
+        "User authenticated:",
+        session.user.email,
+        "Role:",
+        session.user.role
+      );
 
-  // Show loading while checking session
+      const redirectPath =
+        session.user.role === "ADMIN" ? "/admin" : "/dashboard";
+      console.log("Redirecting to:", redirectPath);
+
+      // ✅ Use replace instead of push to avoid back button issues
+      router.replace(redirectPath);
+    }
+  }, [session?.user?.id, session?.user?.role, status, router]); // ✅ More specific dependencies
+
+  // ✅ Show loading only during initial session check
   if (status === "loading") {
     return (
       <div className="w-full h-screen flex items-center justify-center">
@@ -38,21 +42,20 @@ const page = () => {
     );
   }
 
-  // Show loading while redirecting
+  // ✅ Don't show loading for authenticated users - let the redirect happen
   if (status === "authenticated") {
     return (
       <div className="w-full h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="text-primary">Redirecting...</p>
+          <p className="text-primary">Redirecting to dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // Only show login form if user is not authenticated
- 
-    return (
+  // Only show login form for unauthenticated users
+  return (
     <div className="w-full h-screen flex">
       <div className="basis-[50vw] max-md:basis-[100vw] flex items-center justify-center">
         <LoginForm />
@@ -66,8 +69,7 @@ const page = () => {
         />
       </div>
     </div>
-  ); 
-
+  );
 };
 
-export default page;
+export default LoginPage;

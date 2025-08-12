@@ -1,4 +1,4 @@
-// src/lib/auth.ts
+// Update: src/lib/auth.ts
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -6,15 +6,54 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import { compare } from "bcrypt";
 
+// ✅ Move this function to the top, before authOptions
+async function generateUniqueUsername(name: string, email: string): Promise<string> {
+  // Start with name, fallback to email prefix
+  let baseUsername = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                    email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  // Ensure it's at least 3 characters
+  if (baseUsername.length < 3) {
+    baseUsername = 'user' + baseUsername;
+  }
+  
+  // Ensure it's not longer than 20 characters
+  baseUsername = baseUsername.substring(0, 17);
+  
+  // Check if username exists
+  let username = baseUsername;
+  let counter = 1;
+  
+  while (true) {
+    const existingUser = await prisma.user.findUnique({
+      where: { username }
+    });
+    
+    if (!existingUser) {
+      break;
+    }
+    
+    username = `${baseUsername}${counter}`;
+    counter++;
+    
+    // Ensure we don't exceed 20 characters
+    if (username.length > 20) {
+      baseUsername = baseUsername.substring(0, 17 - counter.toString().length);
+      username = `${baseUsername}${counter}`;
+    }
+  }
+  
+  return username;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    // Google Provider
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
-    // Existing Credentials Provider
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -65,9 +104,8 @@ export const authOptions: NextAuthOptions = {
         token.username = user.username;
       }
       
-      // Handle Google sign-in
+      // Handle Google sign-in JWT token properly
       if (account?.provider === "google" && user) {
-        // Find or create user in database
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email! },
         });
@@ -89,48 +127,79 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    // ✅ Simplified redirect callback
+    async redirect({ url, baseUrl }) {
+      console.log("Redirect callback - url:", url, "baseUrl:", baseUrl);
+      
+      // Redirect new users to dashboard
+      if (url.includes("/dashboard")) {
+        return `${baseUrl}/dashboard`;
+      }
+      
+      if (url === baseUrl || url === `${baseUrl}/login` || url === `${baseUrl}/`) {
+        return `${baseUrl}/dashboard`;
+      }
+
+      // If url starts with /, it's a relative path
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // If it's an absolute URL on the same domain, allow it
+      try {
+        if (new URL(url).origin === baseUrl) {
+          return url;
+        }
+      } catch {
+        // Invalid URL, fallback to dashboard
+      }
+      
+      // Default to dashboard
+      return `${baseUrl}/dashboard`;
+    },
     async signIn({ user, account, profile }) {
+      console.log("SignIn callback - provider:", account?.provider, "email:", user.email);
+      
       if (account?.provider === "google") {
         try {
-          
-          // Check if user already exists
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email! },
           });
 
           if (!existingUser) {
-            // Create new user for Google sign-in
+            console.log("Creating new Google user");
             const username = await generateUniqueUsername(user.name!, user.email!);
 
             const newUser = await prisma.user.create({
               data: {
-              name: user.name!,
-              email: user.email!,
-              image: user.image,
-              username: username, // ✅ Add username
-              emailVerified: new Date(),
-              role: "USER",
-              status: "ACTIVE",
-              password: null, // ✅ Explicitly set as null for OAuth users
-            },
+                name: user.name!,
+                email: user.email!,
+                username: username,
+                emailVerified: new Date(),
+                role: "USER",
+                status: "ACTIVE",
+                password: null,
+              },
             });
 
-             // Create default profile
-              await prisma.profile.create({
-                data: {
-                  userId: newUser.id,
-                  displayName: user.name!,
-                  profilePicture: user.image || "/images/default-avatar.png",
-                },
-              });
+            // Create default profile
+            console.log("New Google user created:", newUser.id);
 
-
-            // Trigger badge check for new user
+            // Trigger badge check
             try {
               const { BadgeTriggers } = await import('@/lib/badgeTriggers');
               await BadgeTriggers.onUserRegistration(newUser.id);
             } catch (badgeError) {
               console.error('Error triggering badges for Google user:', badgeError);
+            }
+          } else {
+            console.log("Existing Google user found:", existingUser.email);
+
+            // ✅ Check if user has existing password - if so, require account linking
+            if (existingUser.password) {
+              console.log("User has existing password, account linking required");
+              // This will trigger the OAuthAccountNotLinked error
+              return false;
             }
           }
           
@@ -148,35 +217,5 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
+  debug: process.env.NODE_ENV === "development", // ✅ Add debug logging
 };
-
-// Add this function at the top of your auth.ts file
-async function generateUniqueUsername(name: string, email: string): Promise<string> {
-  // Start with the name, remove spaces and special characters
-  let baseUsername = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  
-  // If empty, use part of email
-  if (!baseUsername) {
-    baseUsername = email.split('@')[0].replace(/[^a-z0-9]/g, '');
-  }
-  
-  // Check if username exists
-  const existingUser = await prisma.user.findUnique({
-    where: { username: baseUsername }
-  });
-  
-  if (!existingUser) {
-    return baseUsername;
-  }
-  
-  // If exists, add numbers until unique
-  let counter = 1;
-  let newUsername = `${baseUsername}${counter}`;
-  
-  while (await prisma.user.findUnique({ where: { username: newUsername } })) {
-    counter++;
-    newUsername = `${baseUsername}${counter}`;
-  }
-  
-  return newUsername;
-}

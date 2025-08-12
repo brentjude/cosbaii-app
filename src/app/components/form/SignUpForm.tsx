@@ -82,15 +82,28 @@ export default function SignUpForm() {
   const handleGoogleSignUp = async () => {
     try {
       setIsLoading(true);
+      setSubmitError("");
+
+      // ✅ Use 'signup' as the action to distinguish from login
       const result = await signIn("google", {
-        callbackUrl: "/dashboard",
-        redirect: false,
+        callbackUrl: "/dashboard", // ✅ Redirect to profile setup for new users
+        redirect: false, // ✅ Handle the response manually
       });
 
       if (result?.error) {
-        setSubmitError("Google sign-up failed. Please try again.");
-      } else if (result?.url) {
-        router.push(result.url);
+        console.error("Google sign-up error:", result.error);
+
+        // ✅ Handle specific OAuth errors
+        if (result.error === "OAuthAccountNotLinked") {
+          setSubmitError(
+            "An account with this email already exists. Please sign in with your email and password, or use the 'Sign In' page to link your Google account."
+          );
+        } else {
+          setSubmitError("Google sign-up failed. Please try again.");
+        }
+      } else if (result?.ok) {
+        // ✅ Success - redirect to profile setup for new users
+        router.push("/profile-setup");
       }
     } catch (error) {
       console.error("Google sign-up error:", error);
@@ -295,13 +308,13 @@ export default function SignUpForm() {
       {/* ✅ Google Sign-up Button with proper event handler */}
       <button
         onClick={handleGoogleSignUp}
-        disabled={isLoading}
+        disabled={isLoading || submitSuccess}
         className="btn btn-outline border-white text-white hover:bg-white hover:text-black w-full"
       >
         {isLoading ? (
           <>
             <span className="loading loading-spinner loading-sm"></span>
-            Connecting...
+            Creating Account...
           </>
         ) : (
           <>
@@ -323,7 +336,7 @@ export default function SignUpForm() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            Sign Up with Google
           </>
         )}
       </button>
