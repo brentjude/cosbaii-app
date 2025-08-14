@@ -643,9 +643,10 @@ const ProfilePage = () => {
                                   </>
                                 ) : (
                                   <>
-                                    <TrophyIcon className="w-4 h-4 text-yellow-500" />
-                                    <span className="text-[8px] text-yellow-600 font-bold">
+                                    <span className="text-[8px] text-center text-yellow-600 font-bold">
                                       Featured
+                                      <br />
+                                      Cosplay
                                     </span>
                                   </>
                                 )}
@@ -658,7 +659,7 @@ const ProfilePage = () => {
                   ) : (
                     <>
                       <div
-                        className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
+                        className="basis-1/3 flex flex-row items-center justify-center h-full bg-gray-100 rounded-l-lg"
                         style={{
                           backgroundImage:
                             "url(/images/feature-placeholder.png",
@@ -671,7 +672,7 @@ const ProfilePage = () => {
                         </span>
                       </div>
                       <div
-                        className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
+                        className="basis-1/3 flex flex-row items-center justify-center h-full bg-gray-100 rounded-l-lg"
                         style={{
                           backgroundImage:
                             "url(/images/feature-placeholder.png",
@@ -684,7 +685,7 @@ const ProfilePage = () => {
                         </span>
                       </div>
                       <div
-                        className="basis-1/3 flex flex-row items-end h-full bg-gray-100 rounded-l-lg"
+                        className="basis-1/3 flex flex-row items-center justify-center h-full bg-gray-100 rounded-l-lg"
                         style={{
                           backgroundImage:
                             "url(/images/feature-placeholder.png",

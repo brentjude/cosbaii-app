@@ -10,7 +10,7 @@ interface Profile {
   cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
   yearsOfExperience: number | null;
   specialization: string | null;
-  skillLevel: string | null;
+  skillLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT" | undefined;
   displayName: string | null;
   bio: string | null;
   profilePicture: string | null;

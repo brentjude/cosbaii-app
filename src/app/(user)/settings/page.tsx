@@ -13,6 +13,12 @@ import DeleteAccountModal from "@/app/components/user/settings/DeleteAccountModa
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import { useProfile } from "@/app/context/ProfileContext";
 
+import {
+  EditProfileData,
+  SkillLevel,
+  CosplayerType,
+} from "@/app/types/profile";
+
 interface UserSettings {
   id?: number;
   userId?: number;
@@ -25,7 +31,7 @@ interface UserSettings {
 
 const SettingsPage = () => {
   const { data: session } = useSession();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile(); // ✅ Add updateProfile here
   const [activeTab, setActiveTab] = useState<"account" | "profile">("account");
 
   // Settings state
@@ -40,6 +46,9 @@ const SettingsPage = () => {
   const [showChangeDisplayName, setShowChangeDisplayName] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+
+  ///loading state
+  const [editLoading, setEditLoading] = useState(false);
 
   // Load user settings on mount
   useEffect(() => {
@@ -56,6 +65,62 @@ const SettingsPage = () => {
     } catch (error) {
       console.error("Error fetching settings:", error);
     }
+  };
+
+  // ✅ Handle profile update
+  const handleProfileUpdate = async (data: any) => {
+    try {
+      if (!updateProfile) {
+        console.error("updateProfile function not available");
+        return;
+      }
+
+      const success = await updateProfile(data);
+      if (success) {
+        setShowEditProfile(false);
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    }
+  };
+
+  //Handle save profile data
+  const handleSaveProfile = async (data: EditProfileData) => {
+    setEditLoading(true);
+    try {
+      if (!updateProfile) {
+        console.error("updateProfile function not available");
+        return;
+      }
+
+      const success = await updateProfile(data);
+      if (success) {
+        setShowEditProfile(false);
+      }
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const getEditableProfileData = (): EditProfileData | null => {
+    if (!profile) return null;
+
+    return {
+      displayName: profile.displayName || "",
+      bio: profile.bio || "",
+      profilePicture: profile.profilePicture || "/images/default-avatar.png",
+      coverImage: profile.coverImage || "/images/default-cover.jpg",
+      cosplayerType: profile.cosplayerType || "HOBBY",
+      yearsOfExperience: profile.yearsOfExperience || 0,
+      specialization: profile.specialization || "",
+      skillLevel: profile.skillLevel || "beginner", // ✅ Provide default value
+      facebookUrl: profile.facebookUrl || null,
+      instagramUrl: profile.instagramUrl || null,
+      twitterUrl: profile.twitterUrl || null,
+      featured: [], // You might want to handle this differently based on your needs
+    };
   };
 
   const updateSetting = async (key: keyof UserSettings, value: any) => {
@@ -306,33 +371,9 @@ const SettingsPage = () => {
       <EditProfileModal
         isOpen={showEditProfile}
         onClose={() => setShowEditProfile(false)}
-        onSave={async (data) => {
-          try {
-            // Use your profile context to update
-            const success = await updateProfile(data);
-            if (success) {
-              setShowEditProfile(false);
-            }
-          } catch (error) {
-            console.error("Failed to update profile:", error);
-          }
-        }}
-        profileData={
-          profile
-            ? {
-                displayName: profile.displayName || "",
-                bio: profile.bio || "",
-                profilePicture: profile.profilePicture || "",
-                coverImage: profile.coverImage || "",
-                cosplayerType: profile.cosplayerType,
-                yearsOfExperience: profile.yearsOfExperience,
-                specialization: profile.specialization || "",
-                skillLevel: profile.skillLevel || "beginner",
-                featured: [], // You'll need to handle featured items separately
-              }
-            : null
-        }
-        loading={false}
+        onSave={handleSaveProfile}
+        profileData={getEditableProfileData()}
+        loading={editLoading}
       />
     </>
   );

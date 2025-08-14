@@ -26,7 +26,9 @@ const LoginPage = () => {
       console.log("Redirecting to:", redirectPath);
 
       // ✅ Use replace instead of push to avoid back button issues
-      router.replace(redirectPath);
+      //router.replace(redirectPath);
+      //window.location.href = redirectPath; // Using window.location.href for immediate redirect
+      router.push(redirectPath); // Use router.push for Next.js navigation
     }
   }, [session?.user?.id, session?.user?.role, status, router]); // ✅ More specific dependencies
 
