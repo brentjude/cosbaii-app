@@ -4,14 +4,13 @@
 import Image from "next/image";
 import LoginForm from "@/app/components/form/LoginForm";
 import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-// ✅ Create a separate component for the login logic
+// ✅ No need for Suspense - we're not using useSearchParams
 function LoginContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
@@ -26,16 +25,22 @@ function LoginContent() {
         username?: string | null;
       };
 
-      // ✅ Get callbackUrl and extract only the pathname
+      // ✅ Get callbackUrl from window.location instead of useSearchParams
       let redirectPath: string;
-      const callbackUrl = searchParams?.get("callbackUrl");
+      let callbackUrl: string | null = null;
+
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        callbackUrl = urlParams.get("callbackUrl");
+
+        console.log("Window location search:", window.location.search);
+        console.log("Original callback URL:", callbackUrl);
+      }
 
       if (callbackUrl) {
         try {
           // ✅ Decode the URL first
           const decodedUrl = decodeURIComponent(callbackUrl);
-
-          console.log("Original callback URL:", callbackUrl);
           console.log("Decoded callback URL:", decodedUrl);
 
           // ✅ Check if it's a relative path
@@ -72,10 +77,10 @@ function LoginContent() {
 
       console.log("Final redirect path:", redirectPath);
 
-      // ✅ Use router.replace for client-side navigation (no full page reload)
+      // ✅ Use router.replace for client-side navigation
       router.replace(redirectPath);
     }
-  }, [session, status, router, isRedirecting, searchParams]);
+  }, [session, status, router, isRedirecting]);
 
   if (status === "loading") {
     return (
@@ -116,22 +121,9 @@ function LoginContent() {
   );
 }
 
-// ✅ Wrap the component with Suspense
+// ✅ No Suspense needed since we're not using useSearchParams
 const LoginPage = () => {
-  return (
-    <Suspense
-      fallback={
-        <div className="w-full h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-            <p className="text-primary">Loading...</p>
-          </div>
-        </div>
-      }
-    >
-      <LoginContent />
-    </Suspense>
-  );
+  return <LoginContent />;
 };
 
 export default LoginPage;
