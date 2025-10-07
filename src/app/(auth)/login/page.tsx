@@ -5,9 +5,10 @@ import Image from "next/image";
 import LoginForm from "@/app/components/form/LoginForm";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 
-const LoginPage = () => {
+// ✅ Create a separate component for the login logic
+function LoginContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -84,6 +85,24 @@ const LoginPage = () => {
         />
       </div>
     </div>
+  );
+}
+
+// ✅ Wrap the component with Suspense
+const LoginPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
+            <p className="text-primary">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 };
 
