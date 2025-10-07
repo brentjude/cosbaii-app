@@ -4,13 +4,10 @@
 import Image from "next/image";
 import LoginForm from "@/app/components/form/LoginForm";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// ✅ No need for Suspense - we're not using useSearchParams
 function LoginContent() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
@@ -25,7 +22,7 @@ function LoginContent() {
         username?: string | null;
       };
 
-      // ✅ Get callbackUrl from window.location instead of useSearchParams
+      // ✅ Get callbackUrl from window.location
       let redirectPath: string;
       let callbackUrl: string | null = null;
 
@@ -77,10 +74,16 @@ function LoginContent() {
 
       console.log("Final redirect path:", redirectPath);
 
-      // ✅ Use router.replace for client-side navigation
-      router.replace(redirectPath);
+      // ✅ Use window.location.href for hard redirect (works better in production)
+      if (typeof window !== "undefined") {
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          console.log("Redirecting to:", redirectPath);
+          window.location.href = redirectPath;
+        }, 100);
+      }
     }
-  }, [session, status, router, isRedirecting]);
+  }, [session, status, isRedirecting]);
 
   if (status === "loading") {
     return (
@@ -121,7 +124,6 @@ function LoginContent() {
   );
 }
 
-// ✅ No Suspense needed since we're not using useSearchParams
 const LoginPage = () => {
   return <LoginContent />;
 };
