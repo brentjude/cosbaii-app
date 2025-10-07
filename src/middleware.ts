@@ -7,12 +7,12 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    console.log("Middleware - Path:", pathname, "Role:", token?.role);
-
-    // Skip API routes
+    // ✅ Skip ALL API routes - don't process them
     if (pathname.startsWith("/api/")) {
       return NextResponse.next();
     }
+
+    console.log("Middleware - Path:", pathname, "Role:", token?.role);
 
     // Admin routes
     if (pathname.startsWith("/admin")) {
@@ -27,9 +27,8 @@ export default withAuth(
     if (pathname.startsWith("/dashboard")) {
       if (!token) {
         console.log("Dashboard access denied: No token");
-        // ✅ Use relative path only, not full URL
         const loginUrl = new URL("/login", req.url);
-        loginUrl.searchParams.set("callbackUrl", pathname); // ✅ Just the pathname
+        loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
       }
       return NextResponse.next();
@@ -41,6 +40,11 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
+
+        // ✅ Always allow API routes
+        if (pathname.startsWith("/api/")) {
+          return true;
+        }
 
         // Allow public routes
         if (
@@ -62,5 +66,8 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/).*)"],
+  matcher: [
+    // ✅ Updated matcher to be more specific
+    "/((?!_next/static|_next/image|favicon.ico|images/|api/).*)",
+  ],
 };

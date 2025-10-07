@@ -6,53 +6,6 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
 import { compare } from "bcrypt";
 
-// ✅ Move this function to the top, before authOptions
-async function generateUniqueUsername(
-  name: string,
-  email: string
-): Promise<string> {
-  // Start with name, fallback to email prefix
-  let baseUsername =
-    name.toLowerCase().replace(/[^a-z0-9]/g, "") ||
-    email
-      .split("@")[0]
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "");
-
-  // Ensure it's at least 3 characters
-  if (baseUsername.length < 3) {
-    baseUsername = "user" + baseUsername;
-  }
-
-  // Ensure it's not longer than 20 characters
-  baseUsername = baseUsername.substring(0, 17);
-
-  // Check if username exists
-  let username = baseUsername;
-  let counter = 1;
-
-  while (true) {
-    const existingUser = await prisma.user.findUnique({
-      where: { username },
-    });
-
-    if (!existingUser) {
-      break;
-    }
-
-    username = `${baseUsername}${counter}`;
-    counter++;
-
-    // Ensure we don't exceed 20 characters
-    if (username.length > 20) {
-      baseUsername = baseUsername.substring(0, 17 - counter.toString().length);
-      username = `${baseUsername}${counter}`;
-    }
-  }
-
-  return username;
-}
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [

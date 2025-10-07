@@ -102,7 +102,7 @@ export const ProfileContextProvider: React.FC<{
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    // ✅ Don't fetch if no session or still loading
+    // Don't fetch if no session or still loading
     if (status === "loading") {
       return;
     }
@@ -117,43 +117,92 @@ export const ProfileContextProvider: React.FC<{
     try {
       setLoading(true);
 
-      // ✅ Fetch profile data with error handling
+      console.log("Fetching profile for user:", session.user.id);
+
+      // ✅ Fetch profile data with better error handling
       const profileResponse = await fetch("/api/user/profile", {
-        credentials: "include", // ✅ Include credentials
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        cache: "no-store", // ✅ Prevent caching issues
       });
 
-      // ✅ Check content type before parsing
+      console.log("Profile response status:", profileResponse.status);
+
+      // ✅ Check if response is OK first
+      if (!profileResponse.ok) {
+        console.error(
+          "Profile fetch failed with status:",
+          profileResponse.status
+        );
+
+        // Try to get error message
+        try {
+          const errorData = await profileResponse.json();
+          console.error("Profile error:", errorData);
+        } catch {
+          console.error("Could not parse error response");
+        }
+
+        setProfile(null);
+        setHasProfile(false);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ Check content type
       const contentType = profileResponse.headers.get("content-type");
+      console.log("Profile response content-type:", contentType);
 
       if (!contentType?.includes("application/json")) {
         console.error("Profile API returned non-JSON response");
-        throw new Error("Invalid response from profile API");
-      }
 
-      if (profileResponse.ok) {
-        const profileData = await profileResponse.json();
-        setProfile(profileData.profile);
-        setHasProfile(!!profileData.profile);
-      } else {
-        console.error("Profile fetch failed:", profileResponse.status);
+        // Log the actual response for debugging
+        const responseText = await profileResponse.text();
+        console.error("Response text:", responseText.substring(0, 200));
+
         setProfile(null);
         setHasProfile(false);
+        setLoading(false);
+        return;
       }
 
-      // ✅ Fetch featured items with error handling
-      const featuredResponse = await fetch("/api/user/featured", {
-        credentials: "include", // ✅ Include credentials
-      });
+      const profileData = await profileResponse.json();
+      console.log("Profile data received:", profileData);
 
-      const featuredContentType = featuredResponse.headers.get("content-type");
+      setProfile(profileData.profile);
+      setHasProfile(!!profileData.profile);
 
-      if (
-        featuredResponse.ok &&
-        featuredContentType?.includes("application/json")
-      ) {
-        const featuredData = await featuredResponse.json();
-        setFeaturedItems(featuredData.featured || []);
-      } else {
+      // ✅ Fetch featured items with same approach
+      try {
+        const featuredResponse = await fetch("/api/user/featured", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (featuredResponse.ok) {
+          const featuredContentType =
+            featuredResponse.headers.get("content-type");
+
+          if (featuredContentType?.includes("application/json")) {
+            const featuredData = await featuredResponse.json();
+            setFeaturedItems(featuredData.featured || []);
+          } else {
+            console.warn("Featured API returned non-JSON response");
+            setFeaturedItems([]);
+          }
+        } else {
+          console.warn("Featured fetch failed:", featuredResponse.status);
+          setFeaturedItems([]);
+        }
+      } catch (featuredError) {
+        console.error("Error fetching featured items:", featuredError);
         setFeaturedItems([]);
       }
     } catch (error) {
@@ -164,7 +213,7 @@ export const ProfileContextProvider: React.FC<{
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id, status]); // ✅ Added status to dependencies
+  }, [session?.user?.id, status]);
 
   const setupProfile = async (
     profileData: ProfileSetupData
