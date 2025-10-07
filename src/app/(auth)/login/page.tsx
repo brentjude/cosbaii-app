@@ -11,6 +11,12 @@ function LoginContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
+    console.log("=== Login Page Status ===");
+    console.log("Session status:", status);
+    console.log("Has session:", !!session);
+    console.log("User role:", session?.user?.role);
+    console.log("Is redirecting:", isRedirecting);
+
     if (status === "authenticated" && session?.user && !isRedirecting) {
       setIsRedirecting(true);
 
@@ -22,66 +28,17 @@ function LoginContent() {
         username?: string | null;
       };
 
-      // ✅ Get callbackUrl from window.location
-      let redirectPath: string;
-      let callbackUrl: string | null = null;
+      // ✅ Simple role-based redirect
+      const redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
 
-      if (typeof window !== "undefined") {
-        const urlParams = new URLSearchParams(window.location.search);
-        callbackUrl = urlParams.get("callbackUrl");
+      console.log("User authenticated, role:", user.role);
+      console.log("Redirecting to:", redirectPath);
 
-        console.log("Window location search:", window.location.search);
-        console.log("Original callback URL:", callbackUrl);
-      }
-
-      if (callbackUrl) {
-        try {
-          // ✅ Decode the URL first
-          const decodedUrl = decodeURIComponent(callbackUrl);
-          console.log("Decoded callback URL:", decodedUrl);
-
-          // ✅ Check if it's a relative path
-          if (decodedUrl.startsWith("/")) {
-            redirectPath = decodedUrl;
-            console.log("Using relative path:", redirectPath);
-          } else {
-            // ✅ It's a full URL, extract the pathname
-            try {
-              const urlObj = new URL(decodedUrl);
-              redirectPath = urlObj.pathname + (urlObj.search || "");
-              console.log("Extracted pathname from full URL:", redirectPath);
-            } catch (urlError) {
-              console.error("Failed to parse as URL:", urlError);
-              // Fallback to role-based redirect
-              redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
-              console.log("Using role-based fallback:", redirectPath);
-            }
-          }
-        } catch (error) {
-          console.error("Failed to process callback URL:", error);
-          // ✅ Fallback to role-based redirect if URL parsing fails
-          redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
-          console.log("Using error fallback:", redirectPath);
-        }
-      } else {
-        // ✅ Default redirect based on role
-        redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
-        console.log(
-          "No callback URL, using role-based redirect:",
-          redirectPath
-        );
-      }
-
-      console.log("Final redirect path:", redirectPath);
-
-      // ✅ Use window.location.href for hard redirect (works better in production)
-      if (typeof window !== "undefined") {
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          console.log("Redirecting to:", redirectPath);
-          window.location.href = redirectPath;
-        }, 100);
-      }
+      // ✅ Use window.location.href for hard redirect
+      setTimeout(() => {
+        console.log("Executing redirect now...");
+        window.location.href = redirectPath;
+      }, 500);
     }
   }, [session, status, isRedirecting]);
 

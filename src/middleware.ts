@@ -7,29 +7,49 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    // ✅ Skip ALL API routes - don't process them
+    // ✅ Skip ALL API routes
     if (pathname.startsWith("/api/")) {
       return NextResponse.next();
     }
 
-    console.log("Middleware - Path:", pathname, "Role:", token?.role);
+    console.log(
+      "Middleware - Path:",
+      pathname,
+      "Role:",
+      token?.role,
+      "Has token:",
+      !!token
+    );
+
+    // ✅ Skip processing if already on login page
+    if (pathname === "/login") {
+      return NextResponse.next();
+    }
 
     // Admin routes
     if (pathname.startsWith("/admin")) {
-      if (token?.role !== "ADMIN") {
-        console.log(`Admin access denied for user with role: ${token?.role}`);
+      if (!token) {
+        console.log("Admin route - No token, redirecting to login");
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+
+      if (token.role !== "ADMIN") {
+        console.log(`Admin access denied for user with role: ${token.role}`);
         return NextResponse.redirect(new URL("/unauthorized", req.url));
       }
+
+      console.log("Admin route - Access granted");
       return NextResponse.next();
     }
 
     // Dashboard routes
     if (pathname.startsWith("/dashboard")) {
       if (!token) {
-        console.log("Dashboard access denied: No token");
-        // ✅ Simple redirect without callback URL
+        console.log("Dashboard route - No token, redirecting to login");
         return NextResponse.redirect(new URL("/login", req.url));
       }
+
+      console.log("Dashboard route - Access granted");
       return NextResponse.next();
     }
 
@@ -45,7 +65,7 @@ export default withAuth(
           return true;
         }
 
-        // Allow public routes
+        // ✅ Allow authentication routes (login, register)
         if (
           pathname === "/" ||
           pathname === "/login" ||
@@ -57,13 +77,25 @@ export default withAuth(
           return true;
         }
 
-        // Require token for protected routes
-        return !!token;
+        // ✅ For protected routes, require token
+        if (
+          pathname.startsWith("/admin") ||
+          pathname.startsWith("/dashboard")
+        ) {
+          return !!token;
+        }
+
+        // Allow all other routes
+        return true;
       },
     },
   }
 );
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/|api/).*)"],
+  matcher: [
+    // ✅ More specific matcher
+    "/admin/:path*",
+    "/dashboard/:path*",
+  ],
 };
