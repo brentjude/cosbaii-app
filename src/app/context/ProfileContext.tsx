@@ -16,7 +16,7 @@ interface Profile {
   cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
   yearsOfExperience: number | null;
   specialization: string | null;
-  skillLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT" | undefined;
+  skillLevel?: "beginner" | "intermediate" | "advanced" | undefined; // ✅ Changed to lowercase
   displayName: string | null;
   bio: string | null;
   profilePicture: string | null;
@@ -42,23 +42,19 @@ interface FeaturedItem {
   series?: string;
   type: "competition" | "cosplay";
   competitionId?: number;
-  competition?: Competition; // ✅ Fixed: proper type instead of 'any'
+  competition?: {
+    id: number;
+    name: string;
+    eventDate: string;
+    location?: string;
+    competitionType: string;
+    rivalryType: string;
+    level: string;
+  };
   position?: string;
   award?: string;
 }
 
-// ✅ Update Competition interface to include all required fields
-interface Competition {
-  id: number;
-  name: string;
-  eventDate: string;
-  location?: string;
-  competitionType: string; // ✅ Add this
-  rivalryType: string; // ✅ Add this
-  level: string; // ✅ Add this
-}
-
-// ✅ Add proper types for profile data
 interface ProfileUpdateData {
   displayName?: string;
   bio?: string;
@@ -87,57 +83,91 @@ interface ProfileContextType {
   featuredItems: FeaturedItem[];
   hasProfile: boolean;
   loading: boolean;
-  updateProfile: (profileData: ProfileUpdateData) => Promise<boolean>; // ✅ Fixed type
+  updateProfile: (profileData: ProfileUpdateData) => Promise<boolean>;
   setupProfile: (
-    profileData: ProfileSetupData // ✅ Fixed type
+    profileData: ProfileSetupData
   ) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
   fetchProfile: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { data: session } = useSession();
+export const ProfileContextProvider: React.FC<{
+  children: React.ReactNode;
+}> = ({ children }) => {
+  const { data: session, status } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Wrapped fetchProfile with useCallback to fix dependency warning
   const fetchProfile = useCallback(async () => {
+    // ✅ Don't fetch if no session or still loading
+    if (status === "loading") {
+      return;
+    }
+
     if (!session?.user?.id) {
       setLoading(false);
+      setProfile(null);
+      setHasProfile(false);
       return;
     }
 
     try {
       setLoading(true);
 
-      // Fetch profile data
-      const profileResponse = await fetch("/api/user/profile");
+      // ✅ Fetch profile data with error handling
+      const profileResponse = await fetch("/api/user/profile", {
+        credentials: "include", // ✅ Include credentials
+      });
+
+      // ✅ Check content type before parsing
+      const contentType = profileResponse.headers.get("content-type");
+
+      if (!contentType?.includes("application/json")) {
+        console.error("Profile API returned non-JSON response");
+        throw new Error("Invalid response from profile API");
+      }
+
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
         setProfile(profileData.profile);
         setHasProfile(!!profileData.profile);
+      } else {
+        console.error("Profile fetch failed:", profileResponse.status);
+        setProfile(null);
+        setHasProfile(false);
       }
 
-      // Fetch featured items
-      const featuredResponse = await fetch("/api/user/featured");
-      if (featuredResponse.ok) {
+      // ✅ Fetch featured items with error handling
+      const featuredResponse = await fetch("/api/user/featured", {
+        credentials: "include", // ✅ Include credentials
+      });
+
+      const featuredContentType = featuredResponse.headers.get("content-type");
+
+      if (
+        featuredResponse.ok &&
+        featuredContentType?.includes("application/json")
+      ) {
         const featuredData = await featuredResponse.json();
         setFeaturedItems(featuredData.featured || []);
+      } else {
+        setFeaturedItems([]);
       }
     } catch (error) {
       console.error("Error fetching profile data:", error);
+      setProfile(null);
+      setHasProfile(false);
+      setFeaturedItems([]);
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]); // ✅ Added dependencies
+  }, [session?.user?.id, status]); // ✅ Added status to dependencies
 
   const setupProfile = async (
-    profileData: ProfileSetupData // ✅ Fixed type
+    profileData: ProfileSetupData
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch("/api/user/profile/setup", {
@@ -145,6 +175,7 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // ✅ Include credentials
         body: JSON.stringify(profileData),
       });
 
@@ -170,11 +201,11 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const updateProfile = async (data: ProfileUpdateData): Promise<boolean> => {
-    // ✅ Fixed type
     try {
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // ✅ Include credentials
         body: JSON.stringify(data),
       });
 
@@ -189,7 +220,6 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  // ✅ Added fetchProfile to dependency array
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
