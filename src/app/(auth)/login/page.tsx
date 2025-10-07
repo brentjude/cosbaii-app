@@ -4,16 +4,16 @@
 import Image from "next/image";
 import LoginForm from "@/app/components/form/LoginForm";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const LoginPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // ✅ Only redirect once when authenticated
     if (status === "authenticated" && session?.user && !isRedirecting) {
       setIsRedirecting(true);
 
@@ -25,17 +25,29 @@ const LoginPage = () => {
         username?: string | null;
       };
 
-      console.log("User authenticated:", user.email, "Role:", user.role);
+      // ✅ Check for callbackUrl in URL params
+      const callbackUrl = searchParams?.get("callbackUrl");
 
-      const redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
-      console.log("Redirecting to:", redirectPath);
+      // ✅ Determine redirect path
+      let redirectPath: string;
 
-      // ✅ Use replace instead of push to avoid back button issues
-      router.replace(redirectPath);
+      if (callbackUrl) {
+        // Use the callback URL if provided
+        redirectPath = callbackUrl;
+      } else {
+        // Default redirect based on role
+        redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+      }
+
+      console.log("Redirecting authenticated user to:", redirectPath);
+
+      // ✅ Use window.location for a hard redirect in production
+      if (typeof window !== "undefined") {
+        window.location.href = redirectPath;
+      }
     }
-  }, [session, status, router, isRedirecting]);
+  }, [session, status, router, isRedirecting, searchParams]);
 
-  // ✅ Show loading only during initial session check
   if (status === "loading") {
     return (
       <div className="w-full h-screen flex items-center justify-center">
@@ -47,7 +59,6 @@ const LoginPage = () => {
     );
   }
 
-  // ✅ Show redirecting message for authenticated users
   if (status === "authenticated" || isRedirecting) {
     return (
       <div className="w-full h-screen flex items-center justify-center">
@@ -59,7 +70,6 @@ const LoginPage = () => {
     );
   }
 
-  // Only show login form for unauthenticated users
   return (
     <div className="w-full h-screen flex">
       <div className="basis-[50vw] max-md:basis-[100vw] flex items-center justify-center">

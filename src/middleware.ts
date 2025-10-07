@@ -7,41 +7,30 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    console.log(
-      "Middleware - Path:",
-      pathname,
-      "User:",
-      token?.email,
-      "Role:",
-      token?.role
-    );
+    console.log("Middleware - Path:", pathname, "Role:", token?.role);
 
     // Skip API routes
     if (pathname.startsWith("/api/")) {
       return NextResponse.next();
     }
 
-    // ✅ Allow admin users to access admin routes
+    // Admin routes
     if (pathname.startsWith("/admin")) {
       if (token?.role !== "ADMIN") {
-        console.log(
-          `Access denied: User ${token?.email} with role ${token?.role} tried to access admin area`
-        );
+        console.log(`Admin access denied for user with role: ${token?.role}`);
         return NextResponse.redirect(new URL("/unauthorized", req.url));
       }
-      // ✅ Allow access for admins
       return NextResponse.next();
     }
 
-    // ✅ Allow regular users to access dashboard
+    // Dashboard routes
     if (pathname.startsWith("/dashboard")) {
       if (!token) {
-        console.log(
-          "Access denied: No authentication token found for dashboard"
+        console.log("Dashboard access denied: No token");
+        return NextResponse.redirect(
+          new URL("/login?callbackUrl=" + pathname, req.url)
         );
-        return NextResponse.redirect(new URL("/login", req.url));
       }
-      // ✅ Allow access for authenticated users
       return NextResponse.next();
     }
 
@@ -52,22 +41,19 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
 
-        // Allow all API routes
-        if (pathname.startsWith("/api/")) {
-          return true;
-        }
-
         // Allow public routes
         if (
           pathname === "/" ||
           pathname === "/login" ||
           pathname === "/register" ||
-          pathname === "/unauthorized"
+          pathname === "/unauthorized" ||
+          pathname.startsWith("/_next") ||
+          pathname.startsWith("/images")
         ) {
           return true;
         }
 
-        // Require authentication for protected routes
+        // Require token for protected routes
         return !!token;
       },
     },
@@ -75,8 +61,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: [
-    // Match all paths except static files and API routes that should be public
-    "/((?!_next/static|_next/image|favicon.ico|images/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/).*)"],
 };

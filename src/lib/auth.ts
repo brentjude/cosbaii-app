@@ -76,21 +76,14 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    // ✅ Simplified redirect callback - don't override default behavior
+    // ✅ Remove the redirect callback entirely - let NextAuth handle it
+    // Or keep it VERY simple
     async redirect({ url, baseUrl }) {
-      console.log("Redirect callback - url:", url, "baseUrl:", baseUrl);
-
-      // ✅ If it's a relative URL, return it as is
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
-      }
-
-      // ✅ If it's the same origin, allow it
-      if (url.startsWith(baseUrl)) {
-        return url;
-      }
-
-      // ✅ Default fallback
+      // Allow relative URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allow same origin URLs
+      if (new URL(url).origin === baseUrl) return url;
+      // Default to base URL
       return baseUrl;
     },
     async signIn({ user, account }) {
@@ -119,5 +112,6 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  debug: process.env.NODE_ENV === "development",
+  // ✅ Disable debug in production
+  debug: false,
 };
