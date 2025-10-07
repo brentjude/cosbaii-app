@@ -7,9 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Defining schema for input validation
 const FormSchema = z.object({
   email: z.string().email("Invalid email format").min(1, "Email is required"),
   password: z
@@ -21,8 +20,18 @@ const FormSchema = z.object({
 const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
 
-  // Initialize form with validation schema
+  // ✅ Get callback URL on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const callback = urlParams.get("callbackUrl");
+      setCallbackUrl(callback);
+      console.log("LoginForm - Callback URL:", callback);
+    }
+  }, []);
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -31,17 +40,17 @@ const LoginForm = () => {
     },
   });
 
-  // onSubmit function for credentials login
   const onSubmit = async (values: z.infer<typeof FormSchema>) => {
     try {
       setIsLoading(true);
       setError("");
 
-      // ✅ Don't pass callbackUrl - let NextAuth handle it
+      console.log("Attempting login with callback:", callbackUrl);
+
       const result = await signIn("credentials", {
         email: values.email,
         password: values.password,
-        redirect: false, // ✅ Keep this false
+        redirect: false,
       });
 
       console.log("SignIn result:", result);
@@ -50,9 +59,32 @@ const LoginForm = () => {
         setError("Invalid email or password");
         setIsLoading(false);
       } else if (result?.ok) {
-        // ✅ Let the login page handle the redirect
-        console.log("Sign in successful");
-        // Don't set isLoading to false - let the page redirect happen
+        console.log("Sign in successful, preparing redirect...");
+
+        // ✅ Determine redirect path
+        let redirectPath = "/dashboard"; // default
+
+        if (callbackUrl) {
+          try {
+            const decodedUrl = decodeURIComponent(callbackUrl);
+            if (decodedUrl.startsWith("/")) {
+              redirectPath = decodedUrl;
+            } else {
+              const urlObj = new URL(decodedUrl);
+              redirectPath = urlObj.pathname + (urlObj.search || "");
+            }
+            console.log("Using callback URL:", redirectPath);
+          } catch (e) {
+            console.error("Failed to parse callback URL:", e);
+          }
+        }
+
+        console.log("Redirecting to:", redirectPath);
+
+        // ✅ Use window.location.href for hard redirect
+        setTimeout(() => {
+          window.location.href = redirectPath;
+        }, 500);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -61,18 +93,21 @@ const LoginForm = () => {
     }
   };
 
-  // ✅ Fixed Google sign-in handler
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
-      setError(""); // ✅ Use the correct state setter
+      setError("");
+
+      // ✅ Pass callback URL to Google sign-in
+      const redirectUrl = callbackUrl || "/dashboard";
 
       await signIn("google", {
-        callbackUrl: "/dashboard",
+        callbackUrl: redirectUrl,
+        redirect: true, // Let NextAuth handle the redirect for OAuth
       });
     } catch (error) {
       console.error("Google sign-in error:", error);
-      setError("Google sign-in failed. Please try again."); // ✅ Fixed variable name
+      setError("Google sign-in failed. Please try again.");
       setIsLoading(false);
     }
   };
@@ -101,11 +136,10 @@ const LoginForm = () => {
           </label>
           <input
             type="email"
-            {...form.register("email")}
-            className={`input bg-base-200 w-full mt-2 ${
-              form.formState.errors.email ? "input-error" : ""
-            }`}
             placeholder="Email"
+            className="input input-bordered"
+            disabled={isLoading}
+            {...form.register("email")}
           />
           {form.formState.errors.email && (
             <label className="label">
@@ -122,11 +156,10 @@ const LoginForm = () => {
           </label>
           <input
             type="password"
-            {...form.register("password")}
-            className={`input bg-base-200 w-full mt-2 ${
-              form.formState.errors.password ? "input-error" : ""
-            }`}
             placeholder="Password"
+            className="input input-bordered"
+            disabled={isLoading}
+            {...form.register("password")}
           />
           {form.formState.errors.password && (
             <label className="label">
@@ -137,7 +170,6 @@ const LoginForm = () => {
           )}
         </div>
 
-        {/* Display error message */}
         {error && (
           <div className="alert alert-error mt-4 rounded-md">
             <span>{error}</span>
@@ -166,10 +198,8 @@ const LoginForm = () => {
         </p>
       </form>
 
-      {/* ✅ Fixed divider - removed extra semicolon */}
       <div className="divider my-2 text-gray-500">OR</div>
 
-      {/* ✅ Fixed Google Sign-in Button */}
       <button
         onClick={handleGoogleSignIn}
         disabled={isLoading}
