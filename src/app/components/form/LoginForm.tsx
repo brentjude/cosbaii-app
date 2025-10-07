@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { z } from "zod";
 import { signIn } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 const FormSchema = z.object({
   email: z.string().email("Invalid email format").min(1, "Email is required"),
@@ -20,17 +20,6 @@ const FormSchema = z.object({
 const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
-
-  // ✅ Get callback URL on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const callback = urlParams.get("callbackUrl");
-      setCallbackUrl(callback);
-      console.log("LoginForm - Callback URL:", callback);
-    }
-  }, []);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -45,7 +34,7 @@ const LoginForm = () => {
       setIsLoading(true);
       setError("");
 
-      console.log("Attempting login with callback:", callbackUrl);
+      console.log("Attempting login...");
 
       const result = await signIn("credentials", {
         email: values.email,
@@ -59,31 +48,13 @@ const LoginForm = () => {
         setError("Invalid email or password");
         setIsLoading(false);
       } else if (result?.ok) {
-        console.log("Sign in successful, preparing redirect...");
+        console.log("Sign in successful");
 
-        // ✅ Determine redirect path
-        let redirectPath = "/dashboard"; // default
-
-        if (callbackUrl) {
-          try {
-            const decodedUrl = decodeURIComponent(callbackUrl);
-            if (decodedUrl.startsWith("/")) {
-              redirectPath = decodedUrl;
-            } else {
-              const urlObj = new URL(decodedUrl);
-              redirectPath = urlObj.pathname + (urlObj.search || "");
-            }
-            console.log("Using callback URL:", redirectPath);
-          } catch (e) {
-            console.error("Failed to parse callback URL:", e);
-          }
-        }
-
-        console.log("Redirecting to:", redirectPath);
-
-        // ✅ Use window.location.href for hard redirect
+        // ✅ Simple redirect - let the session determine the route
+        // Admin users will be redirected to /admin
+        // Regular users will be redirected to /dashboard
         setTimeout(() => {
-          window.location.href = redirectPath;
+          window.location.href = "/dashboard"; // Default redirect
         }, 500);
       }
     } catch (error) {
@@ -98,12 +69,9 @@ const LoginForm = () => {
       setIsLoading(true);
       setError("");
 
-      // ✅ Pass callback URL to Google sign-in
-      const redirectUrl = callbackUrl || "/dashboard";
-
       await signIn("google", {
-        callbackUrl: redirectUrl,
-        redirect: true, // Let NextAuth handle the redirect for OAuth
+        callbackUrl: "/dashboard",
+        redirect: true,
       });
     } catch (error) {
       console.error("Google sign-in error:", error);

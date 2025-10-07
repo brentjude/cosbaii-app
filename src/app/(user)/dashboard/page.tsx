@@ -15,6 +15,14 @@ import { CheckBadgeIcon, BellIcon } from "@heroicons/react/16/solid";
 
 const DashboardPage = () => {
   const { data: session, status } = useSession();
+
+  // ✅ Redirect admins to admin dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role === "ADMIN") {
+      window.location.href = "/admin";
+    }
+  }, [session, status]);
+
   const { hasProfile, loading } = useProfile();
   const {
     notifications,
@@ -63,8 +71,8 @@ const DashboardPage = () => {
             <div className="text-xs">
               You&apos;ve got 7 days to fully set up your Cosbaii profile.
               <br />
-              We&apos;ll check if everything&apos;s complete, and if not, your profile
-              will be removed to make space for new members.
+              We&apos;ll check if everything&apos;s complete, and if not, your
+              profile will be removed to make space for new members.
             </div>
           </div>
         </div>
@@ -77,8 +85,8 @@ const DashboardPage = () => {
         <p className="text-white/90">
           Cosbaii is in early access. Features may change as we continue
           development
-          <br /> You may experience bugs and glitches. Don&apos;t forget to submit a
-          feedback!
+          <br /> You may experience bugs and glitches. Don&apos;t forget to
+          submit a feedback!
         </p>
       </div>
 

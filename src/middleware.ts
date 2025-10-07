@@ -27,9 +27,8 @@ export default withAuth(
     if (pathname.startsWith("/dashboard")) {
       if (!token) {
         console.log("Dashboard access denied: No token");
-        const loginUrl = new URL("/login", req.url);
-        loginUrl.searchParams.set("callbackUrl", pathname);
-        return NextResponse.redirect(loginUrl);
+        // ✅ Simple redirect without callback URL
+        return NextResponse.redirect(new URL("/login", req.url));
       }
       return NextResponse.next();
     }
@@ -66,8 +65,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: [
-    // ✅ Updated matcher to be more specific
-    "/((?!_next/static|_next/image|favicon.ico|images/|api/).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|images/|api/).*)"],
 };
