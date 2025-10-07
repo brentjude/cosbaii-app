@@ -197,7 +197,11 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
           )}
 
           <label className="input">
-            <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <svg
+              className="h-[1em] opacity-50"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+            >
               <g
                 strokeLinejoin="round"
                 strokeLinecap="round"
@@ -213,7 +217,6 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
           </label>
         </div>
 
-      
         <div className="navbar-end flex items-center gap-4">
           {/* ✅ Updated: Notification Bell with new styling */}
           <div className="dropdown dropdown-end">
@@ -360,11 +363,9 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
                 className="btn btn-ghost btn-circle avatar"
               >
                 <div className="w-10 rounded-full">
-                  {/* ✅ Replaced <img> with <Image /> */}
                   <Image
                     src={
-                      session?.user?.image ||
-                      "https://img.daisyui.com/images/profile/demo/yellingcat@192.webp"
+                      session?.user?.image || "/images/default-avatar.png" // ✅ Use local default avatar
                     }
                     alt="Profile"
                     width={40}
