@@ -41,19 +41,38 @@ const updateCompetitionSchema = z.object({
   referenceLinks: z.string().nullable().optional(),
 });
 
+// ✅ Add type for update data
+type CompetitionUpdateData = {
+  name?: string;
+  description?: string | null;
+  eventDate?: Date;
+  location?: string | null;
+  organizer?: string | null;
+  competitionType?: "GENERAL" | "ARMOR" | "CLOTH" | "SINGING";
+  rivalryType?: "SOLO" | "DUO" | "GROUP";
+  level?: "BARANGAY" | "LOCAL" | "REGIONAL" | "NATIONAL" | "WORLDWIDE";
+  logoUrl?: string | null;
+  eventUrl?: string | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  referenceLinks?: string | null;
+};
+
 // GET: Fetch single competition
+// ✅ Fixed: params is now Promise<{ id: string }>
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user || (session.user as any).role !== "ADMIN") {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: idParam } = await params; // ✅ Await params
+    // ✅ Await params first
+    const { id: idParam } = await params;
     const id = parseInt(idParam);
     
     if (isNaN(id)) {
@@ -105,18 +124,20 @@ export async function GET(
 }
 
 // PUT: Update competition
+// ✅ Fixed: params is now Promise<{ id: string }>
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user || (session.user as any).role !== "ADMIN") {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: idParam } = await params; // ✅ Await params
+    // ✅ Await params first
+    const { id: idParam } = await params;
     const id = parseInt(idParam);
     
     if (isNaN(id)) {
@@ -141,8 +162,8 @@ export async function PUT(
       );
     }
 
-    // Prepare update data - only include defined fields
-    const updateData: any = {};
+    // Build update data object
+    const updateData: CompetitionUpdateData = {};
     
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
@@ -206,18 +227,20 @@ export async function PUT(
 }
 
 // DELETE: Delete competition
+// ✅ Fixed: params is now Promise<{ id: string }>
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user || (session.user as any).role !== "ADMIN") {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id: idParam } = await params; // ✅ Await params
+    // ✅ Await params first
+    const { id: idParam } = await params;
     const id = parseInt(idParam);
     
     if (isNaN(id)) {

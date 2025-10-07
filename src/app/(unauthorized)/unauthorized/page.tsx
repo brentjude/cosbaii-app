@@ -9,7 +9,7 @@ const layout = () => {
           <h2 className="card-title justify-center text-error">
             Access Denied
           </h2>
-          <p>You don't have permission to access this page.</p>
+          <p>You don&apos;t have permission to access this page.</p>
           <div className="card-actions justify-center mt-4">
             <Link href="/dashboard" className="btn btn-primary">
               Go to Dashboard

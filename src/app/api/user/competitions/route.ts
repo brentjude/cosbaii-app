@@ -6,6 +6,12 @@ import prisma from '@/lib/prisma';
 import { createCompetitionSubmittedNotification } from '@/lib/notification';
 import { BadgeTriggers } from '@/lib/badgeTriggers';
 
+// ✅ Add type for Prisma errors
+interface PrismaError {
+  code?: string;
+  meta?: Record<string, unknown>;
+  message?: string;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -152,8 +158,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error submitting competition:', error);
     
+    // ✅ Fixed: Use proper type instead of 'any'
     if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as any;
+      const prismaError = error as PrismaError;
       console.error('Prisma error code:', prismaError.code);
       console.error('Prisma error meta:', prismaError.meta);
       

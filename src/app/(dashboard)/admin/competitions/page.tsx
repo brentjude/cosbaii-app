@@ -237,7 +237,7 @@ const CompetitionsManagementPage = () => {
   // API actions
   const confirmCreate = async (data: NewCompetitionData) => {
     setActionLoading(true);
-    setAddModalError(null); // ✅ Clear previous modal error
+    setAddModalError(null);
     try {
       const response = await fetch("/api/admin/competitions", {
         method: "POST",
@@ -250,10 +250,9 @@ const CompetitionsManagementPage = () => {
         await fetchCompetitions();
       } else {
         const error = await response.json();
-        // ✅ Show error in modal instead of page alert
         setAddModalError(error.message || "Failed to create competition");
       }
-    } catch (error) {
+    } catch { 
       setAddModalError("Failed to create competition");
     } finally {
       setActionLoading(false);
@@ -285,7 +284,7 @@ const CompetitionsManagementPage = () => {
         const error = await response.json();
         setError(error.message || "Failed to review competition");
       }
-    } catch (error) {
+    } catch { 
       setError("Failed to review competition");
     } finally {
       setActionLoading(false);
@@ -294,30 +293,31 @@ const CompetitionsManagementPage = () => {
 
   // Add the confirmUpdate function
 const confirmUpdate = async (data: EditCompetitionData) => {
-  if (!selectedCompetition) return;
+    if (!selectedCompetition) return;
 
-  setActionLoading(true);
-  setEditModalError(null);
-  try {
-    const response = await fetch(`/api/admin/competitions/${selectedCompetition.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    setActionLoading(true);
+    setEditModalError(null);
+    try {
+      const response = await fetch(`/api/admin/competitions/${selectedCompetition.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-    if (response.ok) {
-      closeModals();
-      await fetchCompetitions();
-    } else {
-      const error = await response.json();
-      setEditModalError(error.message || "Failed to update competition");
+      if (response.ok) {
+        closeModals();
+        await fetchCompetitions();
+      } else {
+        const error = await response.json();
+        setEditModalError(error.message || "Failed to update competition");
+      }
+    } catch { 
+      setEditModalError("Failed to update competition");
+    } finally {
+      setActionLoading(false);
     }
-  } catch (error) {
-    setEditModalError("Failed to update competition");
-  } finally {
-    setActionLoading(false);
-  }
-};
+  };
+
 
   const confirmDelete = async () => {
     if (!selectedCompetition) return;
@@ -338,7 +338,7 @@ const confirmUpdate = async (data: EditCompetitionData) => {
         const error = await response.json();
         setError(error.message || "Failed to delete competition");
       }
-    } catch (error) {
+    } catch { 
       setError("Failed to delete competition");
     } finally {
       setActionLoading(false);
@@ -414,7 +414,7 @@ const confirmUpdate = async (data: EditCompetitionData) => {
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="alert alert-error max-w-md">
             <ExclamationTriangleIcon className="w-6 h-6" />
-            <span>You don't have permission to access this page.</span>
+            <span>You don&apos;t have permission to access this page.</span> {/* ✅ Fixed apostrophe */}
           </div>
         </div>
       </div>

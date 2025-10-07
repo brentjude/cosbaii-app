@@ -1,6 +1,7 @@
 "use client";
 
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import Image from "next/image"; // ✅ Add this import
 
 type CompetitionType = "GENERAL" | "ARMOR" | "CLOTH" | "SINGING";
 type RivalryType = "SOLO" | "DUO" | "GROUP";
@@ -115,10 +116,12 @@ const ViewCompetitionModal = ({
           <div className="bg-base-200 rounded-lg p-6">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-start gap-4">
-                {/* Logo with fallback */}
-                <img
+                {/* ✅ Line 119: Replaced <img> with <Image /> */}
+                <Image
                   src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
                   alt="Competition Logo"
+                  width={64}
+                  height={64}
                   className="w-16 h-16 object-contain rounded bg-white border border-base-300"
                   onError={(e) => {
                     e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
@@ -206,9 +209,12 @@ const ViewCompetitionModal = ({
                   <div>
                   <p className="text-sm font-medium mb-1">Competition Logo:</p>
                   <div className="flex items-center gap-2">
-                    <img
+                    {/* ✅ Line 209: Replaced <img> with <Image /> */}
+                    <Image
                       src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
                       alt="Competition Logo"
+                      width={64}
+                      height={64}
                       className="w-16 h-16 object-cover rounded"
                       onError={(e) => {
                         e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+// ✅ Removed unused prisma import
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { imageUrl, publicId, featuredIndex, competitionId } = await request.json();
+    const { imageUrl, publicId, featuredIndex } = await request.json(); // ✅ Removed unused competitionId
 
     if (!imageUrl || featuredIndex === undefined) {
       return NextResponse.json(

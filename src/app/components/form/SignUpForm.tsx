@@ -168,8 +168,10 @@ export default function SignUpForm() {
         emailUpdates: false,
         privacyConsent: false,
       });
-    } catch (error: any) {
-      setSubmitError(error.message || "An unexpected error occurred");
+    } catch (error) {
+      // ✅ Fixed: Use proper type instead of 'any'
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      setSubmitError(errorMessage);
     } finally {
       setIsLoading(false); // Reset loading state
     }
@@ -265,7 +267,7 @@ export default function SignUpForm() {
               onChange={handleInputChange}
             />
             I understand that by submitting this form, my information will be
-            used to contact me about Cosbaii’s launch and early access perks. We
+            used to contact me about Cosbaii&apos;s launch and early access perks. We
             respect your privacy and will never share your data.
           </label>
 
@@ -290,9 +292,9 @@ export default function SignUpForm() {
                 viewBox="0 0 24 24"
               >
                 <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                   d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>

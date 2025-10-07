@@ -4,7 +4,6 @@ import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
 import {
-  UserIcon,
   CameraIcon,
   CheckIcon,
   ArrowRightIcon,
@@ -70,7 +69,7 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [profilePictureLoading, setProfilePictureLoading] = useState(false);
   const [coverImageLoading, setCoverImageLoading] = useState(false);
 
-  const { uploadImage, uploading, error: uploadError } = useCloudinaryUpload();
+  const { uploadImage } = useCloudinaryUpload();
 
   const totalSteps = 4;
 
@@ -238,7 +237,7 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                 Welcome to COSBAII!
               </h2>
               <p className="text-base-content/70">
-                Let's set up your cosplay profile
+                Let&apos;s set up your cosplay profile
               </p>
             </div>
             <button

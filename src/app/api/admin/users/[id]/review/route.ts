@@ -59,7 +59,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     });
 
-    const { password: updatedUserPassword, ...rest } = updatedUser;
+    // ✅ Fixed: Use rest operator with underscore prefix to exclude password without assignment
+    const { password: _password, ...rest } = updatedUser;
 
     return NextResponse.json({ 
       user: rest,

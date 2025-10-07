@@ -61,9 +61,9 @@ const DashboardPage = () => {
           <div>
             <h3 className="font-bold">Complete your profile setup!</h3>
             <div className="text-xs">
-              You’ve got 7 days to fully set up your Cosbaii profile.
+              You&apos;ve got 7 days to fully set up your Cosbaii profile.
               <br />
-              We’ll check if everything’s complete, and if not, your profile
+              We&apos;ll check if everything&apos;s complete, and if not, your profile
               will be removed to make space for new members.
             </div>
           </div>
@@ -77,7 +77,7 @@ const DashboardPage = () => {
         <p className="text-white/90">
           Cosbaii is in early access. Features may change as we continue
           development
-          <br /> You may experience bugs and glitches. Don't forget to submit a
+          <br /> You may experience bugs and glitches. Don&apos;t forget to submit a
           feedback!
         </p>
       </div>

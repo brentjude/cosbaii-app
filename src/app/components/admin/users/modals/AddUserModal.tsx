@@ -2,18 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-interface User {
-  id: number;
-  name: string | null;
-  email: string;
-  username: string | null;
-  role: "USER" | "ADMIN" | "MODERATOR";
-  status: "INACTIVE" | "ACTIVE" | "BANNED";
-  createdAt: string;
-  updatedAt: string;
-  reviewedBy: string | null; // ✅ Fixed: Changed from optional to string | null
-}
-
+// ✅ Removed unused User interface - it's not needed in this component
 interface NewUserData {
   name: string | null;
   email: string;

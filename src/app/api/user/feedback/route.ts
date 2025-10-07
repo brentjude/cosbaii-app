@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET: Fetch user's feedback (optional)
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     

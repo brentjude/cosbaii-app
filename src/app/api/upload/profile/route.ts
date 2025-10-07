@@ -2,12 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
-import { 
-  deleteImageFromCloudinary, 
-  extractPublicIdFromUrl,
-  uploadToCloudinary  // ✅ Add this import
-} from '@/lib/cloudinary';
+// ✅ Removed unused imports
+import { uploadToCloudinary } from '@/lib/cloudinary';
+
+// ✅ Add interface for Cloudinary error
+interface CloudinaryError {
+  error?: {
+    message?: string;
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,9 +94,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error uploading profile image:', error);
     
-    // Handle specific Cloudinary errors
+    // ✅ Handle specific Cloudinary errors with proper typing
     if (error && typeof error === 'object' && 'error' in error) {
-      const cloudinaryError = error as any;
+      const cloudinaryError = error as CloudinaryError;
       if (cloudinaryError.error?.message) {
         return NextResponse.json({
           error: `Upload failed: ${cloudinaryError.error.message}`

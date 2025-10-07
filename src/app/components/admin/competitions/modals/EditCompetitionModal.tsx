@@ -184,7 +184,7 @@ const EditCompetitionModal: React.FC<EditCompetitionModalProps> = ({
     try {
       new URL(string);
       return true;
-    } catch (_) {
+    } catch {
       return false;
     }
   };

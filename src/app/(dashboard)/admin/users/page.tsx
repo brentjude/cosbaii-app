@@ -334,7 +334,7 @@ const UserManagementPage = () => {
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="alert alert-error max-w-md">
             <ExclamationTriangleIcon className="w-6 h-6" />
-            <span>You don't have permission to access this page.</span>
+            <span>You don&apos;t have permission to access this page.</span>
           </div>
         </div>
       </div>

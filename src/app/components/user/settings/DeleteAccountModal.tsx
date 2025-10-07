@@ -138,7 +138,7 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-medium">
-                    Type <span className="font-bold">"Delete my account"</span>{" "}
+                    Type <span className="font-bold">&quot;Delete my account&quot;</span>{" "}
                     to continue:
                   </span>
                 </label>

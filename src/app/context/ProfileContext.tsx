@@ -1,7 +1,7 @@
 // Update: src/app/context/ProfileContext.tsx
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 
 interface Profile {
@@ -36,9 +36,42 @@ interface FeaturedItem {
   series?: string;
   type: "competition" | "cosplay";
   competitionId?: number;
-  competition?: any;
+  competition?: Competition; // ✅ Fixed: proper type instead of 'any'
   position?: string;
   award?: string;
+}
+
+// ✅ Add Competition interface
+interface Competition {
+  id: number;
+  name: string;
+  eventDate: string;
+  location?: string;
+  [key: string]: unknown;
+}
+
+// ✅ Add proper types for profile data
+interface ProfileUpdateData {
+  displayName?: string;
+  bio?: string;
+  profilePicture?: string;
+  coverImage?: string;
+  cosplayerType?: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
+  yearsOfExperience?: number | null;
+  specialization?: string;
+  skillLevel?: string;
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  twitterUrl?: string | null;
+  tiktokUrl?: string | null;
+  youtubeUrl?: string | null;
+  receiveEmailUpdates?: boolean;
+  [key: string]: unknown;
+}
+
+interface ProfileSetupData extends ProfileUpdateData {
+  displayName: string;
+  cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
 }
 
 interface ProfileContextType {
@@ -46,9 +79,9 @@ interface ProfileContextType {
   featuredItems: FeaturedItem[];
   hasProfile: boolean;
   loading: boolean;
-  updateProfile: (profileData: any) => Promise<boolean>;
+  updateProfile: (profileData: ProfileUpdateData) => Promise<boolean>; // ✅ Fixed type
   setupProfile: (
-    profileData: any
+    profileData: ProfileSetupData // ✅ Fixed type
   ) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
   fetchProfile: () => Promise<void>;
 }
@@ -58,13 +91,14 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { data: session } = useSession(); // ✅ Add this missing line
+  const { data: session } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  // ✅ Wrapped fetchProfile with useCallback to fix dependency warning
+  const fetchProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false);
       return;
@@ -78,7 +112,7 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
       if (profileResponse.ok) {
         const profileData = await profileResponse.json();
         setProfile(profileData.profile);
-        setHasProfile(!!profileData.profile); // ✅ Set hasProfile based on profile existence
+        setHasProfile(!!profileData.profile);
       }
 
       // Fetch featured items
@@ -92,10 +126,10 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]); // ✅ Added dependencies
 
   const setupProfile = async (
-    profileData: any
+    profileData: ProfileSetupData // ✅ Fixed type
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch("/api/user/profile/setup", {
@@ -127,7 +161,7 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const updateProfile = async (data: any): Promise<boolean> => {
+  const updateProfile = async (data: ProfileUpdateData): Promise<boolean> => { // ✅ Fixed type
     try {
       const response = await fetch("/api/user/profile", {
         method: "PUT",
@@ -146,9 +180,10 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // ✅ Added fetchProfile to dependency array
   useEffect(() => {
     fetchProfile();
-  }, [session?.user?.id]);
+  }, [fetchProfile]);
 
   const value = {
     profile,
@@ -157,7 +192,7 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
     loading,
     updateProfile,
     setupProfile,
-    fetchProfile, // ✅ Fix the function name
+    fetchProfile,
   };
 
   return (

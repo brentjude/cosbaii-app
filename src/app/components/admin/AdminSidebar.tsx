@@ -12,8 +12,7 @@ import {
   DocumentTextIcon,
   BellIcon,
   CogIcon,
-  Bars3Icon,
-  XMarkIcon,
+  // ✅ Removed unused imports: Bars3Icon, XMarkIcon
   ChartBarIcon,
   ShieldCheckIcon,
   ChatBubbleLeftEllipsisIcon, // ✅ Add feedback icon
@@ -55,7 +54,7 @@ interface AdminSidebarProps {
   setIsMinimized: (value: boolean) => void;
 }
 
-const AdminSidebar = ({ isMinimized, setIsMinimized }: AdminSidebarProps) => {
+const AdminSidebar = ({ isMinimized }: AdminSidebarProps) => { // ✅ Removed unused setIsMinimized
   const pathname = usePathname();
 
   return (

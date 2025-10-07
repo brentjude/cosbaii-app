@@ -6,7 +6,7 @@ import BadgeCard from './BadgeCard';
 import { TrophyIcon } from '@heroicons/react/24/outline';
 
 const BadgeSection: React.FC = () => {
-  const { badges, progress, loading, error } = useBadges();
+  const { progress, loading, error } = useBadges(); // ✅ Removed unused 'badges'
 
   if (loading) {
     return (

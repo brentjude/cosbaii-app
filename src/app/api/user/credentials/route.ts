@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() { // ✅ Removed unused 'request' parameter
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {

@@ -34,7 +34,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "daisyui": "^5.0.48",
-    "eslint": "^9",
+    "eslint": "^9.37.0",
     "eslint-config-next": "15.4.4",
     "prisma": "^6.13.0",
     "save": "^2.9.0",

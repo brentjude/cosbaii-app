@@ -13,25 +13,30 @@ const LoginPage = () => {
 
   useEffect(() => {
     // ✅ Only redirect if user is authenticated and we have session data
-    if (status === "authenticated" && session?.user?.id) {
+    if (status === "authenticated" && session?.user) {
+      // ✅ Type assertion to access extended properties
+      const user = session.user as {
+        id: string;
+        email: string;
+        name?: string | null;
+        role: string;
+        username?: string | null;
+      };
+
       console.log(
         "User authenticated:",
-        session.user.email,
+        user.email,
         "Role:",
-        session.user.role
+        user.role
       );
 
-      const redirectPath =
-        session.user.role === "ADMIN" ? "/admin" : "/dashboard";
+      const redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
       console.log("Redirecting to:", redirectPath);
 
-      // ✅ Use replace instead of push to avoid back button issues
-      //router.replace(redirectPath);
-      //window.location.href = redirectPath; // Using window.location.href for immediate redirect
-      router.push(redirectPath); // Use router.push for Next.js navigation
+      router.push(redirectPath);
     }
-  }, [session?.user?.id, session?.user?.role, status, router]); // ✅ More specific dependencies
-
+  }, [session, status, router]);
+  
   // ✅ Show loading only during initial session check
   if (status === "loading") {
     return (

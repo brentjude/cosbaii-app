@@ -1,5 +1,5 @@
 // Create: src/hooks/user/useNotifications.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // ✅ Added useCallback
 import { Notification } from '@/types/notification';
 
 export const useNotifications = (limit: number = 10) => {
@@ -7,7 +7,8 @@ export const useNotifications = (limit: number = 10) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchNotifications = async () => {
+  // ✅ Wrapped fetchNotifications with useCallback
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/user/notifications?limit=${limit}`);
@@ -24,7 +25,7 @@ export const useNotifications = (limit: number = 10) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit]); // ✅ Added limit as dependency
 
   const markAsRead = async (notificationIds: number[]) => {
     try {
@@ -38,7 +39,7 @@ export const useNotifications = (limit: number = 10) => {
         setNotifications(prev =>
           prev.map(notification =>
             notificationIds.includes(notification.id)
-              ? { ...notification, read: true }
+              ? { ...notification, isRead: true } // ✅ Fixed: use 'isRead' not 'read'
               : notification
           )
         );
@@ -58,7 +59,7 @@ export const useNotifications = (limit: number = 10) => {
 
       if (response.ok) {
         setNotifications(prev =>
-          prev.map(notification => ({ ...notification, read: true }))
+          prev.map(notification => ({ ...notification, isRead: true })) // ✅ Fixed: use 'isRead' not 'read'
         );
       }
     } catch (error) {
@@ -66,9 +67,10 @@ export const useNotifications = (limit: number = 10) => {
     }
   };
 
+  // ✅ Added fetchNotifications to dependency array
   useEffect(() => {
     fetchNotifications();
-  }, [limit]);
+  }, [fetchNotifications]); // ✅ Now includes fetchNotifications
 
   return {
     notifications,

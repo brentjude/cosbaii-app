@@ -61,7 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }, { status: 401 });
     }
 
-    const { id } = await params; // ✅ Await params first
+    const { id } = await params;
     const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
@@ -113,7 +113,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: { ...updateData, updatedAt: new Date() }
     });
 
-    const { password: updatedUserPassword, ...rest } = updatedUser;
+    // ✅ Fixed: Use underscore prefix to indicate intentionally unused variable
+    const { password: _password, ...rest } = updatedUser;
 
     return NextResponse.json({ 
       user: rest,

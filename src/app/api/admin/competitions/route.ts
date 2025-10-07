@@ -1,10 +1,10 @@
-// src/app/api/admin/competitions/route.ts
+// src/app/(dashboard)/admin/competitions/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { updateCompetitionSchema } from "@/lib/schemas/competition";
+// ✅ Removed unused import
 
 // Allow any valid date (past or future)
 const createCompetitionSchema = z.object({
@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
 
-    const whereClause = status ? { status: status as any } : {};
+    // ✅ Fixed: Use proper type instead of 'any'
+    const whereClause = status 
+      ? { status: status as "DRAFT" | "SUBMITTED" | "ACCEPTED" | "ONGOING" | "COMPLETED" | "REJECTED" | "CANCELLED" } 
+      : {};
 
     const [competitions, stats] = await Promise.all([
       prisma.competition.findMany({

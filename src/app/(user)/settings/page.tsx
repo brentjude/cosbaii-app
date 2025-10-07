@@ -15,8 +15,6 @@ import { useProfile } from "@/app/context/ProfileContext";
 
 import {
   EditProfileData,
-  SkillLevel,
-  CosplayerType,
 } from "@/app/types/profile";
 
 interface UserSettings {
@@ -67,22 +65,6 @@ const SettingsPage = () => {
     }
   };
 
-  // ✅ Handle profile update
-  const handleProfileUpdate = async (data: any) => {
-    try {
-      if (!updateProfile) {
-        console.error("updateProfile function not available");
-        return;
-      }
-
-      const success = await updateProfile(data);
-      if (success) {
-        setShowEditProfile(false);
-      }
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-    }
-  };
 
   //Handle save profile data
   const handleSaveProfile = async (data: EditProfileData) => {
@@ -115,15 +97,15 @@ const SettingsPage = () => {
       cosplayerType: profile.cosplayerType || "HOBBY",
       yearsOfExperience: profile.yearsOfExperience || 0,
       specialization: profile.specialization || "",
-      skillLevel: profile.skillLevel || "beginner", // ✅ Provide default value
+      skillLevel: (profile.skillLevel?.toLowerCase() as "beginner" | "intermediate" | "advanced") || "beginner", // ✅ Provide proper type
       facebookUrl: profile.facebookUrl || null,
       instagramUrl: profile.instagramUrl || null,
       twitterUrl: profile.twitterUrl || null,
-      featured: [], // You might want to handle this differently based on your needs
+      featured: [],
     };
   };
 
-  const updateSetting = async (key: keyof UserSettings, value: any) => {
+  const updateSetting = async (key: keyof UserSettings, value: boolean) => { // ✅ Changed from 'any' to 'boolean'
     try {
       const response = await fetch("/api/user/settings", {
         method: "PUT",
@@ -161,7 +143,7 @@ const SettingsPage = () => {
     return Math.max(0, 7 - daysDiff);
   };
 
-  return (
+    return (
     <>
       <div className="max-w-[800px] mx-auto p-6">
         <div>
@@ -358,7 +340,7 @@ const SettingsPage = () => {
         onClose={() => setShowChangeDisplayName(false)}
         currentDisplayName={profile?.displayName || ""}
         onSuccess={() => {
-          fetchUserSettings(); // Refresh settings to update cooldown
+          fetchUserSettings();
           setShowChangeDisplayName(false);
         }}
       />

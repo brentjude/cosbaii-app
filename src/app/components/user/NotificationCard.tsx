@@ -7,8 +7,7 @@ import {
   CheckCircleIcon, 
   ClockIcon, 
   XCircleIcon,
-  EyeIcon,
-  EyeSlashIcon
+  EyeIcon
 } from '@heroicons/react/24/outline';
 import { TrophyIcon } from '@heroicons/react/24/solid';
 

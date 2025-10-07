@@ -1,5 +1,5 @@
 // Update: src/lib/cloudinary.ts
-import { v2 as cloudinary } from 'cloudinary';
+import { v2 as cloudinary, UploadApiOptions } from 'cloudinary'; // ✅ Added UploadApiOptions import
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -25,8 +25,8 @@ export const uploadToCloudinary = async (
   transformation?: object
 ): Promise<CloudinaryUploadResult> => {
   return new Promise((resolve, reject) => {
-    // ✅ Base upload options
-    const uploadOptions: any = {
+    // ✅ Base upload options with proper type
+    const uploadOptions: UploadApiOptions = {
       folder,
       resource_type: 'auto',
       quality: 'auto:good',

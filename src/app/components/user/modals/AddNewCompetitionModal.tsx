@@ -390,7 +390,7 @@ const handleSubmit = async () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold border-b border-base-200 pb-2">Reference Links (Optional)</h3>
                   <p className="text-sm text-base-content/70">
-                    These links help admins verify the competition's authenticity.
+                    These links help admins verify the competition&apos;s authenticity.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -498,7 +498,7 @@ const handleSubmit = async () => {
                     <p className="font-medium">Please note:</p>
                     <ul className="mt-1 space-y-1">
                       <li>• Your competition will be reviewed by our admin team</li>
-                      <li>• You'll receive a notification once it's approved</li>
+                      <li>• You&apos;ll receive a notification once it&apos;s approved</li>
                       <li>• Only name, date, and competition details are required</li>
                     </ul>
                   </div>

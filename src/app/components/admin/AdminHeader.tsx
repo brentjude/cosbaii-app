@@ -4,15 +4,13 @@
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // ✅ Added useCallback
+// ✅ Removed unused imports: usePathname, HomeIcon, MagnifyingGlassIcon
 
 //icons
 import {
   ArrowRightEndOnRectangleIcon,
-  HomeIcon,
   UserIcon,
-  MagnifyingGlassIcon,
   Bars3Icon,
   BellIcon,
   // ✅ Add notification type icons
@@ -91,8 +89,8 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
     return match ? match[1] : "Someone";
   };
 
-  // Fetch notifications
-  const fetchNotifications = async () => {
+  // ✅ Fetch notifications - wrapped with useCallback
+  const fetchNotifications = useCallback(async () => {
     if (status !== "authenticated" || session?.user?.role !== "ADMIN") return;
 
     try {
@@ -108,7 +106,7 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [status, session?.user?.role]); // ✅ Added dependencies
 
   // Mark notification as read
   const markAsRead = async (notificationId: number) => {
@@ -151,12 +149,12 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
     }
   };
 
-  // Fetch notifications on mount and periodically
+  // ✅ Fetch notifications on mount and periodically - added fetchNotifications to deps
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [status, session]);
+  }, [fetchNotifications]); // ✅ Added fetchNotifications as dependency
 
   // Format relative time
   const formatRelativeTime = (dateString: string) => {
@@ -362,12 +360,16 @@ const AdminHeader = ({ isMinimized, setIsMinimized }: AdminHeaderProps) => {
                 className="btn btn-ghost btn-circle avatar"
               >
                 <div className="w-10 rounded-full">
-                  <img
+                  {/* ✅ Replaced <img> with <Image /> */}
+                  <Image
                     src={
                       session?.user?.image ||
                       "https://img.daisyui.com/images/profile/demo/yellingcat@192.webp"
                     }
                     alt="Profile"
+                    width={40}
+                    height={40}
+                    className="rounded-full"
                   />
                 </div>
               </div>

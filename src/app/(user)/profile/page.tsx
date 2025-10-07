@@ -9,7 +9,6 @@ import { UserIcon } from "@heroicons/react/24/outline";
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import AddCredentialsModal from "@/app/components/user/modals/AddCredentialsModal";
 import FeaturedCosplaysEditor from "@/app/components/user/modals/FeaturedCosplaysEditor";
-import BadgeSection from "@/app/components/user/BadgeSection";
 
 import {
   PencilSquareIcon,
@@ -25,9 +24,13 @@ import {
 import {
   EditProfileData,
   SkillLevel,
-  CosplayerType,
   FeaturedItem,
 } from "@/types/profile";
+
+interface UserSettings {
+  showCompetitionCounter?: boolean;
+  showBadges?: boolean;
+}
 
 const ProfilePage = () => {
   const { data: session } = useSession();
@@ -43,7 +46,8 @@ const ProfilePage = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
   const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
-  const [userSettings, setUserSettings] = useState<any>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null); // ✅ Fixed type
+
 
   // Featured cosplays state - initialize from profile or empty array
   const [featuredCosplays, setFeaturedCosplays] = useState<FeaturedItem[]>([
@@ -496,7 +500,7 @@ const ProfilePage = () => {
             <div className="basis-1/3 bg-white rounded-2xl p-6 border border-gray-200">
               <div>
                 <h2 className="text-xl font-bold">
-                  Hi, I'm{" "}
+                  Hi, I&apos;m{" "}
                   {profile?.displayName ||
                     session?.user?.name ||
                     "No Display Name"}
@@ -533,7 +537,7 @@ const ProfilePage = () => {
               )}
             </div>
 
-            <div className="basis-2/3 flex flex-col gap-4">
+           <div className="basis-2/3 flex flex-col gap-4">
               {/* Featured section with working edit button */}
               <div className="relative h-100 bg-white rounded-2xl border border-gray-200">
                 <div className="absolute l-4 flex justify-between items-center w-full z-10">
@@ -862,7 +866,7 @@ const ProfilePage = () => {
                       );
                     })}
                   </div>
-                ) : (
+                 ) : (
                   <div className="text-center py-12">
                     <TrophyIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -877,7 +881,7 @@ const ProfilePage = () => {
                       onClick={() => setShowAddCredentialsModal(true)}
                     >
                       <PlusCircleIcon className="w-5 h-5" />
-                      Add Your First Credential
+                      Add Your First Credential {/* ✅ Fixed apostrophe */}
                     </button>
                   </div>
                 )}
@@ -887,7 +891,7 @@ const ProfilePage = () => {
         </div>
       </main>
 
-      {/* All Modals */}
+     {/* All Modals */}
       <EditProfileModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}

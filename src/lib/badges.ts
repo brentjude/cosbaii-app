@@ -3,6 +3,14 @@ import prisma from '@/lib/prisma';
 // ✅ Define the badge types locally instead of importing from Prisma
 export type BadgeType = 'PARTICIPATION' | 'COMPETITION_MILESTONE' | 'SPECIAL_ACHIEVEMENT' | 'PROFILE_COMPLETION';
 
+// ✅ Add interface for user data that can be passed to badge checks
+interface BadgeCheckUserData {
+  id?: number;
+  createdAt?: Date;
+  participationCount?: number;
+  [key: string]: unknown;
+}
+
 export interface BadgeRule {
   id: string;
   name: string;
@@ -10,7 +18,7 @@ export interface BadgeRule {
   iconUrl: string;
   type: BadgeType; // ✅ Use the local type
   requirement?: number;
-  checkCondition: (userId: number, userData?: any) => Promise<boolean>;
+  checkCondition: (userId: number, userData?: BadgeCheckUserData) => Promise<boolean>; // ✅ Fixed: proper type instead of 'any'
 }
 
 // Define all badge rules

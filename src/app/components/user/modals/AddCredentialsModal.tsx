@@ -19,6 +19,14 @@ interface Competition {
   status: string;
 }
 
+// ✅ Add interface for credential response
+interface CredentialResponse {
+  credentials?: Array<{
+    competitionId: number;
+    [key: string]: unknown;
+  }>;
+}
+
 interface AddCredentialsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,9 +45,8 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
   const [showAddCompetitionModal, setShowAddCompetitionModal] = useState(false);
   
-  // ✅ Add state for user's existing credentials
+  // ✅ Add state for user's existing credentials - removed unused credentialsLoading
   const [userCredentials, setUserCredentials] = useState<number[]>([]);
-  const [credentialsLoading, setCredentialsLoading] = useState(false);
 
   const [imageUploading, setImageUploading] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +64,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { uploadImage, uploading, error: uploadError } = useCloudinaryUpload();
+  const { uploadImage, error: uploadError } = useCloudinaryUpload(); // ✅ Removed unused 'uploading'
 
   const positionOptions = [
     { value: "CHAMPION", label: "Champion" },
@@ -75,19 +82,16 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
   }, [isOpen]);
 
   const fetchUserCredentials = async () => {
-    setCredentialsLoading(true);
     try {
       const response = await fetch('/api/user/credentials');
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as CredentialResponse; // ✅ Fixed: proper typing
         // Extract competition IDs from user's credentials
-        const competitionIds = data.credentials?.map((cred: any) => cred.competitionId) || [];
+        const competitionIds = data.credentials?.map((cred) => cred.competitionId) || [];
         setUserCredentials(competitionIds);
       }
     } catch (error) {
       console.error('Error fetching user credentials:', error);
-    } finally {
-      setCredentialsLoading(false);
     }
   };
 
@@ -272,10 +276,10 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
         onSuccess();
         onClose();
       } else {
-        const error = await response.json();
-        setErrors({ submit: error.error || "Failed to add credential" });
+        const errorData = await response.json();
+        setErrors({ submit: errorData.error || "Failed to add credential" });
       }
-    } catch (error) {
+    } catch {  // ✅ Removed unused 'error' parameter
       setErrors({ submit: "Failed to add credential" });
     } finally {
       setSubmitLoading(false);
@@ -412,9 +416,12 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                             >
                               <div className="flex items-start gap-3">
                                 <div className="relative">
-                                  <img
+                                  {/* ✅ Line 415: Replaced <img> with <Image /> */}
+                                  <Image
                                     src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
                                     alt="Competition Logo"
+                                    width={40}
+                                    height={40}
                                     className={`w-10 h-10 object-cover rounded bg-base-300 ${
                                       !isClickable ? 'grayscale opacity-70' : ''
                                     }`}
@@ -539,7 +546,8 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                           <div className="text-base-content/50 mb-4">
                             <TrophyIcon className="w-12 h-12 mx-auto mb-2 opacity-30" />
                             <p className="font-medium">No competitions found</p>
-                            <p className="text-sm mt-1">Can't find the competition you're looking for?</p>
+                            {/* ✅ Line 542: Fixed apostrophes */}
+                            <p className="text-sm mt-1">Can&apos;t find the competition you&apos;re looking for?</p>
                           </div>
                           <button
                             type="button"
@@ -574,7 +582,8 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                   <div className="text-center py-6 bg-base-200 rounded-lg">
                     <TrophyIcon className="w-12 h-12 mx-auto mb-2 opacity-30" />
                     <p className="text-base-content/70 mb-2">Start typing to search competitions</p>
-                    <p className="text-sm text-base-content/50">Can't find your competition?</p>
+                    {/* ✅ Line 577: Fixed apostrophe */}
+                    <p className="text-sm text-base-content/50">Can&apos;t find your competition?</p>
                     <button
                       type="button"
                       className="btn btn-primary btn-sm mt-2"
@@ -591,9 +600,12 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
               {selectedCompetition && (
                 <div className="bg-base-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <img
+                    {/* ✅ Line 594: Replaced <img> with <Image /> */}
+                    <Image
                       src={selectedCompetition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
                       alt="Competition Logo"
+                      width={48}
+                      height={48}
                       className="w-12 h-12 object-cover rounded bg-base-300"
                       onError={(e) => {
                         e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
@@ -703,7 +715,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                             alt="Cosplay preview"
                             fill
                             className="object-cover"
-                            onError={(e) => {
+                            onError={() => {  // ✅ Line 706: Removed unused 'e' parameter
                               console.error('Failed to load cosplay image:', participantData.imageUrl);
                             }}
                           />

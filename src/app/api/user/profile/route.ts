@@ -5,8 +5,15 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { BadgeTriggers } from '@/lib/badgeTriggers';
 
+// ✅ Add interface for Prisma errors
+interface PrismaError {
+  code?: string;
+  meta?: Record<string, unknown>;
+  message?: string;
+}
+
 // GET - Fetch user profile
-export async function GET(request: NextRequest) {
+export async function GET() { // ✅ Removed unused 'request' parameter
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -101,8 +108,9 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating profile:', error);
     
+    // ✅ Fixed: Use proper type instead of 'any'
     if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as any;
+      const prismaError = error as PrismaError;
       console.error('Prisma error:', {
         code: prismaError.code,
         meta: prismaError.meta,
@@ -192,8 +200,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating profile:', error);
     
+    // ✅ Fixed: Use proper type instead of 'any'
     if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as any;
+      const prismaError = error as PrismaError;
       console.error('Prisma error:', {
         code: prismaError.code,
         meta: prismaError.meta,

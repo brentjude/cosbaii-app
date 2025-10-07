@@ -1,5 +1,5 @@
 // Create: src/hooks/user/useUserCredentials.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // ✅ Added useCallback
 import { useSession } from 'next-auth/react';
 
 interface CompetitionCredential {
@@ -30,8 +30,12 @@ export const useUserCredentials = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCredentials = async () => {
-    if (!session?.user?.id) return;
+  // ✅ Wrapped fetchCredentials with useCallback
+  const fetchCredentials = useCallback(async () => {
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -40,6 +44,7 @@ export const useUserCredentials = () => {
       if (response.ok) {
         const data = await response.json();
         setCredentials(data.credentials || []);
+        setError(null);
       } else {
         setError('Failed to fetch credentials');
       }
@@ -49,11 +54,12 @@ export const useUserCredentials = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]); // ✅ Added session?.user?.id as dependency
 
+  // ✅ Added fetchCredentials to dependency array
   useEffect(() => {
     fetchCredentials();
-  }, [session?.user?.id]);
+  }, [fetchCredentials]); // ✅ Now includes fetchCredentials
 
   return {
     credentials,

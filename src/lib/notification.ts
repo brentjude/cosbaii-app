@@ -1,6 +1,13 @@
 // Update: src/lib/notification.ts
 import prisma from '@/lib/prisma';
 
+// ✅ Add interface for Prisma error
+interface PrismaError {
+  code: string;
+  meta?: Record<string, unknown>;
+  message: string;
+}
+
 export async function createNotification(
   userId: number,
   type: string,
@@ -38,9 +45,9 @@ export async function createNotification(
   } catch (error) {
     console.error('Error creating notification:', error);
 
-    // ✅ Add better error logging for Prisma errors
+    // ✅ Fixed: Use proper type instead of 'any'
     if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as any;
+      const prismaError = error as PrismaError;
       console.error('Prisma error details:', {
         code: prismaError.code,
         meta: prismaError.meta,

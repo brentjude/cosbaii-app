@@ -1,11 +1,31 @@
 // Update: src/hooks/common/useCloudinaryUpload.ts
 import { useState } from 'react';
 
+// ✅ Add interface for Cloudinary upload result
+interface CloudinaryUploadResult {
+  secure_url: string;
+  public_id: string;
+  width: number;
+  height: number;
+  format: string;
+  resource_type: string;
+  bytes: number;
+  created_at: string;
+  [key: string]: unknown; // Allow additional properties
+}
+
+// ✅ Add interface for Cloudinary error
+interface CloudinaryErrorResponse {
+  error?: {
+    message: string;
+  };
+}
+
 interface UploadOptions {
   folder?: string;
   uploadPreset: string;
-  onSuccess?: (result: any) => void;
-  onError?: (error: any) => void;
+  onSuccess?: (result: CloudinaryUploadResult) => void; // ✅ Fixed type
+  onError?: (error: Error) => void; // ✅ Fixed type
 }
 
 export const useCloudinaryUpload = () => {
@@ -73,7 +93,7 @@ export const useCloudinaryUpload = () => {
         throw new Error('Failed to upload image to Cloudinary');
       }
 
-      const result = await cloudinaryResponse.json();
+      const result = await cloudinaryResponse.json() as CloudinaryUploadResult & CloudinaryErrorResponse; // ✅ Fixed type
 
       if (result.error) {
         throw new Error(result.error.message);
@@ -87,10 +107,10 @@ export const useCloudinaryUpload = () => {
       options.onSuccess?.(result);
       return uploadResult;
 
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to upload image';
+    } catch (err) { // ✅ Fixed: removed 'any' type
+      const errorMessage = err instanceof Error ? err.message : 'Failed to upload image';
       setError(errorMessage);
-      options.onError?.(err);
+      options.onError?.(err instanceof Error ? err : new Error(errorMessage));
       return null;
     } finally {
       setUploading(false);

@@ -8,6 +8,7 @@ import Link from "next/link";
 import UserLogout from "./UserLogout";
 import ProfileSetupModal from "./modals/ProfileSetupModal";
 import { useProfile } from "@/app/context/ProfileContext";
+import { ProfileSetupData } from "@/types/profile"; // ✅ Import proper type
 
 //icons
 import {
@@ -22,12 +23,10 @@ const UserHeader = () => {
   const pathname = usePathname();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  // ✅ Add missing setupLoading state
   const [setupLoading, setSetupLoading] = useState(false);
 
-  // ✅ Use profile context - get profile to access profilePicture
-  const { profile, hasProfile, updateProfile, setupProfile, loading } =
-    useProfile();
+  // ✅ Removed unused 'updateProfile' and 'loading' from destructuring
+  const { profile, hasProfile, setupProfile } = useProfile();
 
   // ✅ Ensure component is mounted on client
   useEffect(() => {
@@ -38,8 +37,8 @@ const UserHeader = () => {
     (document.activeElement as HTMLElement)?.blur();
   };
 
-  // ✅ Fix handler to use setupProfile instead of updateProfile for setup
-  const handleProfileSetupComplete = async (profileData: any) => {
+  // ✅ Fixed: Use proper type instead of 'any'
+  const handleProfileSetupComplete = async (profileData: ProfileSetupData) => {
     setSetupLoading(true);
     try {
       const result = await setupProfile(profileData);
@@ -79,16 +78,7 @@ const UserHeader = () => {
     return pathname === route;
   };
 
-  // ✅ Get avatar image source with fallback
-  const getAvatarSrc = () => {
-    if (
-      profile?.profilePicture &&
-      profile.profilePicture !== "/images/default-avatar.png"
-    ) {
-      return profile.profilePicture;
-    }
-    return "/images/cosbaii-logo-black.webp";
-  };
+  // ✅ Removed unused getAvatarSrc function - inline the logic instead
 
   return (
     <>
@@ -168,7 +158,7 @@ const UserHeader = () => {
                   role="button"
                   className="btn btn-ghost btn-circle avatar"
                 >
-                  {/* ✅ Updated avatar with user profile picture or fallback */}
+                  {/* ✅ Inlined avatar logic - removed unused getAvatarSrc function */}
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-base-200">
                     {profile?.profilePicture &&
                     profile.profilePicture !== "/images/default-avatar.png" ? (

@@ -157,7 +157,7 @@ export const authOptions: NextAuthOptions = {
       // Default to dashboard
       return `${baseUrl}/dashboard`;
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) { // ✅ Removed unused 'profile' parameter
       console.log("SignIn callback - provider:", account?.provider, "email:", user.email);
       
       if (account?.provider === "google") {
@@ -187,19 +187,19 @@ export const authOptions: NextAuthOptions = {
 
             // ✅ Send welcome email for Google users
             try {
-          console.log("Attempting to send welcome email to:", newUser.email);
-          
-          const { sendWelcomeEmail } = await import('@/lib/email');
-          const emailResult = await sendWelcomeEmail(newUser.email, newUser.name || 'Cosplayer');
-          
-          if (emailResult.success) {
-            console.log('✅ Welcome email sent successfully to Google user:', newUser.email);
-          } else {
-            console.error('❌ Failed to send welcome email:', emailResult.error);
-          }
-        } catch (emailError) {
-          console.error('❌ Error importing or calling sendWelcomeEmail:', emailError);
-        }
+              console.log("Attempting to send welcome email to:", newUser.email);
+              
+              const { sendWelcomeEmail } = await import('@/lib/email');
+              const emailResult = await sendWelcomeEmail(newUser.email, newUser.name || 'Cosplayer');
+              
+              if (emailResult.success) {
+                console.log('✅ Welcome email sent successfully to Google user:', newUser.email);
+              } else {
+                console.error('❌ Failed to send welcome email:', emailResult.error);
+              }
+            } catch (emailError) {
+              console.error('❌ Error importing or calling sendWelcomeEmail:', emailError);
+            }
 
             // Trigger badge check
             try {

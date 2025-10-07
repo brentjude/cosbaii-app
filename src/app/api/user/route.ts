@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hash } from "bcrypt";
 import { z } from "zod";
-import { BadgeTriggers } from '@/lib/badgeTriggers';
+// ✅ Removed unused import - it's dynamically imported later
 import { sendWelcomeEmail } from '@/lib/email';
 
 //Defining schema for input validation
@@ -102,7 +102,8 @@ export async function POST(req: Request) {
 
         // Exclude the password from the response
         // This will ensure that the password is not exposed in the response
-        const { password: newUserPassword, ...rest} = newUser;
+        // ✅ Fixed: Use underscore prefix to avoid variable name conflict
+        const { password: _password, ...rest } = newUser;
 
         // Return a success response with the created user data
         // This will return the user data without the password

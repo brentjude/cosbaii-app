@@ -12,8 +12,13 @@ const createUserSchema = z.object({
   username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/).optional().nullable(),
   password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/),
   role: z.enum(["USER", "ADMIN", "MODERATOR"]).default("USER"),
-  status: z.enum(["ACTIVE", "INACTIVE", "BANNED"]).default("INACTIVE"), // Changed default to match your workflow
+  status: z.enum(["ACTIVE", "INACTIVE", "BANNED"]).default("INACTIVE"),
 });
+
+// ✅ Add type for where clause
+type UserWhereClause = {
+  status?: "INACTIVE" | "ACTIVE" | "BANNED";
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,13 +35,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
 
-    // Build where clause - fix the type issue
-    const whereClause: any = {};
+    // ✅ Build where clause with proper type
+    const whereClause: UserWhereClause = {};
     if (status && status !== "ALL" && ["INACTIVE", "ACTIVE", "BANNED"].includes(status)) {
       whereClause.status = status as "INACTIVE" | "ACTIVE" | "BANNED";
     }
 
-    // Fetch users (this should work now with your schema)
+    // Fetch users
     const users = await prisma.user.findMany({
       where: whereClause,
       select: {
@@ -48,7 +53,7 @@ export async function GET(request: NextRequest) {
         status: true,
         createdAt: true,
         updatedAt: true,
-        reviewedBy: true, // This field exists in your schema
+        reviewedBy: true,
       },
       orderBy: {
         createdAt: 'desc'
@@ -121,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Create user - this should work with your schema
+    // Create user
     const newUser = await prisma.user.create({
       data: {
         name,
