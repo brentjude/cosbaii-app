@@ -1,4 +1,4 @@
-// src/middleware.ts
+// Update: src/middleware.ts
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
@@ -7,27 +7,42 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    console.log("Middleware - Path:", pathname, "User:", token?.email, "Role:", token?.role);
+    console.log(
+      "Middleware - Path:",
+      pathname,
+      "User:",
+      token?.email,
+      "Role:",
+      token?.role
+    );
 
     // Skip API routes
     if (pathname.startsWith("/api/")) {
       return NextResponse.next();
     }
 
-    // Admin routes - only ADMIN can access
+    // ✅ Allow admin users to access admin routes
     if (pathname.startsWith("/admin")) {
       if (token?.role !== "ADMIN") {
-        console.log(`Access denied: User ${token?.email} with role ${token?.role} tried to access admin area`);
+        console.log(
+          `Access denied: User ${token?.email} with role ${token?.role} tried to access admin area`
+        );
         return NextResponse.redirect(new URL("/unauthorized", req.url));
       }
+      // ✅ Allow access for admins
+      return NextResponse.next();
     }
 
-    // User dashboard routes - authenticated users
+    // ✅ Allow regular users to access dashboard
     if (pathname.startsWith("/dashboard")) {
       if (!token) {
-        console.log("Access denied: No authentication token found for dashboard");
+        console.log(
+          "Access denied: No authentication token found for dashboard"
+        );
         return NextResponse.redirect(new URL("/login", req.url));
       }
+      // ✅ Allow access for authenticated users
+      return NextResponse.next();
     }
 
     return NextResponse.next();
@@ -35,18 +50,23 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
+        const { pathname } = req.nextUrl;
+
         // Allow all API routes
-        if (req.nextUrl.pathname.startsWith("/api/")) {
+        if (pathname.startsWith("/api/")) {
           return true;
         }
-        
+
         // Allow public routes
-        if (req.nextUrl.pathname === "/" || 
-            req.nextUrl.pathname === "/login" || 
-            req.nextUrl.pathname === "/register") {
+        if (
+          pathname === "/" ||
+          pathname === "/login" ||
+          pathname === "/register" ||
+          pathname === "/unauthorized"
+        ) {
           return true;
         }
-        
+
         // Require authentication for protected routes
         return !!token;
       },
