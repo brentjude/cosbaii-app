@@ -52,6 +52,10 @@ body {
 background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1) 100%);
 }
 
+.color-cosbaii-primary {
+  color: #F17305;
+}
+
 /* Homepage */
 
 .font-paytone {
@@ -60,6 +64,10 @@ background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1)
 
 .bg-pale {
   background-color: #FFF2E8;
+}
+
+.text-cosbaii-gray {
+  color: #3C3C3C;
 }
 
 /* Cosbaii Card CSS */
