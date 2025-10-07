@@ -13,9 +13,7 @@ import DeleteAccountModal from "@/app/components/user/settings/DeleteAccountModa
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import { useProfile } from "@/app/context/ProfileContext";
 
-import {
-  EditProfileData,
-} from "@/app/types/profile";
+import { EditProfileData } from "@/types/profile";
 
 interface UserSettings {
   id?: number;
@@ -65,7 +63,6 @@ const SettingsPage = () => {
     }
   };
 
-
   //Handle save profile data
   const handleSaveProfile = async (data: EditProfileData) => {
     setEditLoading(true);
@@ -97,7 +94,11 @@ const SettingsPage = () => {
       cosplayerType: profile.cosplayerType || "HOBBY",
       yearsOfExperience: profile.yearsOfExperience || 0,
       specialization: profile.specialization || "",
-      skillLevel: (profile.skillLevel?.toLowerCase() as "beginner" | "intermediate" | "advanced") || "beginner", // ✅ Provide proper type
+      skillLevel:
+        (profile.skillLevel?.toLowerCase() as
+          | "beginner"
+          | "intermediate"
+          | "advanced") || "beginner", // ✅ Provide proper type
       facebookUrl: profile.facebookUrl || null,
       instagramUrl: profile.instagramUrl || null,
       twitterUrl: profile.twitterUrl || null,
@@ -105,7 +106,8 @@ const SettingsPage = () => {
     };
   };
 
-  const updateSetting = async (key: keyof UserSettings, value: boolean) => { // ✅ Changed from 'any' to 'boolean'
+  const updateSetting = async (key: keyof UserSettings, value: boolean) => {
+    // ✅ Changed from 'any' to 'boolean'
     try {
       const response = await fetch("/api/user/settings", {
         method: "PUT",
@@ -143,7 +145,7 @@ const SettingsPage = () => {
     return Math.max(0, 7 - daysDiff);
   };
 
-    return (
+  return (
     <>
       <div className="max-w-[800px] mx-auto p-6">
         <div>

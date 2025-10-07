@@ -1,3 +1,4 @@
+// Update: src/app/components/user/modals/ProfileSetupModal.tsx
 "use client";
 
 import React, { useState, useRef } from "react";
@@ -10,18 +11,10 @@ import {
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
-// ✅ Updated interface to handle file uploads
-interface ProfileSetupData {
-  cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
-  yearsOfExperience: number | null;
-  specialization: string;
-  skillLevel: "beginner" | "intermediate" | "advanced";
-  displayName: string;
-  bio: string;
-  profilePicture: string;
-  coverImage: string;
-}
+// ✅ Import ProfileSetupData from shared types instead of defining locally
+import { ProfileSetupData } from "@/types/profile";
 
+// ✅ Keep only the errors interface here
 interface ProfileSetupErrors {
   cosplayerType?: string;
   yearsOfExperience?: string;
@@ -49,7 +42,7 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
 
   const [formData, setFormData] = useState<ProfileSetupData>({
-    cosplayerType: "HOBBY", // Default to hobby
+    cosplayerType: "HOBBY",
     yearsOfExperience: null,
     specialization: "",
     skillLevel: "beginner",

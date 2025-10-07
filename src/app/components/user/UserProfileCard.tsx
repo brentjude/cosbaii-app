@@ -177,15 +177,15 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
                   <span className="opacity-70">Skill Level:</span>
                   <div
                     className={`badge badge-xs ${
-                      profile.skillLevel === "advanced"
+                      profile.skillLevel === "ADVANCED"
                         ? "badge-success"
-                        : profile.skillLevel === "intermediate"
+                        : profile.skillLevel === "INTERMEDIATE"
                         ? "badge-warning"
                         : "badge-info"
                     }`}
                   >
                     {profile.skillLevel.charAt(0).toUpperCase() +
-                      profile.skillLevel.slice(1)}
+                      profile.skillLevel.slice(1).toLowerCase()}
                   </div>
                 </div>
               )}

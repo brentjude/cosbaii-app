@@ -1,7 +1,13 @@
 // Update: src/app/context/ProfileContext.tsx
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useSession } from "next-auth/react";
 
 interface Profile {
@@ -41,13 +47,15 @@ interface FeaturedItem {
   award?: string;
 }
 
-// ✅ Add Competition interface
+// ✅ Update Competition interface to include all required fields
 interface Competition {
   id: number;
   name: string;
   eventDate: string;
   location?: string;
-  [key: string]: unknown;
+  competitionType: string; // ✅ Add this
+  rivalryType: string; // ✅ Add this
+  level: string; // ✅ Add this
 }
 
 // ✅ Add proper types for profile data
@@ -161,7 +169,8 @@ const ProfileContextProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const updateProfile = async (data: ProfileUpdateData): Promise<boolean> => { // ✅ Fixed type
+  const updateProfile = async (data: ProfileUpdateData): Promise<boolean> => {
+    // ✅ Fixed type
     try {
       const response = await fetch("/api/user/profile", {
         method: "PUT",
