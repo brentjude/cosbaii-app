@@ -42,32 +42,22 @@ const LoginForm = () => {
       const result = await signIn("credentials", {
         email: values.email,
         password: values.password,
-        redirect: false,
+        redirect: false, // ✅ Keep redirect false
       });
 
       console.log("SignIn result:", result);
 
       if (result?.error) {
         setError("Invalid email or password");
+        setIsLoading(false); // ✅ Stop loading on error
       } else if (result?.ok) {
-        // Get session to determine redirect path
-        const session = await getSession();
-        let redirectPath: string;
-
-        if (session?.user?.role === "ADMIN") {
-          redirectPath = "/admin";
-        } else {
-          redirectPath = "/dashboard";
-        }
-
-        console.log("Redirecting to:", redirectPath);
-        router.push(redirectPath);
-        router.refresh();
+        // ✅ Don't manually redirect - let NextAuth handle it
+        // The login page useEffect will handle the redirect
+        console.log("Sign in successful, waiting for session update...");
       }
     } catch (error) {
       console.error("Login error:", error);
       setError("An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
   };

@@ -5,16 +5,18 @@ import Image from "next/image";
 import LoginForm from "@/app/components/form/LoginForm";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const LoginPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // ✅ Only redirect if user is authenticated and we have session data
-    if (status === "authenticated" && session?.user) {
-      // ✅ Type assertion to access extended properties
+    // ✅ Only redirect once when authenticated
+    if (status === "authenticated" && session?.user && !isRedirecting) {
+      setIsRedirecting(true);
+
       const user = session.user as {
         id: string;
         email: string;
@@ -23,20 +25,16 @@ const LoginPage = () => {
         username?: string | null;
       };
 
-      console.log(
-        "User authenticated:",
-        user.email,
-        "Role:",
-        user.role
-      );
+      console.log("User authenticated:", user.email, "Role:", user.role);
 
       const redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
       console.log("Redirecting to:", redirectPath);
 
-      router.push(redirectPath);
+      // ✅ Use replace instead of push to avoid back button issues
+      router.replace(redirectPath);
     }
-  }, [session, status, router]);
-  
+  }, [session, status, router, isRedirecting]);
+
   // ✅ Show loading only during initial session check
   if (status === "loading") {
     return (
@@ -49,13 +47,13 @@ const LoginPage = () => {
     );
   }
 
-  // ✅ Don't show loading for authenticated users - let the redirect happen
-  if (status === "authenticated") {
+  // ✅ Show redirecting message for authenticated users
+  if (status === "authenticated" || isRedirecting) {
     return (
       <div className="w-full h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="text-primary">Redirecting to dashboard...</p>
+          <p className="text-primary">Redirecting...</p>
         </div>
       </div>
     );
