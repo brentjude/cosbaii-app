@@ -1,10 +1,57 @@
 // Update: src/lib/auth.ts
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { compare } from "bcrypt";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/lib/prisma";
+import { compare } from "bcrypt";
+
+// ✅ Move this function to the top, before authOptions
+async function generateUniqueUsername(
+  name: string,
+  email: string
+): Promise<string> {
+  // Start with name, fallback to email prefix
+  let baseUsername =
+    name.toLowerCase().replace(/[^a-z0-9]/g, "") ||
+    email
+      .split("@")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+
+  // Ensure it's at least 3 characters
+  if (baseUsername.length < 3) {
+    baseUsername = "user" + baseUsername;
+  }
+
+  // Ensure it's not longer than 20 characters
+  baseUsername = baseUsername.substring(0, 17);
+
+  // Check if username exists
+  let username = baseUsername;
+  let counter = 1;
+
+  while (true) {
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (!existingUser) {
+      break;
+    }
+
+    username = `${baseUsername}${counter}`;
+    counter++;
+
+    // Ensure we don't exceed 20 characters
+    if (username.length > 20) {
+      baseUsername = baseUsername.substring(0, 17 - counter.toString().length);
+      username = `${baseUsername}${counter}`;
+    }
+  }
+
+  return username;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -54,13 +101,13 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -76,13 +123,25 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    // ✅ Remove the redirect callback entirely - let NextAuth handle it
-    // Or keep it VERY simple
+    // ✅ Simplified redirect callback
     async redirect({ url, baseUrl }) {
-      // Allow relative URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allow same origin URLs
-      if (new URL(url).origin === baseUrl) return url;
+      // Handle relative URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+
+      // Handle same-origin URLs
+      try {
+        const urlObj = new URL(url);
+        const baseUrlObj = new URL(baseUrl);
+
+        if (urlObj.origin === baseUrlObj.origin) {
+          return url;
+        }
+      } catch (error) {
+        console.error("Redirect URL parsing error:", error);
+      }
+
       // Default to base URL
       return baseUrl;
     },
@@ -112,6 +171,5 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  // ✅ Disable debug in production
-  debug: false,
+  debug: process.env.NODE_ENV === "development",
 };

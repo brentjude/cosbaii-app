@@ -39,21 +39,22 @@ const LoginForm = () => {
       setIsLoading(true);
       setError("");
 
+      // ✅ Don't pass callbackUrl - let NextAuth handle it
       const result = await signIn("credentials", {
         email: values.email,
         password: values.password,
-        redirect: false, // ✅ Keep redirect false
+        redirect: false, // ✅ Keep this false
       });
 
       console.log("SignIn result:", result);
 
       if (result?.error) {
         setError("Invalid email or password");
-        setIsLoading(false); // ✅ Stop loading on error
+        setIsLoading(false);
       } else if (result?.ok) {
-        // ✅ Don't manually redirect - let NextAuth handle it
-        // The login page useEffect will handle the redirect
-        console.log("Sign in successful, waiting for session update...");
+        // ✅ Let the login page handle the redirect
+        console.log("Sign in successful");
+        // Don't set isLoading to false - let the page redirect happen
       }
     } catch (error) {
       console.error("Login error:", error);

@@ -26,26 +26,43 @@ function LoginContent() {
         username?: string | null;
       };
 
-      // ✅ Check for callbackUrl in URL params
+      // ✅ Get callbackUrl and extract only the pathname
+      let redirectPath: string;
       const callbackUrl = searchParams?.get("callbackUrl");
 
-      // ✅ Determine redirect path
-      let redirectPath: string;
-
       if (callbackUrl) {
-        // Use the callback URL if provided
-        redirectPath = callbackUrl;
+        try {
+          // ✅ If it starts with /, use it directly
+          if (callbackUrl.startsWith("/")) {
+            redirectPath = callbackUrl;
+          } else {
+            // ✅ Parse the URL to extract just the pathname
+            const url = new URL(callbackUrl);
+            redirectPath = url.pathname;
+          }
+
+          console.log(
+            "Parsed callback URL:",
+            callbackUrl,
+            "to path:",
+            redirectPath
+          );
+        } catch (error) {
+          console.error("Failed to parse callback URL:", error);
+          // ✅ Fallback to role-based redirect if URL parsing fails
+          redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+        }
       } else {
-        // Default redirect based on role
+        // ✅ Default redirect based on role
         redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
       }
 
       console.log("Redirecting authenticated user to:", redirectPath);
 
-      // ✅ Use window.location for a hard redirect in production
-      if (typeof window !== "undefined") {
-        window.location.href = redirectPath;
-      }
+      // ✅ Small delay to ensure session is fully established
+      setTimeout(() => {
+        router.replace(redirectPath);
+      }, 100);
     }
   }, [session, status, router, isRedirecting, searchParams]);
 

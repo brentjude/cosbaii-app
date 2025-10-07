@@ -27,9 +27,10 @@ export default withAuth(
     if (pathname.startsWith("/dashboard")) {
       if (!token) {
         console.log("Dashboard access denied: No token");
-        return NextResponse.redirect(
-          new URL("/login?callbackUrl=" + pathname, req.url)
-        );
+        // ✅ Use relative path only, not full URL
+        const loginUrl = new URL("/login", req.url);
+        loginUrl.searchParams.set("callbackUrl", pathname); // ✅ Just the pathname
+        return NextResponse.redirect(loginUrl);
       }
       return NextResponse.next();
     }
