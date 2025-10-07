@@ -1,6 +1,7 @@
 // Update: src/app/(user)/dashboard/page.tsx
 "use client";
 
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import UserDashboardSkeleton from "@/app/components/skeletons/user/UserDashboardSkeleton";
 import UserProfileCard from "@/app/components/user/UserProfileCard";
