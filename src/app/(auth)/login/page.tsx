@@ -32,37 +32,48 @@ function LoginContent() {
 
       if (callbackUrl) {
         try {
-          // ✅ If it starts with /, use it directly
-          if (callbackUrl.startsWith("/")) {
-            redirectPath = callbackUrl;
-          } else {
-            // ✅ Parse the URL to extract just the pathname
-            const url = new URL(callbackUrl);
-            redirectPath = url.pathname;
-          }
+          // ✅ Decode the URL first
+          const decodedUrl = decodeURIComponent(callbackUrl);
 
-          console.log(
-            "Parsed callback URL:",
-            callbackUrl,
-            "to path:",
-            redirectPath
-          );
+          console.log("Original callback URL:", callbackUrl);
+          console.log("Decoded callback URL:", decodedUrl);
+
+          // ✅ Check if it's a relative path
+          if (decodedUrl.startsWith("/")) {
+            redirectPath = decodedUrl;
+            console.log("Using relative path:", redirectPath);
+          } else {
+            // ✅ It's a full URL, extract the pathname
+            try {
+              const urlObj = new URL(decodedUrl);
+              redirectPath = urlObj.pathname + (urlObj.search || "");
+              console.log("Extracted pathname from full URL:", redirectPath);
+            } catch (urlError) {
+              console.error("Failed to parse as URL:", urlError);
+              // Fallback to role-based redirect
+              redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+              console.log("Using role-based fallback:", redirectPath);
+            }
+          }
         } catch (error) {
-          console.error("Failed to parse callback URL:", error);
+          console.error("Failed to process callback URL:", error);
           // ✅ Fallback to role-based redirect if URL parsing fails
           redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+          console.log("Using error fallback:", redirectPath);
         }
       } else {
         // ✅ Default redirect based on role
         redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+        console.log(
+          "No callback URL, using role-based redirect:",
+          redirectPath
+        );
       }
 
-      console.log("Redirecting authenticated user to:", redirectPath);
+      console.log("Final redirect path:", redirectPath);
 
-      // ✅ Small delay to ensure session is fully established
-      setTimeout(() => {
-        router.replace(redirectPath);
-      }, 100);
+      // ✅ Use router.replace for client-side navigation (no full page reload)
+      router.replace(redirectPath);
     }
   }, [session, status, router, isRedirecting, searchParams]);
 
