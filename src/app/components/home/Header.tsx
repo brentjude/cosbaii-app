@@ -60,7 +60,9 @@ const Header = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex lg:hidden">
+          <div className="flex lg:hidden items-center gap-2">
+            
+
             <button
               onClick={toggleMobileMenu}
               className="btn btn-ghost btn-square"
@@ -72,6 +74,13 @@ const Header = () => {
                 <Bars3Icon className="w-6 h-6" />
               )}
             </button>
+            <Link 
+              href="/login" 
+              className="flex items-center justify-center p-2 hover:bg-base-200 rounded-lg transition-colors"
+              aria-label="Login"
+            >
+              <UserIcon className="text-primary w-8 h-8" />
+            </Link>
           </div>
         </div>
 
