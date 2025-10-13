@@ -22,12 +22,7 @@ const paytoneOne = Paytone_One({
 
 export const metadata: Metadata = {
   title: "Cosbaii - Cosplay Competition Platform",
-  description: "Join the ultimate cosplay competition platform",
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' }
-    ]
-  },
+  description: "Join the ultimate cosplay competition platform"
 };
 
 export default function RootLayout({
