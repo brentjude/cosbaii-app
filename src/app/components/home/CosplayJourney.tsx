@@ -8,7 +8,7 @@ const CosplayJourney = () => {
           Not Just a Profile. It&apos;s Your Cosplay Journey.
         </h2>
         <p className="mt-8">
-          This isn&apos;t just another profile. It&apos;s your cosplay timeline, your highlights, and your story. Every photo, credential, and convention memory lives here, ready to be shared with the world. Whether you're just starting out or already a con regular, Cosbaii gives your journey the spotlight it deserves.
+          This isn&apos;t just another profile. It&apos;s your cosplay timeline, your highlights, and your story. Every photo, credential, and convention memory lives here, ready to be shared with the world. Whether you&apos;re just starting out or already a con regular, Cosbaii gives your journey the spotlight it deserves.
         </p>
       </div>
       <div className="w-full sm:w-[60%]">
