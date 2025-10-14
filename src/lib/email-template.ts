@@ -6,7 +6,9 @@ export const emailTemplates = {
     html: `
       <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
         <div style="background: linear-gradient(135deg, #F17305 0%, #FF8C42 100%); padding: 40px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 32px;">🎭 Cosbaii</h1>
+          <div style="background: white; display: inline-block; padding: 15px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/cosbaii-main-logo.webp" alt="Cosbaii Logo" width="160" height="auto" style="display: block; margin: 0 auto;" />
+          </div>
         </div>
         
         <div style="background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
@@ -42,11 +44,13 @@ export const emailTemplates = {
     html: `
       <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
         <div style="background: linear-gradient(135deg, #F17305 0%, #FF8C42 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">🎭 Welcome to Cosbaii!</h1>
+          <div style="background: white; display: inline-block; padding: 12px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/cosbaii-main-logo.webp" alt="Cosbaii Logo" width="140" height="auto" style="display: block; margin: 0 auto;" />
+          </div>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          <h2 style="color: #333; margin-bottom: 20px;">Hello ${userName}!</h2>
+          <h2 style="color: #333; margin-bottom: 20px;">🎉 Welcome, ${userName}!</h2>
           
           <p style="color: #666; line-height: 1.6;">Your account has been verified! You're now part of the Cosbaii community.</p>
           
@@ -65,7 +69,9 @@ export const emailTemplates = {
     html: `
       <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
         <div style="background: linear-gradient(135deg, #F17305 0%, #FF8C42 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">🎭 Cosbaii</h1>
+          <div style="background: white; display: inline-block; padding: 12px 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/cosbaii-main-logo.webp" alt="Cosbaii Logo" width="140" height="auto" style="display: block; margin: 0 auto;" />
+          </div>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
