@@ -1,7 +1,7 @@
 // Update: src/app/api/user/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import prisma from "@/lib/db";
+import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 const userSchema = z.object({
@@ -53,12 +53,12 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-    // Create user with lowercase username
-    const user = await prisma.user.create({
+    // Create user
+    await prisma.user.create({
       data: {
         email: validatedData.email,
         name: validatedData.fullname,
-        username: validatedData.username, // ✅ Already lowercase from transform
+        username: validatedData.username, 
         password: hashedPassword,
         profile: {
           create: {
