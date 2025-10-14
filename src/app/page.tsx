@@ -4,6 +4,7 @@ import HeroSection from "./components/home/HeroSection";
 import AboutCosbaii from "./components/home/AboutCosbaii";
 import CosplayJourney from "./components/home/CosplayJourney";
 import Roadmap from "./components/home/Roadmap";
+import Footer from "./components/home/Footer";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
         <Roadmap />
         <EarlyAccessSection />
       </main>
+      <Footer />
     </>
   );
 }
