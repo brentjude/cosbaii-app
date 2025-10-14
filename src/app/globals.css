@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
 @plugin "daisyui/theme" {
   name: "cosbaii";
   default: true;
@@ -49,7 +50,7 @@ body {
 
 .button-gradient {
   background: #F17105;
-background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1) 100%);
+  background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1) 100%);
 }
 
 .color-cosbaii-primary {
@@ -59,7 +60,7 @@ background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1)
 /* Homepage */
 
 .font-paytone {
-  font-family: 'Paytone One'!important;
+  font-family: 'Paytone One' !important;
 }
 
 .bg-pale {

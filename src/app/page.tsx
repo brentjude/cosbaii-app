@@ -3,6 +3,7 @@ import EarlyAccessSection from "./components/home/EarlyAccessSection";
 import HeroSection from "./components/home/HeroSection";
 import AboutCosbaii from "./components/home/AboutCosbaii";
 import CosplayJourney from "./components/home/CosplayJourney";
+import Roadmap from "./components/home/Roadmap";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
         <HeroSection />
         <AboutCosbaii />
         <CosplayJourney />
+        <Roadmap />
         <EarlyAccessSection />
       </main>
     </>
