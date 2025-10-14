@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export default function Footer() {
     return (
-        <footer className="bg-primary text-white py-12">
+        <footer className="bg-primary text-white pb-4 pt-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Main Footer Content */}
                 <div className="flex flex-col gap-8">
@@ -52,7 +52,7 @@ export default function Footer() {
                     </div>
 
                     {/* Navigation Links - Stacked on mobile, inline on desktop */}
-                    <nav className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 border-t border-b border-white/10 py-6">
+                    <nav className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 border-t border-white/10 py-6">
                         <a
                             href="/legal/terms"
                             className="text-sm text-white/90 hover:text-white transition-colors font-medium"
@@ -68,12 +68,6 @@ export default function Footer() {
                         </a>
                     </nav>
 
-                    {/* Bottom Text - Centered */}
-                    <div className="text-center">
-                        <p className="text-xs text-white/70 max-w-2xl mx-auto leading-relaxed">
-                            Cosbaii is a community-driven platform for cosplayers. All trademarks and logos are property of their respective owners.
-                        </p>
-                    </div>
                 </div>
             </div>
         </footer>

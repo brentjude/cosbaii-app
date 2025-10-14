@@ -5,10 +5,17 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
+// ✅ Fix: Remove .nullable() from username since it's required in Prisma
 const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional().nullable(),
   email: z.string().email().min(1).optional(),
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/).optional().nullable(),
+  username: z
+    .string()
+    .min(3)
+    .max(20)
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .transform((val) => val.toLowerCase()) // ✅ Auto-convert to lowercase
+    .optional(), // ✅ Removed .nullable()
   role: z.enum(["USER", "ADMIN", "MODERATOR"]).optional(),
   status: z.enum(["INACTIVE", "ACTIVE", "BANNED"]).optional(),
 });
@@ -120,10 +127,20 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // ✅ Fix: Exclude password in the select query instead of destructuring
+    // ✅ Fix: Filter out undefined values to avoid Prisma type errors
+    const dataToUpdate: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    if (updateData.name !== undefined) dataToUpdate.name = updateData.name;
+    if (updateData.email !== undefined) dataToUpdate.email = updateData.email;
+    if (updateData.username !== undefined) dataToUpdate.username = updateData.username;
+    if (updateData.role !== undefined) dataToUpdate.role = updateData.role;
+    if (updateData.status !== undefined) dataToUpdate.status = updateData.status;
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { ...updateData, updatedAt: new Date() },
+      data: dataToUpdate,
       select: {
         id: true,
         email: true,

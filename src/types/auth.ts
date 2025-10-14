@@ -1,10 +1,10 @@
-// src/types/auth.ts
+// Update: src/types/auth.ts
 export interface AuthUser {
   id: string;
   name?: string | null;
   email?: string | null;
+  username: string; // ✅ Make username required
   role?: string;
-  username?: string | null;
   image?: string | null;
 }
 

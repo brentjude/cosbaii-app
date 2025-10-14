@@ -53,12 +53,12 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-    // Create user
+    // ✅ Create user with lowercase username
     await prisma.user.create({
       data: {
         email: validatedData.email,
         name: validatedData.fullname,
-        username: validatedData.username, 
+        username: validatedData.username, // ✅ Already lowercase from transform
         password: hashedPassword,
         profile: {
           create: {
@@ -76,9 +76,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error creating user:", error);
     
+    // ✅ Fix: Use proper Zod error handling
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: "Validation error", errors: error.errors },
+        { 
+          message: "Validation error", 
+          errors: error.flatten().fieldErrors // ✅ Use flatten() method
+        },
         { status: 400 }
       );
     }
