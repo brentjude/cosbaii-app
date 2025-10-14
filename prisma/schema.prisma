@@ -81,7 +81,7 @@ model User {
   id            Int        @id @default(autoincrement())
   email         String     @unique
   name          String?
-  username      String?    @unique
+  username      String     @unique
   password      String? // ✅ Make password optional for OAuth users
   image         String? // ✅ Add image field for Google profile pictures
   role          UserRole   @default(USER)

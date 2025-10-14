@@ -21,7 +21,7 @@ CREATE TABLE "public"."users" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
-    "username" TEXT,
+    "username" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "public"."UserRole" NOT NULL DEFAULT 'USER',
     "status" "public"."UserStatus" NOT NULL DEFAULT 'ACTIVE',
