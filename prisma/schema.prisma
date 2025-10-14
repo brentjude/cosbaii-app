@@ -91,9 +91,10 @@ model User {
   reviewedBy    String?
   isPremiumUser Boolean    @default(false)
 
-  // ✅ Updated email verification fields for 6-digit code
-  emailVerified            DateTime?
-  emailVerificationCode    String? // ✅ Changed from token to code
+  // ✅ Updated email verification fields
+  emailVerified            Boolean   @default(false) // ✅ Changed to Boolean
+  emailVerifiedDate        DateTime? // ✅ New field for verification date
+  emailVerificationCode    String?
   emailVerificationExpires DateTime?
 
   // Email change fields
@@ -451,3 +452,5 @@ model Notification {
 
   @@map("notifications")
 }
+
+

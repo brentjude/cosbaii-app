@@ -1,4 +1,3 @@
-// src/app/api/auth/verify-email/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/email";
@@ -26,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already verified
+    // ✅ Check if already verified using Boolean
     if (user.status === "ACTIVE" && user.emailVerified) {
       return NextResponse.json(
         { message: "Email already verified" },
@@ -50,12 +49,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update user to ACTIVE status and mark email as verified
+    // ✅ Update user with Boolean emailVerified and set emailVerifiedDate
     await prisma.user.update({
       where: { email },
       data: {
         status: "ACTIVE",
-        emailVerified: new Date(),
+        emailVerified: true, // ✅ Boolean
+        emailVerifiedDate: new Date(), // ✅ Store verification date
         emailVerificationCode: null,
         emailVerificationExpires: null,
       },

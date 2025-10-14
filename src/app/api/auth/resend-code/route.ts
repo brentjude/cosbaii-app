@@ -1,4 +1,3 @@
-// src/app/api/auth/resend-code/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendVerificationCode } from "@/lib/email";
@@ -29,6 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ Check if already verified using Boolean
     if (user.status === "ACTIVE" && user.emailVerified) {
       return NextResponse.json(
         { message: "Email already verified" },

@@ -1,4 +1,5 @@
 // src/app/verify-email/page.tsx
+
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
@@ -260,8 +261,8 @@ function VerifyEmailContent() {
 
               {/* Back to Signup */}
               <div className="divider">OR</div>
-              <Link href="/signup" className="text-sm text-gray-600 hover:text-primary">
-                Back to Sign Up
+              <Link href="/" className="text-sm text-gray-600 hover:text-primary">
+                Back to Home
               </Link>
             </>
           )}

@@ -8,9 +8,9 @@ const getEmailSender = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   if (isDevelopment) {
-    return 'Cosbaii Dev <onboarding@resend.dev>';
+    return 'Cosbaii <support@cosbaii.com>';
   } else {
-    return 'Cosbaii <noreply@cosbaii.com>';
+    return 'Cosbaii <support@cosbaii.com>';
   }
 };
 
