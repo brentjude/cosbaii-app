@@ -9,7 +9,7 @@ const Roadmap = () => {
             <div className="flex flex-col gap-8 mt-12">
                 <div className="flex flex-col sm:flex-row gap-8">
                     <div className="grow bg-[#FFF2E8] text-left rounded-2xl px-8 py-6">
-                        <h3 className="text-[24px] sm:text-[32px] font-black">For Cosplayers, Organizers, Photographers & Fans</h3>
+                        <h3 className="text-[24px] sm:text-[32px] font-black">For Cosplayers, Organizers, Photographers & Fans 2</h3>
                         <p className="mt-4 text-[18px]">
                             Cosbaii is a growing space made for the whole cosplay community. Whether you&apos;re in costume, building props, behind the camera, or just showing support, there&apos;s a place for you here. We&apos;re working on features that make it easier to collaborate, connect, and celebrate the craft you love.
                         </p>
