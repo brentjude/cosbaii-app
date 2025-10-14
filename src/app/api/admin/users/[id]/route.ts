@@ -1,4 +1,4 @@
-// 📁 c:\Website Projects\cosbaii-app\src\app\api\admin\users\[id]\route.ts
+// Update: src/app/api/admin/users/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }, { status: 401 });
     }
 
-    const { id } = await params; // ✅ Await params first
+    const { id } = await params;
     const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
@@ -33,8 +33,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        id: true, name: true, email: true, username: true,
-        role: true, status: true, createdAt: true, updatedAt: true, reviewedBy: true,
+        id: true, 
+        name: true, 
+        email: true, 
+        username: true,
+        role: true, 
+        status: true, 
+        createdAt: true, 
+        updatedAt: true, 
+        reviewedBy: true,
       }
     });
 
@@ -96,10 +103,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // Check username uniqueness
+    // Check username uniqueness (case-insensitive)
     if (updateData.username && updateData.username !== existingUser.username) {
-      const existingUserByUsername = await prisma.user.findUnique({
-        where: { username: updateData.username }
+      const existingUserByUsername = await prisma.user.findFirst({
+        where: {
+          username: {
+            equals: updateData.username.toLowerCase(),
+            mode: 'insensitive',
+          },
+        },
       });
       if (existingUserByUsername) {
         return NextResponse.json({ 
@@ -108,16 +120,34 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    // ✅ Fix: Exclude password in the select query instead of destructuring
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { ...updateData, updatedAt: new Date() }
+      data: { ...updateData, updatedAt: new Date() },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        image: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        reviewedBy: true,
+        isPremiumUser: true,
+        emailVerified: true,
+        emailVerificationToken: true,
+        emailVerificationExpires: true,
+        pendingEmail: true,
+        pendingEmailToken: true,
+        pendingEmailExpires: true,
+        // password is excluded by not selecting it
+      }
     });
 
-    // ✅ Fixed: Use underscore prefix to indicate intentionally unused variable
-    const { password: _password, ...rest } = updatedUser;
-
     return NextResponse.json({ 
-      user: rest,
+      user: updatedUser,
       message: "User updated successfully" 
     }, { status: 200 });
 
@@ -138,7 +168,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       }, { status: 401 });
     }
 
-    const { id } = await params; // ✅ Await params first
+    const { id } = await params;
     const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });

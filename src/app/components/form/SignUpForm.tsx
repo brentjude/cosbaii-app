@@ -1,21 +1,9 @@
 // Update: src/app/components/form/SignUpForm.tsx
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { z } from "zod";
 import { CheckCircleIcon } from "@heroicons/react/16/solid";
-
-// ✅ Fix: Add proper types instead of 'any'
-function debounce<T extends (...args: never[]) => void>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-}
 
 //Defining schema for input validation
 const userSchema = z.object({
@@ -67,7 +55,19 @@ export default function SignUpForm() {
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
 
-  // ✅ Fix: Use inline function for useCallback and add dependencies
+  // ✅ Fix: Use useRef for debounce timeout
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ✅ Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // ✅ Fix: Inline function for checking username availability
   const checkUsernameAvailability = useCallback(async (username: string) => {
     if (!username || username.length < 3) {
       setUsernameAvailable(null);
@@ -105,11 +105,19 @@ export default function SignUpForm() {
     }
   }, []);
 
-  // ✅ Create a debounced version using useMemo or separate handler
+  // ✅ Fix: Manual debounce implementation with useCallback
   const debouncedCheckUsername = useCallback(
-    debounce((username: string) => {
-      void checkUsernameAvailability(username);
-    }, 500),
+    (username: string) => {
+      // Clear existing timeout
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Set new timeout
+      debounceTimerRef.current = setTimeout(() => {
+        void checkUsernameAvailability(username);
+      }, 500);
+    },
     [checkUsernameAvailability]
   );
 
