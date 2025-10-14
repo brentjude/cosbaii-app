@@ -8,13 +8,13 @@ const Roadmap = () => {
             <p className="w-full sm:w-[826px] mx-auto text-[20px] mt-4">Cosbaii isn&apos;t just a platform. It&apos;s a growing space built with and for the cosplay community. From exciting features to meaningful opportunities, here&apos;s a peek at what&apos;s coming next, designed to make your cosplay journey more connected, creative, and fun.</p>
             <div className="flex flex-col gap-8 mt-12">
                 <div className="flex flex-col sm:flex-row gap-8">
-                    <div className="w-full sm:w-[50%] bg-[#FFF2E8] text-left rounded-2xl px-8 py-6">
+                    <div className="grow bg-[#FFF2E8] text-left rounded-2xl px-8 py-6">
                         <h3 className="text-[24px] sm:text-[32px] font-black">For Cosplayers, Organizers, Photographers & Fans</h3>
                         <p className="mt-4 text-[18px]">
                             Cosbaii is a growing space made for the whole cosplay community. Whether you&apos;re in costume, building props, behind the camera, or just showing support, there&apos;s a place for you here. We&apos;re working on features that make it easier to collaborate, connect, and celebrate the craft you love.
                         </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row w-full sm:w-[50%] gap-8">
+                    <div className="flex flex-col sm:flex-row grow gap-8">
                         <div className="w-full sm:w-[55%] bg-[#FFF2E8] text-left rounded-2xl px-8 py-6">
                             <h3 className="text-[24px] sm:text-[32px] font-black">Online Made-to-Order for Crafters</h3>
                             <p className="mt-4 text-[18px]">
