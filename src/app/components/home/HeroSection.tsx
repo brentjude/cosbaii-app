@@ -3,8 +3,12 @@
 
 import Image from "next/image";
 import { motion } from "motion/react";
+import { useState } from "react";
+import SignUpModal from "../form/SignUpModal";
 
 export default function HeroSection() {
+   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+
   return (
     <section className="w-full mx-auto flex flex-col-reverse sm:flex-row items-center justify-between py-10 sm:py-20 gap-5 sm:gap-10">
       {/* Left Content - Animate from left */}
@@ -42,8 +46,8 @@ export default function HeroSection() {
           credentials.
         </motion.p>
 
-        <motion.a
-          href="#earlyaccess"
+        <motion.button
+          onClick={() => setIsSignUpOpen(true)}
           className="w-full sm:w-auto btn btn-primary btn-lg button-gradient text-white mt-8 sm:mt-16 border-none px-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -52,7 +56,7 @@ export default function HeroSection() {
           whileTap={{ scale: 0.95 }}
         >
           GET EARLY ACCESS
-        </motion.a>
+        </motion.button>
       </motion.div>
 
       {/* Right Image - Animate from right */}
@@ -72,6 +76,11 @@ export default function HeroSection() {
           priority
         />
       </motion.div>
+
+      <SignUpModal
+        isOpen={isSignUpOpen}
+        onClose={() => setIsSignUpOpen(false)}
+      />
     </section>
   );
 }
