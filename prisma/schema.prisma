@@ -82,18 +82,18 @@ model User {
   email         String     @unique
   name          String?
   username      String     @unique
-  password      String? // ✅ Make password optional for OAuth users
-  image         String? // ✅ Add image field for Google profile pictures
+  password      String?
+  image         String?
   role          UserRole   @default(USER)
-  status        UserStatus @default(ACTIVE)
+  status        UserStatus @default(INACTIVE) // ✅ Changed default to INACTIVE
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   reviewedBy    String?
   isPremiumUser Boolean    @default(false)
 
-  // Email verification fields
+  // ✅ Updated email verification fields for 6-digit code
   emailVerified            DateTime?
-  emailVerificationToken   String?
+  emailVerificationCode    String? // ✅ Changed from token to code
   emailVerificationExpires DateTime?
 
   // Email change fields
@@ -101,11 +101,9 @@ model User {
   pendingEmailToken   String?
   pendingEmailExpires DateTime?
 
-  // ✅ Add NextAuth relations
+  // Relations
   accounts Account[]
   sessions Session[]
-
-  // Existing relations
   profile          Profile?
   competitions     Competition[]
   participations   CompetitionParticipant[]
@@ -120,7 +118,6 @@ model User {
 
   @@map("users")
 }
-
 //Account for Google auth
 model Account {
   id                String  @id @default(cuid())

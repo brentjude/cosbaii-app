@@ -24,7 +24,7 @@ CREATE TABLE "public"."users" (
     "username" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "role" "public"."UserRole" NOT NULL DEFAULT 'USER',
-    "status" "public"."UserStatus" NOT NULL DEFAULT 'ACTIVE',
+    "status" "public"."UserStatus" NOT NULL DEFAULT 'INACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

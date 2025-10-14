@@ -1,19 +1,45 @@
-// Update: src/lib/email.ts
+// src/lib/email.ts
 import { Resend } from 'resend';
 import { emailTemplates } from './email-template';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ✅ Dynamic sender based on environment
 const getEmailSender = () => {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   if (isDevelopment) {
-    return 'Cosbaii Dev <onboarding@resend.dev>'; // Sandbox for development
+    return 'Cosbaii Dev <onboarding@resend.dev>';
   } else {
-    return 'Cosbaii <noreply@cosbaii.com>'; // Your verified domain for production
+    return 'Cosbaii <noreply@cosbaii.com>';
   }
 };
+
+// ✅ New function to send verification code
+export async function sendVerificationCode(userEmail: string, userName: string, code: string) {
+  try {
+    const { subject, html } = emailTemplates.verificationCode(userName, code);
+
+    console.log("Sending verification code from:", getEmailSender(), "to:", userEmail);
+
+    const { data, error } = await resend.emails.send({
+      from: getEmailSender(),
+      to: [userEmail],
+      subject: subject,
+      html: html,
+    });
+
+    if (error) {
+      console.error('Error sending verification code:', error);
+      return { success: false, error };
+    }
+
+    console.log('Verification code sent successfully:', data?.id);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending verification code:', error);
+    return { success: false, error };
+  }
+}
 
 export async function sendWelcomeEmail(userEmail: string, userName: string) {
   try {
@@ -23,7 +49,7 @@ export async function sendWelcomeEmail(userEmail: string, userName: string) {
     console.log("Sending welcome email from:", getEmailSender(), "to:", userEmail);
 
     const { data, error } = await resend.emails.send({
-      from: getEmailSender(), // ✅ Use dynamic sender
+      from: getEmailSender(),
       to: [userEmail],
       subject: subject,
       html: html,
@@ -48,7 +74,7 @@ export async function sendEmailChangeVerification(userEmail: string, userName: s
     const { subject, html } = emailTemplates.emailChange(userName, verifyUrl);
 
     const { data, error } = await resend.emails.send({
-      from: getEmailSender(), // ✅ Use dynamic sender
+      from: getEmailSender(),
       to: [userEmail],
       subject: subject,
       html: html,
@@ -66,7 +92,7 @@ export async function sendEmailChangeVerification(userEmail: string, userName: s
     return { success: false, error };
   }
 }
-// ✅ Add more email templates as needed
+
 export async function sendPasswordResetEmail(userEmail: string, userName: string, resetUrl: string) {
   try {
     const { data, error } = await resend.emails.send({

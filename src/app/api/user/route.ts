@@ -1,46 +1,44 @@
-// Update: src/app/api/user/route.ts
+// src/app/api/user/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
+import { z } from "zod";
+import { sendVerificationCode } from "@/lib/email";
 
 const userSchema = z.object({
-  fullname: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Invalid email format"),
-  username: z
-    .string()
-    .min(3, "Username is required")
-    .transform((val) => val.toLowerCase().trim()), // ✅ Ensure lowercase
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  fullname: z.string().min(2).max(50),
+  email: z.string().email(),
+  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/),
+  password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/),
   emailUpdates: z.boolean().optional(),
-  privacyConsent: z.boolean(),
+  termsAccepted: z.boolean(),
 });
 
-export async function POST(req: NextRequest) {
+// ✅ Generate 6-digit code
+function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const validatedData = userSchema.parse(body);
 
-    // ✅ Check if email exists
-    const existingUser = await prisma.user.findUnique({
+    // Check if email exists
+    const existingEmail = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
 
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
         { message: "Email already exists" },
         { status: 400 }
       );
     }
 
-    // ✅ Check if username exists (case-insensitive)
-    const existingUsername = await prisma.user.findFirst({
-      where: {
-        username: {
-          equals: validatedData.username,
-          mode: 'insensitive',
-        },
-      },
+    // Check if username exists
+    const existingUsername = await prisma.user.findUnique({
+      where: { username: validatedData.username.toLowerCase() },
     });
 
     if (existingUsername) {
@@ -53,13 +51,20 @@ export async function POST(req: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(validatedData.password, 10);
 
-    // ✅ Create user with lowercase username
-    await prisma.user.create({
+    // ✅ Generate verification code
+    const verificationCode = generateVerificationCode();
+    const verificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Create user with INACTIVE status
+    const user = await prisma.user.create({
       data: {
         email: validatedData.email,
         name: validatedData.fullname,
-        username: validatedData.username, // ✅ Already lowercase from transform
+        username: validatedData.username.toLowerCase(),
         password: hashedPassword,
+        status: "INACTIVE", // ✅ User starts as INACTIVE
+        emailVerificationCode: verificationCode,
+        emailVerificationExpires: verificationExpires,
         profile: {
           create: {
             displayName: validatedData.fullname,
@@ -69,26 +74,33 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // ✅ Send verification code email
+    await sendVerificationCode(user.email, user.name || "User", verificationCode);
+
     return NextResponse.json(
-      { message: "User created successfully. Please check your email to verify your account." },
+      {
+        message: "Account created successfully. Please check your email for verification code.",
+        userId: user.id,
+        email: user.email,
+      },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error creating user:", error);
-    
-    // ✅ Fix: Use proper Zod error handling
+
     if (error instanceof z.ZodError) {
+      const details = error.issues.map((i) => i.message).join("; ");
       return NextResponse.json(
-        { 
-          message: "Validation error", 
-          errors: error.flatten().fieldErrors // ✅ Use flatten() method
+        {
+          message: details || "Validation failed",
+          errors: error.issues,
         },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Failed to create account" },
       { status: 500 }
     );
   }

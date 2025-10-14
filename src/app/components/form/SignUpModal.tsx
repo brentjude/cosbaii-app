@@ -177,66 +177,61 @@ export default function SignUpModal({ isOpen, onClose }: SignUpModalProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
-    setSubmitError("");
-    setSubmitSuccess(false);
+  
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setErrors({});
+  setSubmitError("");
+  setSubmitSuccess(false);
 
-    if (usernameAvailable === false) {
-      setSubmitError("Please choose a different username");
+  if (usernameAvailable === false) {
+    setSubmitError("Please choose a different username");
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+
+    const result = userSchema.safeParse(formData);
+
+    if (!result.success) {
+      const newErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => {
+        if (err.path.length > 0) {
+          newErrors[err.path[0] as string] = err.message;
+        }
+      });
+
+      setErrors(newErrors);
+      setIsLoading(false);
       return;
     }
 
-    try {
-      setIsLoading(true);
+    const response = await fetch("/api/user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(result.data),
+    });
 
-      const result = userSchema.safeParse(formData);
-
-      if (!result.success) {
-        const newErrors: Record<string, string> = {};
-        result.error.issues.forEach((err) => {
-          if (err.path.length > 0) {
-            newErrors[err.path[0] as string] = err.message;
-          }
-        });
-
-        setErrors(newErrors);
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch("/api/user", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(result.data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "submission failed");
-      }
-
-      setSubmitSuccess(true);
-      setFormData({
-        fullname: "",
-        email: "",
-        username: "",
-        password: "",
-        emailUpdates: false,
-        termsAccepted: false,
-      });
-      setUsernameAvailable(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      setSubmitError(errorMessage);
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "submission failed");
     }
-  };
+
+    const data = await response.json();
+
+    // ✅ Redirect to verification page instead of showing success message
+    window.location.href = `/verify-email?email=${encodeURIComponent(data.email)}`;
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred";
+    setSubmitError(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <dialog ref={modalRef} className="modal modal-middle sm:modal-middle">

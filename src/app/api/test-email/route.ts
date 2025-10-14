@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     console.log("Testing welcome email for:", email, name);
 
     // ✅ Use test@resend.dev for testing (this is Resend's official test email)
-    const testEmail = "test@resend.dev";
+    const testEmail = "brent.mcph@gmail.com";
 
     console.log(
       `Sending test email to: ${testEmail} (originally requested for: ${email})`
