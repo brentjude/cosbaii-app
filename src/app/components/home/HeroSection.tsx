@@ -9,7 +9,7 @@ export default function HeroSection() {
     <section className="w-full mx-auto flex flex-col-reverse sm:flex-row items-center justify-between py-10 sm:py-20 gap-5 sm:gap-10">
       {/* Left Content - Animate from left */}
       <motion.div
-        className="w-full lg:w-[50%] sm:w-[40%] sm:pl-[10%] justify-content-center p-4"
+        className="w-full lg:w-[50%] sm:w-[50%] sm:pl-[5%] justify-content-center p-4"
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -57,7 +57,7 @@ export default function HeroSection() {
 
       {/* Right Image - Animate from right */}
       <motion.div
-        className="w-full lg:w-full sm:w-[50%]"
+        className="w-full sm:w-[50%]"
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
