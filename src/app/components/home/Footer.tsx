@@ -1,4 +1,6 @@
 // Update: src/app/components/home/Footer.tsx
+import Image from "next/image";
+
 export default function Footer() {
     return (
         <footer className="bg-primary text-white py-12">
@@ -8,9 +10,12 @@ export default function Footer() {
                     {/* Logo and Copyright - Centered on mobile */}
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                         <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                            <img
+                            <Image
                                 src="/images/cosbaii-main-logo-white.webp"
                                 alt="Cosbaii"
+                                quality={100}
+                                width={114}
+                                height={32}
                                 className="h-8 w-auto"
                             />
                             <p className="text-sm text-white/90">

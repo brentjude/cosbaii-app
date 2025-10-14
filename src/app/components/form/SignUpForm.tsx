@@ -1,12 +1,23 @@
 // Update: src/app/components/form/SignUpForm.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { z } from "zod";
 import { CheckCircleIcon } from "@heroicons/react/16/solid";
 
+// ✅ Fix: Add proper types instead of 'any'
+function debounce<T extends (...args: never[]) => void>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
 //Defining schema for input validation
-// This schema includes fullname, email, username, and password fields
 const userSchema = z.object({
   fullname: z
     .string()
@@ -20,7 +31,8 @@ const userSchema = z.object({
     .regex(
       /^[a-zA-Z0-9_]+$/,
       "Username can only contain letters, numbers, and underscores"
-    ),
+    )
+    .transform((val) => val.toLowerCase()), // ✅ Auto-convert to lowercase
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -34,11 +46,9 @@ const userSchema = z.object({
   }),
 });
 
-// Type for form data based on the schema
 type UserFormData = z.infer<typeof userSchema>;
 
 export default function SignUpForm() {
-  // Initialize form data state
   const [formData, setFormData] = useState<UserFormData>({
     fullname: "",
     email: "",
@@ -48,19 +58,74 @@ export default function SignUpForm() {
     privacyConsent: false,
   });
 
-  // Handle form submission
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  
+  // ✅ Add username checking state
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
 
-  // Handle input changes
+  // ✅ Fix: Use inline function for useCallback and add dependencies
+  const checkUsernameAvailability = useCallback(async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    try {
+      const response = await fetch("/api/user/check-username", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.toLowerCase() }),
+      });
+
+      const data = await response.json();
+      setUsernameAvailable(data.available);
+
+      if (!data.available) {
+        setErrors((prev) => ({
+          ...prev,
+          username: data.message || "Username is already taken",
+        }));
+      } else {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.username;
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setUsernameAvailable(null);
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  }, []);
+
+  // ✅ Create a debounced version using useMemo or separate handler
+  const debouncedCheckUsername = useCallback(
+    debounce((username: string) => {
+      void checkUsernameAvailability(username);
+    }, 500),
+    [checkUsernameAvailability]
+  );
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    
+    let processedValue = type === "checkbox" ? checked : value;
+    
+    // ✅ Convert username to lowercase as user types
+    if (name === "username" && typeof processedValue === "string") {
+      processedValue = processedValue.toLowerCase();
+    }
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: processedValue,
     }));
 
     // Clear error for the current field as user types
@@ -71,14 +136,25 @@ export default function SignUpForm() {
         return newErrors;
       });
     }
+
+    // ✅ Check username availability as user types
+    if (name === "username" && typeof processedValue === "string") {
+      setUsernameAvailable(null);
+      debouncedCheckUsername(processedValue);
+    }
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrors({});
     setSubmitError("");
     setSubmitSuccess(false);
+
+    // ✅ Check if username is available before submitting
+    if (usernameAvailable === false) {
+      setSubmitError("Please choose a different username");
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -87,7 +163,6 @@ export default function SignUpForm() {
       const result = userSchema.safeParse(formData);
 
       if (!result.success) {
-        // If validation fails, set error state
         const newErrors: Record<string, string> = {};
         result.error.issues.forEach((err) => {
           if (err.path.length > 0) {
@@ -100,7 +175,7 @@ export default function SignUpForm() {
         return;
       }
 
-      // Send data to the server
+      // Send data to the server (username will be lowercase from schema transform)
       const response = await fetch("/api/user", {
         method: "POST",
         headers: {
@@ -123,6 +198,7 @@ export default function SignUpForm() {
         emailUpdates: false,
         privacyConsent: false,
       });
+      setUsernameAvailable(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
       setSubmitError(errorMessage);
@@ -152,7 +228,6 @@ export default function SignUpForm() {
             onChange={handleInputChange}
             className="input w-full input-bordered rounded-md"
           />
-
           {errors.fullname && (
             <p className="text-white text-xs mt-1">{errors.fullname}</p>
           )}
@@ -166,23 +241,42 @@ export default function SignUpForm() {
             onChange={handleInputChange}
             className="input w-full input-bordered mt-4 rounded-md"
           />
-
           {errors.email && (
             <p className="text-white text-xs mt-1">{errors.email}</p>
           )}
 
-          <input
-            type="text"
-            name="username"
-            placeholder="Username / Cosplay Handle"
-            id="username"
-            value={formData.username || ""}
-            onChange={handleInputChange}
-            className="input w-full input-bordered mt-4 rounded-md"
-          />
-
+          {/* ✅ Enhanced Username Input with Validation Feedback */}
+          <div className="relative">
+            <input
+              type="text"
+              name="username"
+              placeholder="Username / Cosplay Handle"
+              id="username"
+              value={formData.username || ""}
+              onChange={handleInputChange}
+              className={`input w-full input-bordered mt-4 rounded-md ${
+                usernameAvailable === true
+                  ? "border-green-500"
+                  : usernameAvailable === false
+                  ? "border-red-500"
+                  : ""
+              }`}
+            />
+            {isCheckingUsername && (
+              <span className="absolute right-3 top-7 loading loading-spinner loading-sm"></span>
+            )}
+            {!isCheckingUsername && usernameAvailable === true && (
+              <span className="absolute right-3 top-7 text-green-500">✓</span>
+            )}
+            {!isCheckingUsername && usernameAvailable === false && (
+              <span className="absolute right-3 top-7 text-red-500">✗</span>
+            )}
+          </div>
           {errors.username && (
             <p className="text-white text-xs mt-1">{errors.username}</p>
+          )}
+          {!errors.username && usernameAvailable === true && (
+            <p className="text-green-400 text-xs mt-1">✓ Username is available</p>
           )}
 
           <input
@@ -194,7 +288,6 @@ export default function SignUpForm() {
             onChange={handleInputChange}
             className="input w-full input-bordered mt-4 rounded-md"
           />
-
           {errors.password && (
             <p className="text-white text-xs mt-1">{errors.password}</p>
           )}
@@ -224,7 +317,6 @@ export default function SignUpForm() {
             used to contact me about Cosbaii&apos;s launch and early access perks. We
             respect your privacy and will never share your data.
           </label>
-
           {errors.privacyConsent && (
             <p className="text-white text-xs mt-1">{errors.privacyConsent}</p>
           )}
@@ -232,7 +324,7 @@ export default function SignUpForm() {
           <button
             type="submit"
             className="btn btn-secondary text-white mt-6 w-full"
-            disabled={isLoading}
+            disabled={isLoading || isCheckingUsername || usernameAvailable === false}
           >
             {isLoading ? "Submitting..." : "GET EARLY ACCESS"}
           </button>
