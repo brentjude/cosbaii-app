@@ -69,7 +69,7 @@ export const authOptions: NextAuthOptions = {
       : []),
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user}) {
       // ✅ When user first signs in, copy user data to token
       if (user) {
         console.log("JWT callback - user object:", user);
