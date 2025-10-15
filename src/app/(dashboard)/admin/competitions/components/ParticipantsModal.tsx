@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   XMarkIcon,
   CheckIcon,
@@ -6,7 +6,6 @@ import {
   UserIcon,
   ClockIcon,
   EyeIcon,
-  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import {
@@ -38,15 +37,8 @@ export default function ParticipantsModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  useEffect(() => {
-    if (isOpen && competition) {
-      fetchParticipants();
-      setSearchQuery("");
-      setStatusFilter("ALL");
-    }
-  }, [isOpen, competition]);
-
-  const fetchParticipants = async () => {
+  // ✅ Wrap fetchParticipants in useCallback to memoize it
+  const fetchParticipants = useCallback(async () => {
     if (!competition) return;
 
     setLoading(true);
@@ -68,7 +60,16 @@ export default function ParticipantsModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [competition]);
+
+  // ✅ Now include fetchParticipants in the dependency array
+  useEffect(() => {
+    if (isOpen && competition) {
+      fetchParticipants();
+      setSearchQuery("");
+      setStatusFilter("ALL");
+    }
+  }, [isOpen, competition, fetchParticipants]);
 
   const handleReviewParticipant = async (
     participantId: number,

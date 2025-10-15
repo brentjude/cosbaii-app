@@ -1,382 +1,386 @@
-// Create: src/lib/badges.ts
-import prisma from '@/lib/prisma';
-// ✅ Define the badge types locally instead of importing from Prisma
-export type BadgeType = 'PARTICIPATION' | 'COMPETITION_MILESTONE' | 'SPECIAL_ACHIEVEMENT' | 'PROFILE_COMPLETION';
+import prisma from "@/lib/prisma";
 
-// ✅ Add interface for user data that can be passed to badge checks
-interface BadgeCheckUserData {
-  id?: number;
-  createdAt?: Date;
-  participationCount?: number;
-  [key: string]: unknown;
-}
+type BadgeType = 
+  | "PROFILE_COMPLETION" 
+  | "PARTICIPATION" 
+  | "COMPETITION_MILESTONE" 
+  | "SPECIAL_ACHIEVEMENT";
 
-export interface BadgeRule {
-  id: string;
+interface Badge {
+  id: number;
   name: string;
   description: string;
   iconUrl: string;
-  type: BadgeType; // ✅ Use the local type
-  requirement?: number;
-  checkCondition: (userId: number, userData?: BadgeCheckUserData) => Promise<boolean>; // ✅ Fixed: proper type instead of 'any'
+  type: BadgeType;
+  requirement: number | null;
 }
 
-// Define all badge rules
-export const BADGE_RULES: BadgeRule[] = [
+interface BadgeCheckFunction {
+  (userId: number): Promise<boolean>;
+}
+
+interface BadgeDefinition extends Badge {
+  checkFunction: BadgeCheckFunction;
+}
+
+// ✅ Badge definitions with check functions
+export const BADGE_DEFINITIONS: BadgeDefinition[] = [
+  // Profile Completion Badges
   {
-    id: 'early_member',
-    name: 'Early Member',
-    description: 'One of the first 100 members to join Cosbaii',
-    iconUrl: '/badges/early-member.svg',
-    type: 'SPECIAL_ACHIEVEMENT',
-    checkCondition: async (userId: number) => {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, createdAt: true }
-      });
-      
-      if (!user) return false;
-      
-      // Count users created before this user
-      const usersBefore = await prisma.user.count({
-        where: {
-          createdAt: { lt: user.createdAt }
-        }
-      });
-      
-      return usersBefore < 100; // First 100 users
-    }
-  },
-  
-  {
-    id: 'competition_starter',
-    name: 'Competition Starter',
-    description: 'Participated in your first competition',
-    iconUrl: '/badges/first-competition.svg',
-    type: 'PARTICIPATION',
-    requirement: 1,
-    checkCondition: async (userId: number) => {
-      const participationCount = await prisma.competitionParticipant.count({
-        where: { userId }
-      });
-      return participationCount >= 1;
-    }
-  },
-  
-  {
-    id: 'competition_enthusiast',
-    name: 'Competition Enthusiast',
-    description: 'Participated in 5 competitions',
-    iconUrl: '/badges/five-competitions.svg',
-    type: 'PARTICIPATION',
-    requirement: 5,
-    checkCondition: async (userId: number) => {
-      const participationCount = await prisma.competitionParticipant.count({
-        where: { userId }
-      });
-      return participationCount >= 5;
-    }
-  },
-  
-  {
-    id: 'competition_veteran',
-    name: 'Competition Veteran',
-    description: 'Participated in 25 competitions',
-    iconUrl: '/badges/veteran.svg',
-    type: 'COMPETITION_MILESTONE',
-    requirement: 25,
-    checkCondition: async (userId: number) => {
-      const participationCount = await prisma.competitionParticipant.count({
-        where: { userId }
-      });
-      return participationCount >= 25;
-    }
-  },
-  
-  {
-    id: 'competition_legend',
-    name: 'Competition Legend',
-    description: 'Participated in 50 competitions',
-    iconUrl: '/badges/legend.svg',
-    type: 'COMPETITION_MILESTONE',
-    requirement: 50,
-    checkCondition: async (userId: number) => {
-      const participationCount = await prisma.competitionParticipant.count({
-        where: { userId }
-      });
-      return participationCount >= 50;
-    }
-  },
-  
-  {
-    id: 'champion',
-    name: 'Champion',
-    description: 'Won your first competition',
-    iconUrl: '/badges/champion.svg',
-    type: 'SPECIAL_ACHIEVEMENT',
-    checkCondition: async (userId: number) => {
-      const championCount = await prisma.competitionParticipant.count({
-        where: { 
-          userId,
-          position: 'CHAMPION'
-        }
-      });
-      return championCount >= 1;
-    }
-  },
-  
-  {
-    id: 'multiple_champion',
-    name: 'Multiple Champion',
-    description: 'Won 5 competitions',
-    iconUrl: '/badges/multiple-champion.svg',
-    type: 'SPECIAL_ACHIEVEMENT',
-    requirement: 5,
-    checkCondition: async (userId: number) => {
-      const championCount = await prisma.competitionParticipant.count({
-        where: { 
-          userId,
-          position: 'CHAMPION'
-        }
-      });
-      return championCount >= 5;
-    }
-  },
-  
-  {
-    id: 'finder',
-    name: 'Event Finder',
-    description: 'Submitted your first competition for review',
-    iconUrl: '/badges/organizer.svg',
-    type: 'SPECIAL_ACHIEVEMENT',
-    checkCondition: async (userId: number) => {
-      const competitionsSubmitted = await prisma.competition.count({
-        where: { submittedById: userId }
-      });
-      return competitionsSubmitted >= 1;
-    }
-  },
-  
-  {
-    id: 'verified_cosplayer',
-    name: 'Verified Cosplayer',
-    description: 'Had your first competition result verified by an admin',
-    iconUrl: '/badges/verified.svg',
-    type: 'SPECIAL_ACHIEVEMENT',
-    checkCondition: async (userId: number) => {
-      const verifiedParticipations = await prisma.competitionParticipant.count({
-        where: { 
-          userId,
-          verified: true
-        }
-      });
-      return verifiedParticipations >= 1;
-    }
-  },
-  
-  {
-    id: 'profile_complete',
-    name: 'Profile Master',
-    description: 'Completed your cosplay profile with all details',
-    iconUrl: '/badges/profile-complete.svg',
-    type: 'SPECIAL_ACHIEVEMENT',
-    checkCondition: async (userId: number) => {
+    id: 1,
+    name: "Profile Complete",
+    description: "Complete your profile with all basic information",
+    iconUrl: "/badges/profile-complete.png",
+    type: "PROFILE_COMPLETION",
+    requirement: null,
+    checkFunction: async (userId: number) => {
       const profile = await prisma.profile.findUnique({
         where: { userId },
-        select: {
-          displayName: true,
-          bio: true,
-          profilePicture: true,
-          cosplayerType: true,
-          yearsOfExperience: true,
-          specialization: true
-        }
+      });
+      
+      return !!(
+        profile &&
+        profile.displayName &&
+        profile.bio &&
+        profile.profilePicture !== "/images/default-avatar.png"
+      );
+    },
+  },
+  {
+    id: 2,
+    name: "Social Butterfly",
+    description: "Link at least 3 social media accounts",
+    iconUrl: "/badges/social-butterfly.png",
+    type: "PROFILE_COMPLETION",
+    requirement: 3,
+    checkFunction: async (userId: number) => {
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
       });
       
       if (!profile) return false;
       
-      // Check if all key fields are filled
-      return !!(
-        profile.displayName && 
-        profile.bio && 
-        profile.profilePicture !== '/images/default-avatar.png' &&
-        profile.yearsOfExperience !== null &&
-        profile.specialization
-      );
-    }
-  }
+      const linkedAccounts = [
+        profile.facebookUrl,
+        profile.instagramUrl,
+        profile.twitterUrl,
+        profile.tiktokUrl,
+        profile.youtubeUrl,
+      ].filter(Boolean).length;
+      
+      return linkedAccounts >= 3;
+    },
+  },
+
+  // Participation Badges
+  {
+    id: 3,
+    name: "First Steps",
+    description: "Participate in your first competition",
+    iconUrl: "/badges/first-steps.png",
+    type: "PARTICIPATION",
+    requirement: 1,
+    checkFunction: async (userId: number) => {
+      const count = await prisma.competitionParticipant.count({
+        where: {
+          userId,
+          verifiedAt: { not: null },
+        },
+      });
+      return count >= 1;
+    },
+  },
+  {
+    id: 4,
+    name: "Rising Star",
+    description: "Participate in 5 competitions",
+    iconUrl: "/badges/rising-star.png",
+    type: "PARTICIPATION",
+    requirement: 5,
+    checkFunction: async (userId: number) => {
+      const count = await prisma.competitionParticipant.count({
+        where: {
+          userId,
+          verifiedAt: { not: null },
+        },
+      });
+      return count >= 5;
+    },
+  },
+  {
+    id: 5,
+    name: "Veteran Cosplayer",
+    description: "Participate in 10 competitions",
+    iconUrl: "/badges/veteran.png",
+    type: "PARTICIPATION",
+    requirement: 10,
+    checkFunction: async (userId: number) => {
+      const count = await prisma.competitionParticipant.count({
+        where: {
+          userId,
+          verifiedAt: { not: null },
+        },
+      });
+      return count >= 10;
+    },
+  },
+  {
+    id: 6,
+    name: "Competition Legend",
+    description: "Participate in 25 competitions",
+    iconUrl: "/badges/legend.png",
+    type: "PARTICIPATION",
+    requirement: 25,
+    checkFunction: async (userId: number) => {
+      const count = await prisma.competitionParticipant.count({
+        where: {
+          userId,
+          verifiedAt: { not: null },
+        },
+      });
+      return count >= 25;
+    },
+  },
+
+  // Competition Milestone Badges
+  {
+    id: 7,
+    name: "Champion",
+    description: "Win first place in a competition",
+    iconUrl: "/badges/champion.png",
+    type: "COMPETITION_MILESTONE",
+    requirement: null,
+    checkFunction: async (userId: number) => {
+      const firstPlace = await prisma.competitionParticipant.findFirst({
+        where: {
+          userId,
+          position: "FIRST_PLACE",
+          verifiedAt: { not: null },
+        },
+      });
+      return !!firstPlace;
+    },
+  },
+  {
+    id: 8,
+    name: "Top Performer",
+    description: "Place in the top 3 in any competition",
+    iconUrl: "/badges/top-performer.png",
+    type: "COMPETITION_MILESTONE",
+    requirement: null,
+    checkFunction: async (userId: number) => {
+      const topThree = await prisma.competitionParticipant.findFirst({
+        where: {
+          userId,
+          position: {
+            in: ["CHAMPION", "FIRST_PLACE", "SECOND_PLACE"],
+          },
+          verifiedAt: { not: null },
+        },
+      });
+      return !!topThree;
+    },
+  },
+
+  // Special Achievement Badges
+  {
+    id: 9,
+    name: "Early Adopter",
+    description: "One of the first 100 users to join",
+    iconUrl: "/badges/early-adopter.png",
+    type: "SPECIAL_ACHIEVEMENT",
+    requirement: null,
+    checkFunction: async (userId: number) => {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, createdAt: true },
+      });
+      
+      if (!user) return false;
+      
+      const earlyUsers = await prisma.user.count({
+        where: {
+          createdAt: {
+            lte: user.createdAt,
+          },
+        },
+      });
+      
+      return earlyUsers <= 100;
+    },
+  },
+  {
+    id: 10,
+    name: "Community Builder",
+    description: "Help verify 5 other users' competition participations",
+    iconUrl: "/badges/community-builder.png",
+    type: "SPECIAL_ACHIEVEMENT",
+    requirement: 5,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    checkFunction: async (_userId: number) => {
+      // This would require a verification system
+      // For now, return false as placeholder
+      return false;
+    },
+  },
 ];
 
-export async function initializeBadges() {
-  console.log('Initializing badges...');
-  
-  for (const rule of BADGE_RULES) {
-    const existingBadge = await prisma.badge.findFirst({
-      where: { name: rule.name }
-    });
-    
-    if (!existingBadge) {
-      await prisma.badge.create({
-        data: {
-          name: rule.name,
-          description: rule.description,
-          iconUrl: rule.iconUrl,
-          type: rule.type,
-          requirement: rule.requirement || null
-        }
-      });
-      console.log(`✅ Created badge: ${rule.name}`);
-    }
-  }
-}
-
-export async function checkAndAwardBadges(userId: number, triggerEvent?: string) {
-  console.log(`Checking badges for user ${userId} (trigger: ${triggerEvent})`);
-  
-  const newBadges: string[] = [];
-  
-  for (const rule of BADGE_RULES) {
-    // Check if user already has this badge
-    const existingUserBadge = await prisma.userBadge.findFirst({
-      where: {
-        userId,
-        badge: { name: rule.name }
-      }
-    });
-    
-    if (existingUserBadge) continue; // User already has this badge
-    
-    // Check if user meets the condition
-    try {
-      const meetsCondition = await rule.checkCondition(userId);
-      
-      if (meetsCondition) {
-        // Find the badge in database
-        const badge = await prisma.badge.findFirst({
-          where: { name: rule.name }
-        });
-        
-        if (badge) {
-          // Award the badge
-          await prisma.userBadge.create({
-            data: {
-              userId,
-              badgeId: badge.id
-            }
-          });
-          
-          newBadges.push(rule.name);
-          console.log(`🏆 Awarded badge "${rule.name}" to user ${userId}`);
-          
-          // Create notification for the new badge
-          await createBadgeNotification(userId, rule.name, rule.description);
-        }
-      }
-    } catch (error) {
-      console.error(`Error checking badge condition for ${rule.name}:`, error);
-    }
-  }
-  
-  return newBadges;
-}
-
-// Update: src/lib/badges.ts
-async function createBadgeNotification(userId: number, badgeName: string, description: string) {
+// ✅ Function to check and award a single badge
+export async function checkAndAwardBadge(
+  userId: number,
+  badgeDefinition: BadgeDefinition
+): Promise<boolean> {
   try {
+    // Check if user already has this badge
+    const existingBadge = await prisma.userBadge.findUnique({
+      where: {
+        userId_badgeId: {
+          userId,
+          badgeId: badgeDefinition.id,
+        },
+      },
+    });
+
+    if (existingBadge) {
+      return false; // User already has this badge
+    }
+
+    // Check if user meets the requirements
+    const meetsRequirements = await badgeDefinition.checkFunction(userId);
+
+    if (!meetsRequirements) {
+      return false;
+    }
+
+    // Ensure badge exists in database
+    let badge = await prisma.badge.findUnique({
+      where: { id: badgeDefinition.id },
+    });
+
+    if (!badge) {
+      // Create badge if it doesn't exist
+      badge = await prisma.badge.create({
+        data: {
+          id: badgeDefinition.id,
+          name: badgeDefinition.name,
+          description: badgeDefinition.description,
+          iconUrl: badgeDefinition.iconUrl,
+          type: badgeDefinition.type,
+          requirement: badgeDefinition.requirement,
+        },
+      });
+    }
+
+    // Award the badge
+    await prisma.userBadge.create({
+      data: {
+        userId,
+        badgeId: badge.id,
+      },
+    });
+
+    // Create notification
     await prisma.notification.create({
       data: {
         userId,
-        type: 'BADGE_AWARDED',
-        title: 'New Badge Earned!',
-        message: `🏆 You earned the "${badgeName}" badge! ${description}`,
-        relatedId: null, // ✅ Use relatedId instead of data
-        isRead: false,   // ✅ Use isRead instead of read
-      }
+        type: "BADGE_EARNED",
+        title: "New Badge Earned!",
+        message: `You've earned the "${badge.name}" badge! ${badge.description}`,
+        relatedId: badge.id,
+      },
     });
+
+    return true;
   } catch (error) {
-    console.error('Error creating badge notification:', error);
+    console.error(`Error checking/awarding badge ${badgeDefinition.name}:`, error);
+    return false;
   }
 }
 
+// ✅ Function to check all badges for a user
+export async function checkAllBadges(userId: number): Promise<number> {
+  let newBadgesCount = 0;
+
+  for (const badgeDefinition of BADGE_DEFINITIONS) {
+    const awarded = await checkAndAwardBadge(userId, badgeDefinition);
+    if (awarded) {
+      newBadgesCount++;
+    }
+  }
+
+  return newBadgesCount;
+}
+
+// ✅ Function to initialize all badges in the database
+export async function initializeBadges(): Promise<void> {
+  for (const badge of BADGE_DEFINITIONS) {
+    await prisma.badge.upsert({
+      where: { id: badge.id },
+      update: {
+        name: badge.name,
+        description: badge.description,
+        iconUrl: badge.iconUrl,
+        type: badge.type,
+        requirement: badge.requirement,
+      },
+      create: {
+        id: badge.id,
+        name: badge.name,
+        description: badge.description,
+        iconUrl: badge.iconUrl,
+        type: badge.type,
+        requirement: badge.requirement,
+      },
+    });
+  }
+}
+
+// ✅ Function to get user's badges
 export async function getUserBadges(userId: number) {
   return await prisma.userBadge.findMany({
     where: { userId },
     include: {
-      badge: true
+      badge: true,
     },
-    orderBy: { awardedAt: 'desc' }
+    orderBy: {
+      awardedAt: "desc",
+    },
   });
 }
 
-// Update: src/lib/badges.ts
+// ✅ Function to get badge progress for a user
 export async function getBadgeProgress(userId: number) {
-  console.log('Getting badge progress for user:', userId);
-  
   const progress = [];
-  
-  for (const rule of BADGE_RULES) {
-    try {
-      const userBadge = await prisma.userBadge.findFirst({
+
+  for (const badgeDefinition of BADGE_DEFINITIONS) {
+    const hasBadge = await prisma.userBadge.findUnique({
+      where: {
+        userId_badgeId: {
+          userId,
+          badgeId: badgeDefinition.id,
+        },
+      },
+    });
+
+    let currentProgress = 0;
+
+    // Calculate current progress based on badge type
+    if (badgeDefinition.type === "PARTICIPATION") {
+      currentProgress = await prisma.competitionParticipant.count({
         where: {
           userId,
-          badge: { name: rule.name }
+          verifiedAt: { not: null },
         },
-        include: { badge: true }
-      });
-      
-      let currentProgress = 0;
-      
-      if (rule.requirement) {
-        // Calculate current progress for milestone badges
-        if (rule.id.includes('competition') && rule.id !== 'multiple_champion') {
-          currentProgress = await prisma.competitionParticipant.count({
-            where: { userId }
-          });
-        } else if (rule.id === 'multiple_champion') {
-          currentProgress = await prisma.competitionParticipant.count({
-            where: { 
-              userId,
-              position: 'CHAMPION'
-            }
-          });
-        }
-      }
-      
-      progress.push({
-        badge: {
-          id: userBadge?.badge?.id || 0,
-          name: rule.name,
-          description: rule.description,
-          iconUrl: rule.iconUrl,
-          type: rule.type,
-          requirement: rule.requirement
-        },
-        earned: !!userBadge,
-        awardedAt: userBadge?.awardedAt ? userBadge.awardedAt.toISOString() : null,
-        currentProgress,
-        progressPercentage: rule.requirement ? Math.min((currentProgress / rule.requirement) * 100, 100) : (userBadge ? 100 : 0)
-      });
-    } catch (error) {
-      console.error(`Error calculating progress for badge ${rule.name}:`, error);
-      
-      // Add default progress entry on error
-      progress.push({
-        badge: {
-          id: 0,
-          name: rule.name,
-          description: rule.description,
-          iconUrl: rule.iconUrl,
-          type: rule.type,
-          requirement: rule.requirement
-        },
-        earned: false,
-        awardedAt: null,
-        currentProgress: 0,
-        progressPercentage: 0
       });
     }
+
+    progress.push({
+      badge: badgeDefinition,
+      earned: !!hasBadge,
+      progress: currentProgress,
+      requirement: badgeDefinition.requirement,
+    });
   }
-  
-  console.log('Badge progress calculated:', progress.length, 'badges');
+
   return progress;
 }

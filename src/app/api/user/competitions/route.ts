@@ -1,10 +1,19 @@
-// Update: src/app/api/user/competitions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { createCompetitionSubmittedNotification } from '@/lib/notification';
-import { BadgeTriggers } from '@/lib/badgeTriggers';
+import { triggerParticipationBadges } from '@/lib/badgeTriggers';
+
+// ✅ Use local type definition to avoid build errors
+type CompetitionStatus = 
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'ACCEPTED'
+  | 'ONGOING'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CANCELLED';
 
 // ✅ Add type for Prisma errors
 interface PrismaError {
@@ -104,7 +113,7 @@ export async function POST(request: NextRequest) {
     // ✅ Trigger badge check for competition submission
     try {
       console.log('Triggering badge check for competition submission...');
-      await BadgeTriggers.onCompetitionSubmission(userId);
+      await triggerParticipationBadges(userId);
       console.log('Badge check completed for competition submission');
     } catch (badgeError) {
       console.error('Error checking badges after competition submission:', badgeError);
@@ -151,14 +160,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       competition,
-      notificationCreated, // ✅ Include this in response for debugging
+      notificationCreated,
       message: 'Competition submitted successfully and is pending admin review',
     });
 
   } catch (error) {
     console.error('Error submitting competition:', error);
     
-    // ✅ Fixed: Use proper type instead of 'any'
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as PrismaError;
       console.error('Prisma error code:', prismaError.code);
@@ -181,3 +189,77 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const statusParam = searchParams.get('status');
+    const userId = parseInt(session.user.id);
+
+    // ✅ Build where clause with proper typing
+    const where: {
+      submittedById: number;
+      status?: CompetitionStatus;
+    } = {
+      submittedById: userId,
+    };
+
+    // ✅ Validate and cast status
+    if (statusParam) {
+      const validStatuses: CompetitionStatus[] = [
+        'DRAFT',
+        'SUBMITTED',
+        'ACCEPTED',
+        'ONGOING',
+        'COMPLETED',
+        'REJECTED',
+        'CANCELLED',
+      ];
+
+      if (validStatuses.includes(statusParam as CompetitionStatus)) {
+        where.status = statusParam as CompetitionStatus;
+      }
+    }
+
+    const competitions = await prisma.competition.findMany({
+      where,
+      include: {
+        submittedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            username: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: {
+            participants: true,
+            awards: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return NextResponse.json({ competitions });
+  } catch (error) {
+    console.error('Error fetching competitions:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch competitions' },
+      { status: 500 }
+    );
+  }
+}
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';

@@ -3,11 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
-import { REVIEW_ACTIONS } from "@/types/competition";
 
-// ✅ Use enum values from types
 const reviewSchema = z.object({
-  action: z.enum([REVIEW_ACTIONS.ACCEPT, REVIEW_ACTIONS.REJECT]),
+  action: z.enum(["ACCEPT", "REJECT"]),
   rejectionReason: z.string().optional(),
 });
 
@@ -18,12 +16,14 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id || session.user.role !== "ADMIN") {
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.user.role !== "ADMIN") {
       return NextResponse.json(
-        {
-          message: "Unauthorized. Admin access required.",
-        },
-        { status: 401 }
+        { error: "Forbidden - Admin access required" },
+        { status: 403 }
       );
     }
 
@@ -32,14 +32,36 @@ export async function POST(
 
     if (isNaN(competitionId)) {
       return NextResponse.json(
+        { error: "Invalid competition ID" },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const validationResult = reviewSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
         {
-          message: "Invalid competition ID format",
+          error: "Validation failed",
+          details: validationResult.error.flatten().fieldErrors,
         },
         { status: 400 }
       );
     }
 
-    const existingCompetition = await prisma.competition.findUnique({
+    const { action, rejectionReason } = validationResult.data;
+
+    // Validate rejection reason if action is REJECT
+    if (action === "REJECT" && !rejectionReason?.trim()) {
+      return NextResponse.json(
+        { error: "Rejection reason is required when rejecting a competition" },
+        { status: 400 }
+      );
+    }
+
+    // Check if competition exists
+    const competition = await prisma.competition.findUnique({
       where: { id: competitionId },
       include: {
         submittedBy: {
@@ -52,60 +74,33 @@ export async function POST(
       },
     });
 
-    if (!existingCompetition) {
+    if (!competition) {
       return NextResponse.json(
-        {
-          message: "Competition not found",
-        },
+        { error: "Competition not found" },
         { status: 404 }
       );
     }
 
-    if (existingCompetition.status !== "SUBMITTED") {
+    if (competition.status !== "SUBMITTED") {
       return NextResponse.json(
-        {
-          message: "Competition is not in submitted status",
-        },
+        { error: `Competition is already ${competition.status.toLowerCase()}` },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
-    const validationResult = reviewSchema.safeParse(body);
+    const userId =
+      typeof session.user.id === "string"
+        ? parseInt(session.user.id)
+        : (session.user.id as number);
 
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          message: "Validation failed",
-          errors: validationResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { action, rejectionReason } = validationResult.data;
-
-    // ✅ Use enum for comparison
-    if (action === REVIEW_ACTIONS.REJECT && !rejectionReason?.trim()) {
-      return NextResponse.json(
-        {
-          message: "Rejection reason is required when rejecting a competition",
-        },
-        { status: 400 }
-      );
-    }
-
-    // ✅ Use enum for status determination
-    const newStatus = action === REVIEW_ACTIONS.ACCEPT ? "ACCEPTED" : "REJECTED";
-    const reviewedBy = parseInt(session.user.id);
-
+    // Update competition status
     const updatedCompetition = await prisma.competition.update({
       where: { id: competitionId },
       data: {
-        status: newStatus,
-        reviewedById: reviewedBy,
+        status: action === "ACCEPT" ? "ACCEPTED" : "REJECTED",
+        reviewedById: userId,
         reviewedAt: new Date(),
-        rejectionReason: action === REVIEW_ACTIONS.REJECT ? rejectionReason : null,
+        rejectionReason: action === "REJECT" ? rejectionReason : null,
       },
       include: {
         submittedBy: {
@@ -126,36 +121,35 @@ export async function POST(
       },
     });
 
-    // Notify the submitter about the review result
+    // Create notification for the submitter
     await prisma.notification.create({
       data: {
-        userId: existingCompetition.submittedById,
+        userId: competition.submittedBy.id,
         type:
-          action === REVIEW_ACTIONS.ACCEPT
+          action === "ACCEPT"
             ? "COMPETITION_ACCEPTED"
             : "COMPETITION_REJECTED",
-        title: `Competition ${action.toLowerCase()}ed`,
+        title:
+          action === "ACCEPT"
+            ? "Competition Accepted"
+            : "Competition Rejected",
         message:
-          action === REVIEW_ACTIONS.ACCEPT
-            ? `Your competition "${existingCompetition.name}" has been approved!`
-            : `Your competition "${existingCompetition.name}" was rejected. Reason: ${rejectionReason}`,
+          action === "ACCEPT"
+            ? `Your competition "${competition.name}" has been accepted and is now live!`
+            : `Your competition "${competition.name}" was rejected. Reason: ${rejectionReason}`,
         relatedId: competitionId,
       },
     });
 
-    return NextResponse.json(
-      {
-        competition: updatedCompetition,
-        message: `Competition ${action.toLowerCase()}ed successfully`,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: `Competition ${action.toLowerCase()}ed successfully`,
+      competition: updatedCompetition,
+    });
   } catch (error) {
     console.error("Error reviewing competition:", error);
     return NextResponse.json(
-      {
-        message: "Failed to review competition",
-      },
+      { error: "Failed to review competition" },
       { status: 500 }
     );
   }

@@ -2,8 +2,13 @@
 
 import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { PlusIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Competition, CompetitionStatus } from "@/types/competition";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { 
+  Competition, 
+  CompetitionStatus,
+  NewCompetitionData,
+  EditCompetitionData 
+} from "@/types/competition";
 import { useCompetitions } from "@/hooks/admin/useCompetition";
 
 // Components
@@ -89,7 +94,7 @@ export default function AdminCompetitionsPage() {
   }
 
   // Handlers
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: NewCompetitionData) => {
     const result = await createCompetition(data);
     if (result.success) {
       setShowCreateModal(false);
@@ -98,7 +103,7 @@ export default function AdminCompetitionsPage() {
     }
   };
 
-  const handleEdit = async (data: any) => {
+  const handleEdit = async (data: EditCompetitionData) => {
     if (!selectedCompetition) return;
     const result = await updateCompetition(selectedCompetition.id, data);
     if (result.success) {

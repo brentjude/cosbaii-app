@@ -1,35 +1,45 @@
-// Create: src/lib/badgeTriggers.ts
-import { checkAndAwardBadges } from './badges';
+import { checkAllBadges } from './badges'; // ✅ Changed from checkAndAwardBadges
 
-export class BadgeTriggers {
-  
-  // Trigger when user registers
-  static async onUserRegistration(userId: number) {
-    await checkAndAwardBadges(userId, 'USER_REGISTRATION');
+/**
+ * Trigger badge checks after profile updates
+ */
+export async function triggerProfileBadges(userId: number): Promise<void> {
+  try {
+    await checkAllBadges(userId);
+  } catch (error) {
+    console.error('Error triggering profile badges:', error);
   }
-  
-  // Trigger when user completes profile
-  static async onProfileUpdate(userId: number) {
-    await checkAndAwardBadges(userId, 'PROFILE_UPDATE');
+}
+
+/**
+ * Trigger badge checks after competition participation
+ */
+export async function triggerParticipationBadges(userId: number): Promise<void> {
+  try {
+    await checkAllBadges(userId);
+  } catch (error) {
+    console.error('Error triggering participation badges:', error);
   }
-  
-  // Trigger when user joins a competition
-  static async onCompetitionJoin(userId: number) {
-    await checkAndAwardBadges(userId, 'COMPETITION_JOIN');
+}
+
+/**
+ * Trigger badge checks after competition win/placement
+ */
+export async function triggerMilestoneBadges(userId: number): Promise<void> {
+  try {
+    await checkAllBadges(userId);
+  } catch (error) {
+    console.error('Error triggering milestone badges:', error);
   }
-  
-  // Trigger when user wins a competition
-  static async onCompetitionWin(userId: number) {
-    await checkAndAwardBadges(userId, 'COMPETITION_WIN');
-  }
-  
-  // Trigger when user submits a competition
-  static async onCompetitionSubmission(userId: number) {
-    await checkAndAwardBadges(userId, 'COMPETITION_SUBMISSION');
-  }
-  
-  // Trigger when user gets verified
-  static async onVerification(userId: number) {
-    await checkAndAwardBadges(userId, 'VERIFICATION');
+}
+
+/**
+ * Trigger all badge checks for a user
+ */
+export async function triggerAllBadgeChecks(userId: number): Promise<void> {
+  try {
+    await checkAllBadges(userId);
+  } catch (error) {
+    console.error('Error triggering all badge checks:', error);
   }
 }

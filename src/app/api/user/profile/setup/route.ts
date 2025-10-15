@@ -1,158 +1,108 @@
-// Update: src/app/api/user/profile/setup/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { BadgeTriggers } from '@/lib/badgeTriggers';
+import { z } from 'zod';
+import { triggerProfileBadges } from '@/lib/badgeTriggers';
 
-// ✅ Add interface for Prisma errors
-interface PrismaError {
-  code?: string;
-  meta?: Record<string, unknown>;
-  message?: string;
-}
+// ✅ Only include fields that exist in the Profile schema
+const profileSetupSchema = z.object({
+  displayName: z.string().min(2, 'Display name must be at least 2 characters').max(100),
+  bio: z.string().max(500).optional(),
+  profilePicture: z.string().url().optional(),
+  profilePicturePublicId: z.string().optional(),
+  coverImage: z.string().url().optional(),
+  coverImagePublicId: z.string().optional(),
+  cosplayerType: z.enum(['COMPETITIVE', 'HOBBY', 'PROFESSIONAL']).optional(),
+  yearsOfExperience: z.number().int().min(0).max(100).nullable().optional(),
+  specialization: z.string().max(200).optional(),
+  skillLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+  facebookUrl: z.string().url().optional().or(z.literal('')),
+  instagramUrl: z.string().url().optional().or(z.literal('')),
+  twitterUrl: z.string().url().optional().or(z.literal('')),
+  tiktokUrl: z.string().url().optional().or(z.literal('')),
+  youtubeUrl: z.string().url().optional().or(z.literal('')),
+  receiveEmailUpdates: z.boolean().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = parseInt(session.user.id);
-    console.log('Setting up profile for user:', userId);
-    
-    const profileData = await request.json();
-    console.log('Profile data received:', profileData);
+    const body = await request.json();
 
-    const {
-      cosplayerType,
-      yearsOfExperience,
-      specialization,
-      skillLevel,
-      displayName,
-      bio,
-      profilePicture,
-      coverImage,
-      profilePicturePublicId,
-      coverImagePublicId,
-      // ✅ Add social media fields
-      instagramUrl,
-      facebookUrl,
-      twitterUrl,
-      tiktokUrl,
-      youtubeUrl,
-      receiveEmailUpdates,
-    } = profileData;
+    const validationResult = profileSetupSchema.safeParse(body);
 
-    // ✅ Validate only required fields (be less strict)
-    if (!cosplayerType || !displayName?.trim()) {
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Display name and cosplayer type are required' },
+        {
+          error: 'Validation failed',
+          details: validationResult.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
 
-    // ✅ Validate cosplayerType enum
-    const validCosplayerTypes = ['HOBBY', 'COMPETITIVE', 'PROFESSIONAL'];
-    if (!validCosplayerTypes.includes(cosplayerType)) {
-      return NextResponse.json(
-        { error: 'Invalid cosplayer type' },
-        { status: 400 }
-      );
-    }
+    const data = validationResult.data;
 
     // Check if profile already exists
     const existingProfile = await prisma.profile.findUnique({
       where: { userId },
     });
 
-    console.log('Existing profile found:', !!existingProfile);
-
-    let profile;
-
-    // ✅ Prepare profile data with proper null handling
-    const profileDataForDb = {
-      cosplayerType,
-      yearsOfExperience: yearsOfExperience || null,
-      specialization: specialization?.trim() || null,
-      skillLevel: skillLevel?.trim() || null,
-      displayName: displayName.trim(),
-      bio: bio?.trim() || null,
-      profilePicture: profilePicture || '/images/default-avatar.png',
-      coverImage: coverImage || '/images/default-cover.jpg',
-      profilePicturePublicId: profilePicturePublicId || null,
-      coverImagePublicId: coverImagePublicId || null,
-      // ✅ Handle social media URLs
-      instagramUrl: instagramUrl?.trim() || null,
-      facebookUrl: facebookUrl?.trim() || null,
-      twitterUrl: twitterUrl?.trim() || null,
-      tiktokUrl: tiktokUrl?.trim() || null,
-      youtubeUrl: youtubeUrl?.trim() || null,
-      receiveEmailUpdates: receiveEmailUpdates || false,
-    };
-
-    console.log('Profile data for database:', profileDataForDb);
-
     if (existingProfile) {
-      // Update existing profile
-      console.log('Updating existing profile...');
-      profile = await prisma.profile.update({
-        where: { userId },
-        data: profileDataForDb,
-      });
-      console.log('Profile updated successfully:', profile.id);
-    } else {
-      // Create new profile
-      console.log('Creating new profile...');
-      profile = await prisma.profile.create({
-        data: {
-          userId,
-          ...profileDataForDb,
-        },
-      });
-      console.log('Profile created successfully:', profile.id);
+      return NextResponse.json(
+        { error: 'Profile already exists' },
+        { status: 400 }
+      );
     }
 
-    // ✅ Trigger badge check for profile completion
-    try {
-      console.log('Triggering badge check for profile update...');
-      await BadgeTriggers.onProfileUpdate(userId);
-      console.log('Badge check completed for profile update');
-    } catch (badgeError) {
-      console.error('Error checking badges after profile setup:', badgeError);
-      // Don't fail the profile setup if badge check fails
-    }
-
-    return NextResponse.json({
-      success: true,
-      profile,
-      message: 'Profile setup completed successfully',
+    // ✅ Create profile with ONLY fields that exist in schema
+    const profile = await prisma.profile.create({
+      data: {
+        userId,
+        displayName: data.displayName,
+        bio: data.bio || null,
+        profilePicture: data.profilePicture || '/images/default-avatar.png',
+        profilePicturePublicId: data.profilePicturePublicId || null,
+        coverImage: data.coverImage || '/images/default-cover.jpg',
+        coverImagePublicId: data.coverImagePublicId || null,
+        cosplayerType: data.cosplayerType || 'HOBBY',
+        yearsOfExperience: data.yearsOfExperience ?? null,
+        specialization: data.specialization || null,
+        skillLevel: data.skillLevel || null,
+        facebookUrl: data.facebookUrl || null,
+        instagramUrl: data.instagramUrl || null,
+        twitterUrl: data.twitterUrl || null,
+        tiktokUrl: data.tiktokUrl || null,
+        youtubeUrl: data.youtubeUrl || null,
+        receiveEmailUpdates: data.receiveEmailUpdates ?? false,
+      },
     });
 
-  } catch (error) {
-    console.error('Error setting up profile:', error);
-    
-    // ✅ Fixed: Use proper type instead of 'any'
-    if (error && typeof error === 'object' && 'code' in error) {
-      const prismaError = error as PrismaError;
-      console.error('Prisma error details:', {
-        code: prismaError.code,
-        meta: prismaError.meta,
-        message: prismaError.message
-      });
-      
-      if (prismaError.code === 'P2002') {
-        return NextResponse.json(
-          { error: 'Profile data conflicts with existing data' },
-          { status: 409 }
-        );
-      }
-    }
-    
+    // ✅ Trigger profile badge checks
+    await triggerProfileBadges(userId);
+
     return NextResponse.json(
-      { error: 'Failed to setup profile', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        message: 'Profile created successfully',
+        profile,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error('Error creating profile:', error);
+    return NextResponse.json(
+      { error: 'Failed to create profile' },
       { status: 500 }
     );
   }
 }
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';

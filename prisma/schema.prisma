@@ -270,6 +270,8 @@ model CompetitionParticipant {
   characterName String?      @db.VarChar(200)
   seriesName    String?      @db.VarChar(200)
   description   String?      @db.Text
+  position      String?      @db.VarChar(50)        
+  category      String?      @db.VarChar(100)  
   status        String       @default("PENDING") @db.VarChar(20) // ✅ Add this field
   submittedAt   DateTime     @default(now())
   reviewedAt    DateTime?    // ✅ Add this field

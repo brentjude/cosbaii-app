@@ -1,5 +1,5 @@
 "use client";
-
+/* eslint-disable react/no-unescaped-entities */
 import { XMarkIcon, CheckIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Competition } from "@/types/competition";
 
