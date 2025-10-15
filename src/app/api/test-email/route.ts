@@ -1,4 +1,3 @@
-// Update: src/app/api/test-email/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { sendWelcomeEmail } from "@/lib/email";
 
@@ -15,32 +14,19 @@ export async function POST(request: NextRequest) {
 
     console.log("Testing welcome email for:", email, name);
 
-    // ✅ Use test@resend.dev for testing (this is Resend's official test email)
-    const testEmail = "brent.mcph@gmail.com";
-
-    console.log(
-      `Sending test email to: ${testEmail} (originally requested for: ${email})`
-    );
-
-    const result = await sendWelcomeEmail(testEmail, name);
+    const result = await sendWelcomeEmail(email, name);
 
     console.log("Email test result:", result);
 
     return NextResponse.json({
       success: result.success,
       message: result.success
-        ? `Test email sent successfully to ${testEmail}! (Original recipient: ${email})`
+        ? `Test email sent successfully to ${email}!`
         : "Failed to send test email",
       error: result.error || null,
-      testInfo: {
-        originalEmail: email,
-        testEmailUsed: testEmail,
-        note: "Using Resend's official test email address for sandbox testing",
-      },
     });
   } catch (error) {
     console.error("Test email error:", error);
-    // ✅ Fix: Properly handle error type
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
@@ -50,28 +36,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ✅ Add a GET route for quick testing without body
+// ✅ GET route - Sends to your actual email to check template
 export async function GET() {
   try {
-    console.log("Quick test email - using default values");
+    console.log("Sending test welcome email to brent.mcph@gmail.com");
 
-    const result = await sendWelcomeEmail("test@resend.dev", "Test User");
+    // ✅ Send to your actual email address
+    const result = await sendWelcomeEmail("brent.mcph@gmail.com", "Brent Jude");
+
+    console.log("Email test result:", result);
 
     return NextResponse.json({
       success: result.success,
       message: result.success
-        ? "Quick test email sent successfully to test@resend.dev!"
-        : "Failed to send quick test email",
+        ? "Test welcome email sent successfully to brent.mcph@gmail.com! Check your inbox."
+        : "Failed to send test email",
       error: result.error || null,
       testInfo: {
-        recipient: "test@resend.dev",
-        name: "Test User",
-        note: "This is a quick test using Resend's official test email",
+        recipient: "brent.mcph@gmail.com",
+        name: "Brent Jude",
+        note: "Check your email inbox to see how the template looks!",
       },
     });
   } catch (error) {
     console.error("Quick test email error:", error);
-    // ✅ Fix: Properly handle error type
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
