@@ -19,21 +19,18 @@ import { UserSettings } from "@/types/settings";
 
 const ProfilePage = () => {
   const { data: session } = useSession();
-  const { profile, featuredItems, loading, updateProfile } = useProfile();
+  const { profile, featuredItems, loading, updateProfile, refetchFeatured } = useProfile();
   const {
     credentials,
     loading: credentialsLoading,
     refetch: refetchCredentials,
   } = useUserCredentials();
 
-  // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
   const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
-
-  // Featured cosplays state
   const [featuredCosplays, setFeaturedCosplays] = useState<FeaturedItem[]>([
     { title: "", description: "", imageUrl: "", character: "", series: "", type: "cosplay" },
     { title: "", description: "", imageUrl: "", character: "", series: "", type: "cosplay" },
@@ -57,8 +54,9 @@ const ProfilePage = () => {
   }, []);
 
   useEffect(() => {
-    if (featuredItems.length > 0) {
-      const paddedItems = [...featuredItems];
+    if (featuredItems && Array.isArray(featuredItems) && featuredItems.length > 0) {
+      const paddedItems: FeaturedItem[] = [...featuredItems];
+      
       while (paddedItems.length < 3) {
         paddedItems.push({
           title: "",
@@ -69,7 +67,8 @@ const ProfilePage = () => {
           type: "cosplay",
         });
       }
-      setFeaturedCosplays(paddedItems);
+      
+      setFeaturedCosplays(paddedItems.slice(0, 3));
     } else {
       setFeaturedCosplays([
         { title: "", description: "", imageUrl: "", character: "", series: "", type: "cosplay" },
@@ -87,21 +86,21 @@ const ProfilePage = () => {
         body: JSON.stringify({ featured }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to save featured items");
+        throw new Error(result.error || "Failed to save featured items");
       }
 
-      setFeaturedCosplays(featured);
+      await refetchFeatured();
       setShowFeaturedEditor(false);
-
-      console.log("Featured items saved successfully");
     } catch (error) {
       console.error("Error saving featured items:", error);
-      alert("Failed to save featured items. Please try again.");
+      alert(`Failed to save featured items: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw error;
     }
   };
 
-  // Stats calculations
   const championCount = credentials.filter((c) => c.position === "CHAMPION").length;
   const placedCount = credentials.filter((c) =>
     ["CHAMPION", "FIRST_PLACE", "SECOND_PLACE", "THIRD_PLACE"].includes(c.position)
@@ -141,9 +140,9 @@ const ProfilePage = () => {
       specialization: profile.specialization || "",
       skillLevel: (profile.skillLevel as SkillLevel) || "beginner",
       featured: featuredCosplays,
-      facebookUrl: profile.facebookUrl,
-      instagramUrl: profile.instagramUrl,
-      twitterUrl: profile.twitterUrl,
+      facebookUrl: profile.facebookUrl || "",
+      instagramUrl: profile.instagramUrl || "",
+      twitterUrl: profile.twitterUrl || "",
     };
   };
 
@@ -196,7 +195,6 @@ const ProfilePage = () => {
         </div>
       </main>
 
-      {/* Modals */}
       <EditProfileModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}

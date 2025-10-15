@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { 
   Profile as ProfileType, 
   EditProfileData,
-  ProfileSetupData, // ✅ Import ProfileSetupData
+  ProfileSetupData,
   FeaturedItem 
 } from "@/types/profile";
 
@@ -15,8 +15,9 @@ interface ProfileContextType {
   hasProfile: boolean;
   loading: boolean;
   updateProfile: (data: EditProfileData) => Promise<boolean>;
-  setupProfile: (data: ProfileSetupData) => Promise<boolean>; // ✅ Changed to ProfileSetupData
+  setupProfile: (data: ProfileSetupData) => Promise<boolean>;
   fetchProfile: () => Promise<void>;
+  refetchFeatured: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -49,6 +50,20 @@ export const ProfileContextProvider = ({ children }: { children: ReactNode }) =>
     }
   }, [session?.user?.id]);
 
+  const refetchFeatured = useCallback(async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      const response = await fetch("/api/user/featured");
+      if (response.ok) {
+        const data = await response.json();
+        setFeaturedItems(data.featured || []);
+      }
+    } catch (error) {
+      console.error("Error refetching featured items:", error);
+    }
+  }, [session?.user?.id]);
+
   const updateProfile = async (data: EditProfileData): Promise<boolean> => {
     try {
       const response = await fetch("/api/user/profile", {
@@ -68,13 +83,11 @@ export const ProfileContextProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  // ✅ Accept ProfileSetupData and convert it internally
   const setupProfile = async (data: ProfileSetupData): Promise<boolean> => {
     try {
-      // Convert ProfileSetupData to EditProfileData by adding empty featured array
       const dataWithFeatured: EditProfileData = {
         ...data,
-        featured: [], // Initialize with empty featured items
+        featured: [],
       };
 
       const response = await fetch("/api/user/profile", {
@@ -106,6 +119,7 @@ export const ProfileContextProvider = ({ children }: { children: ReactNode }) =>
     updateProfile,
     setupProfile,
     fetchProfile,
+    refetchFeatured,
   };
 
   return (

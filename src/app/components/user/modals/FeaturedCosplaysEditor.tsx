@@ -8,44 +8,13 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
-import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload"; // Add this import
+import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
+import { FeaturedItem, UserCredential } from "@/types/profile";
 
-interface Competition {
-  id: number;
-  name: string;
-  eventDate: string;
-  location?: string;
-  competitionType: string;
-  rivalryType: string;
-  level: string;
-}
-
-interface UserCredential {
-  id: number;
-  competition: Competition;
-  cosplayTitle?: string;
-  position?: string;
-  category?: string;
-  imageUrl?: string;
-}
-
-interface FeaturedItem {
-  id?: number;
-  title: string;
-  description: string;
-  imageUrl: string;
-  character?: string;
-  series?: string;
-  type: "competition" | "cosplay"; // ✅ Add this line
-  competitionId?: number;
-  competition?: Competition;
-  position?: string;
-  award?: string;
-}
 interface FeaturedCosplaysEditorProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (featured: FeaturedItem[]) => void;
+  onSave: (featured: FeaturedItem[]) => Promise<void>;
   initialFeatured: FeaturedItem[];
   loading?: boolean;
 }
@@ -57,82 +26,65 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
   initialFeatured,
   loading = false,
 }) => {
+  // ✅ Initialize with proper defaults
+  const getEmptyFeaturedItem = (): FeaturedItem => ({
+    title: "",
+    description: "",
+    imageUrl: "",
+    character: "",
+    series: "",
+    type: "cosplay",
+  });
+
   const [featured, setFeatured] = useState<FeaturedItem[]>([
-    {
-      title: "",
-      description: "",
-      imageUrl: "",
-      character: "",
-      series: "",
-      type: "cosplay",
-    },
-    {
-      title: "",
-      description: "",
-      imageUrl: "",
-      character: "",
-      series: "",
-      type: "cosplay",
-    },
-    {
-      title: "",
-      description: "",
-      imageUrl: "",
-      character: "",
-      series: "",
-      type: "cosplay",
-    },
+    getEmptyFeaturedItem(),
+    getEmptyFeaturedItem(),
+    getEmptyFeaturedItem(),
   ]);
 
   const [userCredentials, setUserCredentials] = useState<UserCredential[]>([]);
   const [credentialsLoading, setCredentialsLoading] = useState(false);
   const [searchTerms, setSearchTerms] = useState<string[]>(["", "", ""]);
-  const [showDropdowns, setShowDropdowns] = useState<boolean[]>([
-    false,
-    false,
-    false,
-  ]);
+  const [showDropdowns, setShowDropdowns] = useState<boolean[]>([false, false, false]);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
+  const [imageUploading, setImageUploading] = useState<Record<number, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false); // ✅ Add saving state
 
-  // Add missing state for image uploading
-  const [imageUploading, setImageUploading] = useState<Record<number, boolean>>(
-    {}
-  );
+  const featuredInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
 
-  const featuredInputRefs = useRef<(HTMLInputElement | null)[]>([
-    null,
-    null,
-    null,
-  ]);
-
-  // Add the Cloudinary upload hook
   const {
     uploadImage,
     uploading: cloudinaryUploading,
     error: uploadError,
   } = useCloudinaryUpload();
 
-  // Initialize featured data
+  // ✅ Initialize featured data properly
   useEffect(() => {
     if (isOpen && initialFeatured.length > 0) {
-      const featuredData =
-        initialFeatured.length >= 3
-          ? initialFeatured.slice(0, 3)
-          : [
-              ...initialFeatured,
-              ...Array(3 - initialFeatured.length).fill({
-                title: "",
-                description: "",
-                imageUrl: "",
-                character: "",
-                series: "",
-              }),
-            ];
+      const featuredData: FeaturedItem[] = [];
+      
+      for (let i = 0; i < 3; i++) {
+        if (i < initialFeatured.length && initialFeatured[i].imageUrl) {
+          featuredData.push({
+            ...initialFeatured[i],
+            type: initialFeatured[i].type || "cosplay",
+          });
+        } else {
+          featuredData.push(getEmptyFeaturedItem());
+        }
+      }
+      
       setFeatured(featuredData);
+    } else if (isOpen) {
+      setFeatured([
+        getEmptyFeaturedItem(),
+        getEmptyFeaturedItem(),
+        getEmptyFeaturedItem(),
+      ]);
     }
   }, [isOpen, initialFeatured]);
 
-  // Fetch user credentials
+  // ✅ Fetch user credentials
   useEffect(() => {
     if (isOpen) {
       fetchUserCredentials();
@@ -166,16 +118,15 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     );
   };
 
-  const handleCompetitionSelect = (
-    index: number,
-    credential: UserCredential
-  ) => {
+  const handleCompetitionSelect = (index: number, credential: UserCredential) => {
     const newFeatured = [...featured];
     newFeatured[index] = {
       ...newFeatured[index],
+      type: "competition",
       title: credential.cosplayTitle || credential.competition.name,
       competitionId: credential.competition.id,
       competition: credential.competition,
+      position: credential.position,
       imageUrl: credential.imageUrl || newFeatured[index].imageUrl,
     };
 
@@ -204,9 +155,11 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     const newFeatured = [...featured];
     newFeatured[index] = {
       ...newFeatured[index],
+      type: "cosplay",
       title: "",
       competitionId: undefined,
       competition: undefined,
+      position: undefined,
     };
     setFeatured(newFeatured);
 
@@ -215,13 +168,11 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     setSearchTerms(newSearchTerms);
   };
 
-  //Handling type change if competition or cosplay
   const handleTypeChange = (index: number, type: "competition" | "cosplay") => {
     const newFeatured = [...featured];
     newFeatured[index] = {
       ...newFeatured[index],
       type,
-      // Clear competition-specific data when switching to cosplay
       ...(type === "cosplay" && {
         competitionId: undefined,
         competition: undefined,
@@ -231,12 +182,10 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     };
     setFeatured(newFeatured);
 
-    // Clear search term when switching types
     const newSearchTerms = [...searchTerms];
     newSearchTerms[index] = "";
     setSearchTerms(newSearchTerms);
 
-    // Hide dropdown
     const newShowDropdowns = [...showDropdowns];
     newShowDropdowns[index] = false;
     setShowDropdowns(newShowDropdowns);
@@ -249,7 +198,6 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith("image/")) {
       alert("Please select an image file");
       return;
@@ -263,9 +211,8 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     setImageUploading((prev) => ({ ...prev, [index]: true }));
 
     try {
-      // ✅ Use the same upload preset as other components
       const uploadResult = await uploadImage(file, {
-        uploadPreset: "cosbaii-profiles", // ✅ Use existing preset instead
+        uploadPreset: "cosbaii-profiles",
         folder: `cosbaii/featured-cosplays`,
         onSuccess: (result) => {
           console.log("Featured image upload successful:", result);
@@ -283,10 +230,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
         };
         setFeatured(newFeatured);
 
-        console.log(
-          `Featured image ${index + 1} uploaded successfully:`,
-          uploadResult.url
-        );
+        console.log(`Featured image ${index + 1} uploaded:`, uploadResult.url);
       }
     } catch (error) {
       console.error("Error uploading featured image:", error);
@@ -319,18 +263,38 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     []
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ Fixed submit handler with proper loading state
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(featured);
+    
+    setIsSaving(true);
+    try {
+      await onSave(featured);
+      console.log("Featured items saved successfully");
+    } catch (error) {
+      console.error("Error saving featured items:", error);
+      alert("Failed to save featured items. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleClose = () => {
+    if (isSaving || Object.values(imageUploading).some(Boolean)) {
+      return; // Prevent closing while saving or uploading
+    }
     setSearchTerms(["", "", ""]);
     setShowDropdowns([false, false, false]);
     onClose();
   };
 
   if (!isOpen) return null;
+
+  const isAnyOperationInProgress =
+    isSaving ||
+    loading ||
+    cloudinaryUploading ||
+    Object.values(imageUploading).some(Boolean);
 
   return (
     <>
@@ -350,7 +314,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
               <button
                 onClick={handleClose}
                 className="btn btn-sm btn-circle btn-ghost"
-                disabled={loading || cloudinaryUploading}
+                disabled={isAnyOperationInProgress}
               >
                 <XMarkIcon className="w-5 h-5" />
               </button>
@@ -360,6 +324,14 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
             {uploadError && (
               <div className="mx-6 mt-4 alert alert-error">
                 <span>{uploadError}</span>
+              </div>
+            )}
+
+            {/* ✅ Saving Indicator */}
+            {isSaving && (
+              <div className="mx-6 mt-4 alert alert-info">
+                <span className="loading loading-spinner loading-sm"></span>
+                <span>Saving your featured cosplays...</span>
               </div>
             )}
 
@@ -376,13 +348,13 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                       No Competition Credentials
                     </h3>
                     <p className="text-base-content/70 mb-4">
-                      Add your competition participations to showcase in your
-                      featured section.
+                      Add your competition participations to showcase in your featured section.
                     </p>
                     <button
                       type="button"
                       className="btn btn-primary"
                       onClick={() => setShowAddCredentialsModal(true)}
+                      disabled={isAnyOperationInProgress}
                     >
                       <PlusIcon className="w-4 h-4" />
                       Add Credentials
@@ -412,37 +384,31 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                             <button
                               type="button"
                               className={`btn btn-sm ${
-                                item.type === "competition"
-                                  ? "btn-primary"
-                                  : "btn-outline"
+                                item.type === "competition" ? "btn-primary" : "btn-outline"
                               }`}
-                              onClick={() =>
-                                handleTypeChange(index, "competition")
-                              }
+                              onClick={() => handleTypeChange(index, "competition")}
+                              disabled={isAnyOperationInProgress}
                             >
                               🏆 Competition Result
                             </button>
                             <button
                               type="button"
                               className={`btn btn-sm ${
-                                item.type === "cosplay"
-                                  ? "btn-primary"
-                                  : "btn-outline"
+                                item.type === "cosplay" ? "btn-primary" : "btn-outline"
                               }`}
                               onClick={() => handleTypeChange(index, "cosplay")}
+                              disabled={isAnyOperationInProgress}
                             >
                               🎭 Custom Cosplay
                             </button>
                           </div>
                         </div>
 
-                        {/* Competition Selection - Only show when type is 'competition' */}
+                        {/* Competition Selection */}
                         {item.type === "competition" && (
                           <div className="space-y-2">
                             <label className="label">
-                              <span className="label-text font-medium">
-                                Select Competition
-                              </span>
+                              <span className="label-text font-medium">Select Competition</span>
                             </label>
                             <div className="relative">
                               <div className="input-group">
@@ -455,20 +421,17 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                                       : "No competitions found"
                                   }
                                   value={searchTerms[index]}
-                                  onChange={(e) =>
-                                    handleSearchChange(index, e.target.value)
-                                  }
-                                  disabled={userCredentials.length === 0}
+                                  onChange={(e) => handleSearchChange(index, e.target.value)}
+                                  disabled={userCredentials.length === 0 || isAnyOperationInProgress}
                                 />
                                 <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
                                   {item.competitionId && (
                                     <button
                                       type="button"
                                       className="btn btn-ghost btn-xs"
-                                      onClick={() =>
-                                        clearCompetitionSelection(index)
-                                      }
+                                      onClick={() => clearCompetitionSelection(index)}
                                       title="Clear selection"
+                                      disabled={isAnyOperationInProgress}
                                     >
                                       <XMarkIcon className="w-3 h-3" />
                                     </button>
@@ -477,71 +440,54 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                                 </div>
                               </div>
 
-                              {/* Competition dropdown - existing code */}
-                              {showDropdowns[index] &&
-                                userCredentials.length > 0 && (
-                                  <div className="absolute top-full left-0 right-0 z-10 bg-base-100 border border-base-200 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
-                                    {getFilteredCredentials(index).length >
-                                    0 ? (
-                                      getFilteredCredentials(index).map(
-                                        (credential) => (
-                                          <div
-                                            key={credential.id}
-                                            className="p-3 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-b-0"
-                                            onClick={() =>
-                                              handleCompetitionSelect(
-                                                index,
-                                                credential
-                                              )
-                                            }
-                                          >
-                                            <div className="font-medium text-sm">
-                                              {credential.competition.name}
-                                            </div>
-                                            <div className="text-xs text-base-content/70">
-                                              {new Date(
-                                                credential.competition.eventDate
-                                              ).toLocaleDateString()}
-                                              {credential.competition
-                                                .location &&
-                                                ` • ${credential.competition.location}`}
-                                            </div>
-                                            {credential.cosplayTitle && (
-                                              <div className="text-xs text-primary">
-                                                {credential.cosplayTitle}
-                                              </div>
-                                            )}
-                                            {credential.position && (
-                                              <div className="badge badge-primary badge-xs mt-1">
-                                                {credential.position}
-                                              </div>
-                                            )}
+                              {/* Competition dropdown */}
+                              {showDropdowns[index] && userCredentials.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 z-10 bg-base-100 border border-base-200 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
+                                  {getFilteredCredentials(index).length > 0 ? (
+                                    getFilteredCredentials(index).map((credential) => (
+                                      <div
+                                        key={credential.id}
+                                        className="p-3 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-b-0"
+                                        onClick={() => handleCompetitionSelect(index, credential)}
+                                      >
+                                        <div className="font-medium text-sm">
+                                          {credential.competition.name}
+                                        </div>
+                                        <div className="text-xs text-base-content/70">
+                                          {new Date(credential.competition.eventDate).toLocaleDateString()}
+                                          {credential.competition.location &&
+                                            ` • ${credential.competition.location}`}
+                                        </div>
+                                        {credential.cosplayTitle && (
+                                          <div className="text-xs text-primary">
+                                            {credential.cosplayTitle}
                                           </div>
-                                        )
-                                      )
-                                    ) : (
-                                      <div className="p-3 text-sm text-base-content/50 text-center">
-                                        No competitions found
+                                        )}
+                                        {credential.position && (
+                                          <div className="badge badge-primary badge-xs mt-1">
+                                            {credential.position}
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                )}
+                                    ))
+                                  ) : (
+                                    <div className="p-3 text-sm text-base-content/50 text-center">
+                                      No competitions found
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
 
-                        {/* Competition Info Display - Only show when competition is selected */}
+                        {/* Competition Info Display */}
                         {item.type === "competition" && item.competition && (
                           <div className="bg-base-200 rounded-lg p-3">
-                            <div className="text-sm font-medium">
-                              {item.competition.name}
-                            </div>
+                            <div className="text-sm font-medium">{item.competition.name}</div>
                             <div className="text-xs text-base-content/70">
-                              {new Date(
-                                item.competition.eventDate
-                              ).toLocaleDateString()}
-                              {item.competition.location &&
-                                ` • ${item.competition.location}`}
+                              {new Date(item.competition.eventDate).toLocaleDateString()}
+                              {item.competition.location && ` • ${item.competition.location}`}
                             </div>
                             <div className="flex gap-1 mt-1">
                               <span className="badge badge-outline badge-xs">
@@ -554,39 +500,30 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                           </div>
                         )}
 
-                        {/* Featured Image - Always show */}
+                        {/* Featured Image */}
                         <div className="space-y-2">
                           <label className="label">
-                            <span className="label-text font-medium">
-                              Featured Image
-                            </span>
+                            <span className="label-text font-medium">Featured Image</span>
                           </label>
                           <div
                             className="h-32 bg-base-200 rounded-lg overflow-hidden relative group cursor-pointer border-2 border-dashed border-base-300 hover:border-primary"
                             onClick={() =>
                               !imageUploading[index] &&
+                              !isAnyOperationInProgress &&
                               featuredInputRefs.current[index]?.click()
                             }
                           >
                             {item.imageUrl ? (
-                              <Image
-                                src={item.imageUrl}
-                                alt={`Featured ${index + 1}`}
-                                fill
-                                className="object-cover"
-                              />
+                              <Image src={item.imageUrl} alt={`Featured ${index + 1}`} fill className="object-cover" />
                             ) : (
                               <div className="h-full flex items-center justify-center">
                                 <div className="text-center text-base-content/50">
                                   <CameraIcon className="w-8 h-8 mx-auto mb-2" />
-                                  <p className="text-xs">
-                                    Add {item.type} image
-                                  </p>
+                                  <p className="text-xs">Add {item.type} image</p>
                                 </div>
                               </div>
                             )}
 
-                            {/* Loading and hover overlays - existing code */}
                             {imageUploading[index] && (
                               <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                 <div className="text-center text-white">
@@ -596,7 +533,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                               </div>
                             )}
 
-                            {!imageUploading[index] && (
+                            {!imageUploading[index] && !isAnyOperationInProgress && (
                               <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <CameraIcon className="w-6 h-6 text-white" />
                               </div>
@@ -606,15 +543,13 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                             ref={(el) => setFeaturedInputRef(el, index)}
                             type="file"
                             accept="image/*"
-                            onChange={(e) =>
-                              handleFeaturedImageUpload(e, index)
-                            }
+                            onChange={(e) => handleFeaturedImageUpload(e, index)}
                             className="hidden"
-                            disabled={imageUploading[index]}
+                            disabled={imageUploading[index] || isAnyOperationInProgress}
                           />
                         </div>
 
-                        {/* Featured Details - Always show */}
+                        {/* Featured Details */}
                         <div className="space-y-2">
                           <input
                             type="text"
@@ -625,52 +560,32 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                                 : "Cosplay title"
                             }
                             value={item.title}
-                            onChange={(e) =>
-                              handleFeaturedChange(
-                                index,
-                                "title",
-                                e.target.value
-                              )
-                            }
+                            onChange={(e) => handleFeaturedChange(index, "title", e.target.value)}
+                            disabled={isAnyOperationInProgress}
                           />
                           <input
                             type="text"
                             className="input input-bordered input-sm w-full"
                             placeholder="Character name"
                             value={item.character || ""}
-                            onChange={(e) =>
-                              handleFeaturedChange(
-                                index,
-                                "character",
-                                e.target.value
-                              )
-                            }
+                            onChange={(e) => handleFeaturedChange(index, "character", e.target.value)}
+                            disabled={isAnyOperationInProgress}
                           />
                           <input
                             type="text"
                             className="input input-bordered input-sm w-full"
                             placeholder="Series/franchise"
                             value={item.series || ""}
-                            onChange={(e) =>
-                              handleFeaturedChange(
-                                index,
-                                "series",
-                                e.target.value
-                              )
-                            }
+                            onChange={(e) => handleFeaturedChange(index, "series", e.target.value)}
+                            disabled={isAnyOperationInProgress}
                           />
                           <textarea
                             className="textarea textarea-bordered textarea-sm w-full"
                             placeholder="Description"
                             rows={2}
                             value={item.description}
-                            onChange={(e) =>
-                              handleFeaturedChange(
-                                index,
-                                "description",
-                                e.target.value
-                              )
-                            }
+                            onChange={(e) => handleFeaturedChange(index, "description", e.target.value)}
+                            disabled={isAnyOperationInProgress}
                           />
                         </div>
                       </div>
@@ -685,24 +600,16 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                   type="button"
                   onClick={handleClose}
                   className="btn btn-ghost"
-                  disabled={
-                    loading ||
-                    cloudinaryUploading ||
-                    Object.values(imageUploading).some(Boolean)
-                  }
+                  disabled={isAnyOperationInProgress}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={
-                    loading ||
-                    cloudinaryUploading ||
-                    Object.values(imageUploading).some(Boolean)
-                  }
+                  disabled={isAnyOperationInProgress}
                 >
-                  {loading ? (
+                  {isSaving ? (
                     <>
                       <span className="loading loading-spinner loading-sm"></span>
                       Saving...
@@ -721,12 +628,9 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
       {showAddCredentialsModal && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4">
-              Add Competition Credentials
-            </h3>
+            <h3 className="text-xl font-bold mb-4">Add Competition Credentials</h3>
             <p className="text-base-content/70 mb-4">
-              Add your competition participations first to showcase them in your
-              featured section.
+              Add your competition participations first to showcase them in your featured section.
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -742,7 +646,6 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
                 onClick={() => {
                   setShowAddCredentialsModal(false);
                   handleClose();
-                  // This should open the AddCredentialsModal from the parent component
                 }}
               >
                 Add Credentials

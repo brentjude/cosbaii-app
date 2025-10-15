@@ -11,6 +11,16 @@ export interface Competition {
   competitionType: string;
   rivalryType: string;
   level: string;
+  logoUrl?: string | null;
+}
+
+export interface UserCredential {
+  id: number;
+  competition: Competition;
+  cosplayTitle?: string | null;
+  position?: string;
+  category?: string;
+  imageUrl?: string | null;
 }
 
 export interface FeaturedItem {
