@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { XMarkIcon, CameraIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
-import FeaturedCosplaysEditor from "./FeaturedCosplaysEditor";
 import {
   EditProfileData,
   FeaturedItem,
@@ -407,17 +406,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </div>
             </div>
 
-            {/* Featured Cosplays Section */}
-            <div className="divider">Featured Cosplays</div>
-            <div className="form-control">
-              <button
-                type="button"
-                onClick={() => setShowFeaturedEditor(true)}
-                className="btn btn-outline btn-primary"
-              >
-                Edit Featured Cosplays ({formData.featured?.length || 0}/3)
-              </button>
-            </div>
 
             {/* Action Buttons */}
             <div className="modal-action sticky bottom-0 bg-base-100 pt-4">
@@ -450,12 +438,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         </div>
       </div>
 
-      <FeaturedCosplaysEditor
-        isOpen={showFeaturedEditor}
-        onClose={() => setShowFeaturedEditor(false)}
-        onSave={handleFeaturedSave}
-        initialFeatured={formData.featured}
-      />
+
     </>
   );
 };
