@@ -27,6 +27,7 @@ export interface FeaturedItem {
   award?: string;
 }
 
+
 export interface EditProfileData {
   displayName: string;
   bio: string;
@@ -45,18 +46,20 @@ export interface EditProfileData {
 
 export interface Profile {
   id: number;
-  displayName: string;
+  userId: number;
+  displayName: string; // ✅ Changed from string | null to string
   bio: string | null;
+  profilePicture: string | null;
+  coverImage: string | null;
   cosplayerType: CosplayerType;
-  specialization: string;
-  skillLevel: SkillLevel;
-  profilePicture: string;
-  coverImage: string;
   yearsOfExperience: number | null;
-  instagramUrl?: string | null;
-  facebookUrl?: string | null;
-  twitterUrl?: string | null;
-  tiktokUrl?: string | null;
+  specialization: string | null;
+  skillLevel: SkillLevel | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  twitterUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // ✅ Add index signature to ProfileSetupData
@@ -79,3 +82,24 @@ export interface ProfileSetupData {
   receiveEmailUpdates?: boolean;
   [key: string]: unknown; // ✅ Add this index signature
 }
+
+// ✅ Use the same type as CompetitionCredential
+export interface CompetitionCredential {
+  id: number;
+  position: string;
+  verified: boolean;
+  imageUrl: string | null;
+  cosplayTitle: string | null;
+  createdAt: Date;
+  competition: {
+    id: number;
+    name: string;
+    eventDate: string;
+    competitionType: string;
+    rivalryType: string;
+    logoUrl: string | null;
+  };
+}
+
+// ✅ Export alias for backward compatibility
+export type Credential = CompetitionCredential;

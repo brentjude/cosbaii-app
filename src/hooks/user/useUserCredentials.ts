@@ -1,30 +1,9 @@
 // Create: src/hooks/user/useUserCredentials.ts
 import { useState, useEffect, useCallback } from 'react'; // ✅ Added useCallback
 import { useSession } from 'next-auth/react';
+import { CompetitionCredential } from "@/types/profile";
 
-interface CompetitionCredential {
-  id: number;
-  position: string;
-  cosplayTitle: string;
-  description?: string;
-  imageUrl?: string;
-  category?: string;
-  verified: boolean;
-  verifiedAt?: string;
-  competition: {
-    id: number;
-    name: string;
-    eventDate: string;
-    location?: string;
-    logoUrl?: string;
-    competitionType: string;
-    rivalryType: string;
-    level: string;
-  };
-  createdAt: string;
-}
-
-export const useUserCredentials = () => {
+export function useUserCredentials() {
   const { data: session } = useSession();
   const [credentials, setCredentials] = useState<CompetitionCredential[]>([]);
   const [loading, setLoading] = useState(true);

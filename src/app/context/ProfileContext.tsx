@@ -1,265 +1,64 @@
-// Update: src/app/context/ProfileContext.tsx
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useSession } from "next-auth/react";
-
-interface Profile {
-  id: number;
-  userId: number;
-  cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
-  yearsOfExperience: number | null;
-  specialization: string | null;
-  skillLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT" | undefined;
-  displayName: string | null;
-  bio: string | null;
-  profilePicture: string | null;
-  coverImage: string | null;
-  profilePicturePublicId: string | null;
-  coverImagePublicId: string | null;
-  instagramUrl: string | null;
-  facebookUrl: string | null;
-  twitterUrl: string | null;
-  tiktokUrl: string | null;
-  youtubeUrl: string | null;
-  receiveEmailUpdates: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface FeaturedItem {
-  id?: number;
-  title: string;
-  description: string;
-  imageUrl: string;
-  character?: string;
-  series?: string;
-  type: "competition" | "cosplay";
-  competitionId?: number;
-  competition?: {
-    id: number;
-    name: string;
-    eventDate: string;
-    location?: string;
-    competitionType: string;
-    rivalryType: string;
-    level: string;
-  };
-  position?: string;
-  award?: string;
-}
-
-interface ProfileUpdateData {
-  displayName?: string;
-  bio?: string;
-  profilePicture?: string;
-  coverImage?: string;
-  cosplayerType?: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
-  yearsOfExperience?: number | null;
-  specialization?: string;
-  skillLevel?: string;
-  instagramUrl?: string | null;
-  facebookUrl?: string | null;
-  twitterUrl?: string | null;
-  tiktokUrl?: string | null;
-  youtubeUrl?: string | null;
-  receiveEmailUpdates?: boolean;
-  [key: string]: unknown;
-}
-
-interface ProfileSetupData extends ProfileUpdateData {
-  displayName: string;
-  cosplayerType: "COMPETITIVE" | "HOBBY" | "PROFESSIONAL";
-}
+// ✅ Rename the import to avoid conflict
+import { 
+  Profile as ProfileType, 
+  EditProfileData, 
+  FeaturedItem 
+} from "@/types/profile";
 
 interface ProfileContextType {
-  profile: Profile | null;
+  profile: ProfileType | null; // ✅ Use ProfileType instead of Profile
   featuredItems: FeaturedItem[];
   hasProfile: boolean;
   loading: boolean;
-  updateProfile: (profileData: ProfileUpdateData) => Promise<boolean>;
-  setupProfile: (
-    profileData: ProfileSetupData
-  ) => Promise<{ success: boolean; error?: string; profile?: Profile }>;
+  updateProfile: (data: EditProfileData) => Promise<boolean>;
+  setupProfile: (data: EditProfileData) => Promise<boolean>;
   fetchProfile: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
-export const ProfileContextProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  const { data: session, status } = useSession();
-  const [profile, setProfile] = useState<Profile | null>(null);
+export const ProfileContextProvider = ({ children }: { children: ReactNode }) => {
+  const { data: session } = useSession();
+  const [profile, setProfile] = useState<ProfileType | null>(null); // ✅ Use ProfileType
   const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async () => {
-    // Don't fetch if no session or still loading
-    if (status === "loading") {
-      return;
-    }
-
+  const fetchProfile = async () => {
     if (!session?.user?.id) {
       setLoading(false);
-      setProfile(null);
-      setHasProfile(false);
       return;
     }
 
     try {
-      setLoading(true);
-
-      console.log("Fetching profile for user:", session.user.id);
-
-      // ✅ Fetch profile data with better error handling
-      const profileResponse = await fetch("/api/user/profile", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        cache: "no-store", // ✅ Prevent caching issues
-      });
-
-      console.log("Profile response status:", profileResponse.status);
-
-      // ✅ Check if response is OK first
-      if (!profileResponse.ok) {
-        console.error(
-          "Profile fetch failed with status:",
-          profileResponse.status
-        );
-
-        // Try to get error message
-        try {
-          const errorData = await profileResponse.json();
-          console.error("Profile error:", errorData);
-        } catch {
-          console.error("Could not parse error response");
-        }
-
-        setProfile(null);
-        setHasProfile(false);
-        setLoading(false);
-        return;
-      }
-
-      // ✅ Check content type
-      const contentType = profileResponse.headers.get("content-type");
-      console.log("Profile response content-type:", contentType);
-
-      if (!contentType?.includes("application/json")) {
-        console.error("Profile API returned non-JSON response");
-
-        // Log the actual response for debugging
-        const responseText = await profileResponse.text();
-        console.error("Response text:", responseText.substring(0, 200));
-
-        setProfile(null);
-        setHasProfile(false);
-        setLoading(false);
-        return;
-      }
-
-      const profileData = await profileResponse.json();
-      console.log("Profile data received:", profileData);
-
-      setProfile(profileData.profile);
-      setHasProfile(!!profileData.profile);
-
-      // ✅ Fetch featured items with same approach
-      try {
-        const featuredResponse = await fetch("/api/user/featured", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (featuredResponse.ok) {
-          const featuredContentType =
-            featuredResponse.headers.get("content-type");
-
-          if (featuredContentType?.includes("application/json")) {
-            const featuredData = await featuredResponse.json();
-            setFeaturedItems(featuredData.featured || []);
-          } else {
-            console.warn("Featured API returned non-JSON response");
-            setFeaturedItems([]);
-          }
-        } else {
-          console.warn("Featured fetch failed:", featuredResponse.status);
-          setFeaturedItems([]);
-        }
-      } catch (featuredError) {
-        console.error("Error fetching featured items:", featuredError);
-        setFeaturedItems([]);
+      const response = await fetch("/api/user/profile");
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data.profile);
+        setFeaturedItems(data.featured || []);
+        setHasProfile(!!data.profile);
       }
     } catch (error) {
-      console.error("Error fetching profile data:", error);
-      setProfile(null);
-      setHasProfile(false);
-      setFeaturedItems([]);
+      console.error("Error fetching profile:", error);
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id, status]);
-
-  const setupProfile = async (
-    profileData: ProfileSetupData
-  ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const response = await fetch("/api/user/profile/setup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // ✅ Include credentials
-        body: JSON.stringify(profileData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to setup profile");
-      }
-
-      const data = await response.json();
-
-      // Update context state
-      setProfile(data.profile);
-      setHasProfile(true);
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error setting up profile:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Setup failed",
-      };
-    }
   };
 
-  const updateProfile = async (data: ProfileUpdateData): Promise<boolean> => {
+  const updateProfile = async (data: EditProfileData): Promise<boolean> => {
     try {
       const response = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ Include credentials
         body: JSON.stringify(data),
       });
 
       if (response.ok) {
-        await fetchProfile(); // Refresh profile data
+        await fetchProfile();
         return true;
       }
       return false;
@@ -269,9 +68,28 @@ export const ProfileContextProvider: React.FC<{
     }
   };
 
+  const setupProfile = async (data: EditProfileData): Promise<boolean> => {
+    try {
+      const response = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        await fetchProfile();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error setting up profile:", error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+  }, [session?.user?.id]); // ✅ Use dependency instead of fetchProfile
 
   const value = {
     profile,
