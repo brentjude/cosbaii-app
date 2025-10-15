@@ -11,12 +11,12 @@ const credentialsSchema = z.object({
   characterName: z.string().max(200).optional(),
   seriesName: z.string().max(200).optional(),
   description: z.string().max(5000).optional(),
-  photos: z.string().optional(), // JSON string of photo URLs
+  photos: z.string().optional(),
   videoUrl: z.string().url().max(500).optional(),
   position: z.string().max(50).optional(),
   category: z.string().max(100).optional(),
   isTeam: z.boolean().optional(),
-  teamMembers: z.string().optional(), // JSON string of team members
+  teamMembers: z.string().optional(),
   contactEmail: z.string().email().max(255).optional(),
   contactPhone: z.string().max(50).optional(),
 });
@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     const userId = parseInt(session.user.id);
     const body = await request.json();
 
-    // ✅ Validate input
     const validationResult = credentialsSchema.safeParse({
       ...body,
       competitionId: parseInt(body.competitionId),
@@ -63,7 +62,6 @@ export async function POST(request: NextRequest) {
       contactPhone,
     } = validationResult.data;
 
-    // ✅ Check if competition exists and is accepting participants
     const competition = await prisma.competition.findUnique({
       where: { id: competitionId },
     });
@@ -82,7 +80,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Check if user already has credentials for this competition
     const existing = await prisma.competitionParticipant.findUnique({
       where: {
         userId_competitionId: {
@@ -99,7 +96,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Create participant entry with correct field names
     const participant = await prisma.competitionParticipant.create({
       data: {
         userId,
@@ -108,7 +104,7 @@ export async function POST(request: NextRequest) {
         characterName,
         seriesName,
         description,
-        photos, // ✅ Use 'photos' instead of 'imageUrl'
+        photos,
         videoUrl,
         position,
         category,
@@ -138,12 +134,17 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             organizer: true,
+            eventDate: true,
+            location: true,
+            competitionType: true,
+            rivalryType: true,
+            level: true,
+            logoUrl: true,
           },
         },
       },
     });
 
-    // ✅ Create notification for competition organizer/admin
     await prisma.notification.create({
       data: {
         userId: competition.submittedById,
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ✅ GET endpoint to fetch user's credentials for a competition
+// ✅ Updated GET endpoint - Return data structure that matches frontend expectations
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -178,30 +179,85 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const competitionId = searchParams.get('competitionId');
-    
-    if (!competitionId) {
-      return NextResponse.json(
-        { error: 'Competition ID is required' },
-        { status: 400 }
-      );
-    }
-
     const userId = parseInt(session.user.id);
-    const compId = parseInt(competitionId);
 
-    if (isNaN(compId)) {
-      return NextResponse.json(
-        { error: 'Invalid competition ID' },
-        { status: 400 }
-      );
+    if (competitionId) {
+      const compId = parseInt(competitionId);
+
+      if (isNaN(compId)) {
+        return NextResponse.json(
+          { error: 'Invalid competition ID' },
+          { status: 400 }
+        );
+      }
+
+      const participant = await prisma.competitionParticipant.findUnique({
+        where: {
+          userId_competitionId: {
+            userId,
+            competitionId: compId,
+          },
+        },
+        include: {
+          competition: {
+            select: {
+              id: true,
+              name: true,
+              organizer: true,
+              status: true,
+              eventDate: true,
+              location: true,
+              competitionType: true,
+              rivalryType: true,
+              level: true,
+              logoUrl: true,
+            },
+          },
+          awards: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      if (!participant) {
+        return NextResponse.json(
+          { error: 'Credentials not found' },
+          { status: 404 }
+        );
+      }
+
+      // ✅ Transform to match frontend expectations
+      const credential = {
+        id: participant.id,
+        cosplayTitle: participant.cosplayTitle,
+        characterName: participant.characterName,
+        seriesName: participant.seriesName,
+        description: participant.description,
+        position: participant.position || 'PARTICIPANT',
+        category: participant.category,
+        verified: participant.status === 'APPROVED', // ✅ Map status to verified
+        imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null, // ✅ Get first photo
+        competition: participant.competition,
+        awards: participant.awards,
+        submittedAt: participant.submittedAt,
+        reviewedAt: participant.reviewedAt,
+      };
+
+      return NextResponse.json({
+        success: true,
+        credential,
+      });
     }
 
-    const participant = await prisma.competitionParticipant.findUnique({
+    // ✅ Fetch all user credentials with proper transformation
+    const participants = await prisma.competitionParticipant.findMany({
       where: {
-        userId_competitionId: {
-          userId,
-          competitionId: compId,
-        },
+        userId,
       },
       include: {
         competition: {
@@ -212,21 +268,47 @@ export async function GET(request: NextRequest) {
             status: true,
             eventDate: true,
             location: true,
+            competitionType: true,
+            rivalryType: true,
+            level: true,
+            logoUrl: true,
+          },
+        },
+        awards: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            category: true,
           },
         },
       },
+      orderBy: {
+        submittedAt: 'desc',
+      },
     });
 
-    if (!participant) {
-      return NextResponse.json(
-        { error: 'Credentials not found' },
-        { status: 404 }
-      );
-    }
+    // ✅ Transform participants to credentials format expected by frontend
+    const credentials = participants.map(participant => ({
+      id: participant.id,
+      cosplayTitle: participant.cosplayTitle,
+      characterName: participant.characterName,
+      seriesName: participant.seriesName,
+      description: participant.description,
+      position: participant.position || 'PARTICIPANT',
+      category: participant.category,
+      verified: participant.status === 'APPROVED', // ✅ Map status to verified boolean
+      imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null, // ✅ Get first photo from JSON array
+      competition: participant.competition,
+      awards: participant.awards || [],
+      submittedAt: participant.submittedAt,
+      reviewedAt: participant.reviewedAt,
+    }));
 
     return NextResponse.json({
       success: true,
-      participant,
+      credentials, // ✅ Return as 'credentials' not 'participants'
+      count: credentials.length,
     });
   } catch (error) {
     console.error('Error fetching credentials:', error);
