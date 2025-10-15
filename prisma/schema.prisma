@@ -273,6 +273,7 @@ model CompetitionParticipant {
   position      String?      @db.VarChar(50)        
   category      String?      @db.VarChar(100)  
   status        String       @default("PENDING") @db.VarChar(20) // ✅ Add this field
+  order         Int?         @default(0)
   submittedAt   DateTime     @default(now())
   reviewedAt    DateTime?    // ✅ Add this field
   photos        String?      @db.Text
@@ -293,6 +294,7 @@ model CompetitionParticipant {
   @@index([competitionId])
   @@index([userId])
   @@index([status]) // ✅ Add index for better query performance
+  @@index([order]) 
   @@map("competition_participants")
 }
 model Awards {

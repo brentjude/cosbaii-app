@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Image from "next/image";
 import {
   PlusCircleIcon,
@@ -5,31 +6,125 @@ import {
   TrophyIcon,
   CheckBadgeIcon,
   ClockIcon,
+  PencilSquareIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/16/solid";
 import { CompetitionCredential } from "@/types/profile";
 import { PositionInfo } from "@/lib/user/profile/position";
 
 interface Props {
-  credentials: CompetitionCredential[]; // ✅ Changed from Credential[]
+  credentials: CompetitionCredential[];
   loading: boolean;
   onAddCredential: () => void;
+  onEditCredentials: () => void;
   getPositionInfo: (position: string) => PositionInfo;
   formatDate: (dateString: string) => string;
   eventYear: (dateString: string) => number;
 }
+
 export default function ProfileCompetitions({
   credentials,
   loading,
   onAddCredential,
+  onEditCredentials,
   getPositionInfo,
   formatDate,
   eventYear,
 }: Props) {
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(credentials.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentCredentials = credentials.slice(startIndex, endIndex);
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of credentials section
+    document.getElementById('credentials')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      // Show all pages if total is less than max visible
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Show first page, last page, and pages around current page
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
   return (
-    <div id="credentials" className="flex flex-col gap-4 bg-white rounded-2xl p-6 border border-gray-200">
+    <div
+      id="credentials"
+      className="flex flex-col gap-4 bg-white rounded-2xl p-6 border border-gray-200"
+    >
       <div className="flex flex-row justify-between items-center">
-        <h2 className="text-xl font-bold">Competitions Joined</h2>
+        <div>
+          <h2 className="text-xl font-bold">Competitions Joined</h2>
+          {credentials.length > 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              Showing {startIndex + 1}-{Math.min(endIndex, credentials.length)} of {credentials.length} credentials
+            </p>
+          )}
+        </div>
         <div className="flex flex-row items-center gap-2">
+          {/* Edit Button */}
+          {credentials.length > 0 && (
+            <button
+              className="btn btn-ghost btn-sm tooltip tooltip-left"
+              data-tip="Manage credentials"
+              onClick={onEditCredentials}
+            >
+              <PencilSquareIcon className="w-4 h-4" />
+              Manage
+            </button>
+          )}
+
           <button
             className="btn btn-primary btn-sm text-white"
             onClick={onAddCredential}
@@ -37,6 +132,7 @@ export default function ProfileCompetitions({
             <PlusCircleIcon className="w-4 h-4" />
             Add Credentials
           </button>
+
           <div className="dropdown dropdown-end">
             <div tabIndex={0} role="button" className="btn btn-outline btn-sm">
               <FunnelIcon className="w-4 h-4" />
@@ -63,6 +159,7 @@ export default function ProfileCompetitions({
         </div>
       </div>
 
+      {/* Loading State */}
       {loading ? (
         <div className="grid grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => (
@@ -79,90 +176,146 @@ export default function ProfileCompetitions({
           ))}
         </div>
       ) : credentials.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4">
-          {credentials.map((credential) => {
-            const positionInfo = getPositionInfo(credential.position);
+        <>
+          {/* Credentials Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {currentCredentials.map((credential) => {
+              const positionInfo = getPositionInfo(credential.position);
 
-            return (
-              <div
-                key={credential.id}
-                className="flex items-center gap-3 p-4 bg-base-50 rounded-lg border border-base-200 hover:shadow-md transition-shadow relative"
-              >
-                <div className="absolute top-2 right-2">
-                  {credential.verified ? (
-                    <div className="tooltip tooltip-left" data-tip="Verified by admin">
-                      <CheckBadgeIcon className="w-5 h-5 text-green-500" />
-                    </div>
-                  ) : (
-                    <div className="tooltip tooltip-left" data-tip="Under review">
-                      <ClockIcon className="w-5 h-5 text-orange-500 animate-pulse" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative flex-shrink-0">
-                  <Image
-                    src={
-                      credential.imageUrl ||
-                      credential.competition.logoUrl ||
-                      "/icons/cosbaii-icon-primary.svg"
-                    }
-                    alt={credential.imageUrl ? "Cosplay Photo" : "Competition Logo"}
-                    width={200}
-                    height={200}
-                    className="w-30 h-30 rounded-lg bg-white p-1 border border-base-200 object-cover"
-                  />
-
-                  {positionInfo.icon && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <TrophyIcon className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm text-gray-900 truncate">
-                    {credential.competition.name} {eventYear(credential.competition.eventDate)}
-                  </h3>
-                  <p className="text-xs text-gray-500 mb-1">
-                    {credential.competition.competitionType} •{" "}
-                    {credential.competition.rivalryType}
-                  </p>
-
-                  {credential.cosplayTitle && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-600">Character:</span>
-                      <span className="text-xs font-medium text-gray-900 truncate">
-                        {credential.cosplayTitle}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-600">Date:</span>
-                    <span className="text-xs font-medium text-gray-900">
-                      {formatDate(credential.competition.eventDate)}
-                    </span>
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-2">
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded-full ${positionInfo.bgColor} ${positionInfo.textColor}`}
-                    >
-                      {positionInfo.text}
-                    </span>
-
-                    {!credential.verified && (
-                      <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
-                        Under Review
-                      </span>
+              return (
+                <div
+                  key={credential.id}
+                  className="flex items-center gap-3 p-4 bg-base-50 rounded-lg border border-base-200 hover:shadow-md transition-shadow relative"
+                >
+                  <div className="absolute top-2 right-2">
+                    {credential.verified ? (
+                      <div className="tooltip tooltip-left" data-tip="Verified by admin">
+                        <CheckBadgeIcon className="w-5 h-5 text-green-500" />
+                      </div>
+                    ) : (
+                      <div className="tooltip tooltip-left" data-tip="Under review">
+                        <ClockIcon className="w-5 h-5 text-orange-500 animate-pulse" />
+                      </div>
                     )}
                   </div>
+
+                  <div className="relative flex-shrink-0">
+                    <Image
+                      src={
+                        credential.imageUrl ||
+                        credential.competition.logoUrl ||
+                        "/icons/cosbaii-icon-primary.svg"
+                      }
+                      alt={credential.imageUrl ? "Cosplay Photo" : "Competition Logo"}
+                      width={200}
+                      height={200}
+                      className="w-30 h-30 rounded-lg bg-white p-1 border border-base-200 object-cover"
+                    />
+
+                    {positionInfo.icon && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <TrophyIcon className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm text-gray-900 truncate">
+                      {credential.competition.name} {eventYear(credential.competition.eventDate)}
+                    </h3>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {credential.competition.competitionType} •{" "}
+                      {credential.competition.rivalryType}
+                    </p>
+
+                    {credential.cosplayTitle && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-600">Character:</span>
+                        <span className="text-xs font-medium text-gray-900 truncate">
+                          {credential.cosplayTitle}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-600">Date:</span>
+                      <span className="text-xs font-medium text-gray-900">
+                        {formatDate(credential.competition.eventDate)}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${positionInfo.bgColor} ${positionInfo.textColor}`}
+                      >
+                        {positionInfo.text}
+                      </span>
+
+                      {!credential.verified && (
+                        <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
+                          Under Review
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t border-gray-200">
+              {/* Page Info */}
+              <div className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
               </div>
-            );
-          })}
-        </div>
+
+              {/* Pagination Buttons */}
+              <div className="flex items-center gap-2">
+                {/* Previous Button */}
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeftIcon className="w-4 h-4" />
+                  Previous
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {getPageNumbers().map((page, index) => (
+                    <button
+                      key={index}
+                      className={`btn btn-sm ${
+                        page === currentPage
+                          ? 'btn-primary'
+                          : page === '...'
+                          ? 'btn-ghost cursor-default'
+                          : 'btn-ghost'
+                      }`}
+                      onClick={() => typeof page === 'number' && handlePageChange(page)}
+                      disabled={page === '...'}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRightIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <TrophyIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />

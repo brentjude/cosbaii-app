@@ -1,47 +1,30 @@
-import { TrophyIcon, PaintBrushIcon, BriefcaseIcon } from "@heroicons/react/16/solid";
-import { CosplayerType } from "@/types/profile";
-
 export interface CosplayerTypeInfo {
-  text: React.ReactElement;
+  text: string;
   class: string;
+  description: string;
 }
 
-export function getCosplayerTypeDisplay(cosplayerType?: CosplayerType | null): CosplayerTypeInfo {
-  switch (cosplayerType) {
-    case "COMPETITIVE":
-      return {
-        text: (
-          <>
-            <TrophyIcon className="w-4 h-4" />
-            <span>Competitive Cosplayer</span>
-          </>
-        ),
-        class: "badge-primary",
-      };
-    case "HOBBY":
-      return {
-        text: (
-          <>
-            <PaintBrushIcon className="w-4 h-4" />
-            <span>Hobby Cosplayer</span>
-          </>
-        ),
-        class: "badge-secondary",
-      };
-    case "PROFESSIONAL":
-      return {
-        text: (
-          <>
-            <BriefcaseIcon className="w-4 h-4" />
-            <span>Pro Cosplayer</span>
-          </>
-        ),
-        class: "badge-accent",
-      };
-    default:
-      return {
-        text: <span>Cosplayer</span>,
-        class: "badge-outline",
-      };
-  }
+export function getCosplayerTypeInfo(type: string | null | undefined): CosplayerTypeInfo {
+  const typeMap: Record<string, CosplayerTypeInfo> = {
+    HOBBY: {
+      text: "Hobby Cosplayer",
+      class: "badge-secondary",
+      description: "Cosplays for fun and personal enjoyment",
+    },
+    COMPETITIVE: {
+      text: "Competitive Cosplayer",
+      class: "badge-primary",
+      description: "Participates in competitions and contests",
+    },
+    PROFESSIONAL: {
+      text: "Professional Cosplayer",
+      class: "badge-accent",
+      description: "Professional cosplay work and commissions",
+    },
+  };
+
+  return typeMap[type || 'HOBBY'] || typeMap.HOBBY;
 }
+
+// ✅ Add this export for backward compatibility
+export const getCosplayerTypeDisplay = getCosplayerTypeInfo;

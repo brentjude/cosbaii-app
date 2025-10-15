@@ -3,8 +3,7 @@ import { UserSettings } from "@/types/settings";
 
 interface Props {
   profile: Profile | null;
-  session: { user?: { name?: string | null } } | null;
-  userSettings: UserSettings | null;
+  userSettings?: UserSettings | null; // ✅ Make it optional
 }
 
 export default function ProfileInfo({ profile, userSettings }: Props) {

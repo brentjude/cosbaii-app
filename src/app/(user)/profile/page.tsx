@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useProfile } from "@/app/context/ProfileContext";
 import { useUserCredentials } from "@/hooks/user/useUserCredentials";
+import { useUserSettings } from "@/hooks/user/useUserSettings";
 import ProfileHeader from "./components/ProfileHeader";
 import ProfileInfo from "./components/ProfileInfo";
 import ProfileFeatured from "./components/ProfileFeatured";
@@ -11,11 +12,11 @@ import ProfileCompetitions from "./components/ProfileCompetitions";
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import AddCredentialsModal from "@/app/components/user/modals/AddCredentialsModal";
 import FeaturedCosplaysEditor from "@/app/components/user/modals/FeaturedCosplaysEditor";
+import EditCredentialsModal from "./components/EditCredentialsModal";
 import { getPositionInfo } from "@/lib/user/profile/position";
 import { formatDate, eventYear } from "@/lib/user/profile/format";
-import { getCosplayerTypeDisplay } from "@/lib/user/profile/cosplayer-type";
+import { getCosplayerTypeInfo } from "@/lib/user/profile/cosplayer-type"; // ✅ Fixed import
 import { EditProfileData, FeaturedItem, SkillLevel } from "@/types/profile";
-import { UserSettings } from "@/types/settings";
 
 const ProfilePage = () => {
   const { data: session } = useSession();
@@ -23,35 +24,20 @@ const ProfilePage = () => {
   const {
     credentials,
     loading: credentialsLoading,
-    refetch: refetchCredentials,
+    fetchCredentials,
   } = useUserCredentials();
+  const { settings: userSettings, loading: settingsLoading } = useUserSettings();
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
   const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [showEditCredentialsModal, setShowEditCredentialsModal] = useState(false);
   const [featuredCosplays, setFeaturedCosplays] = useState<FeaturedItem[]>([
     { title: "", description: "", imageUrl: "", character: "", series: "", type: "cosplay" },
     { title: "", description: "", imageUrl: "", character: "", series: "", type: "cosplay" },
     { title: "", description: "", imageUrl: "", character: "", series: "", type: "cosplay" },
   ]);
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const response = await fetch("/api/user/settings");
-        if (response.ok) {
-          const data = await response.json();
-          setUserSettings(data.settings);
-        }
-      } catch (error) {
-        console.error("Error fetching settings:", error);
-      }
-    };
-
-    fetchSettings();
-  }, []);
 
   useEffect(() => {
     if (featuredItems && Array.isArray(featuredItems) && featuredItems.length > 0) {
@@ -107,10 +93,15 @@ const ProfilePage = () => {
   ).length;
   const totalCompetitions = credentials.length;
 
-  const cosplayerTypeInfo = getCosplayerTypeDisplay(profile?.cosplayerType);
+  // ✅ Fixed function call
+  const cosplayerTypeInfo = getCosplayerTypeInfo(profile?.cosplayerType);
 
   const handleEditProfile = () => {
     setShowEditModal(true);
+  };
+
+  const handleEditCredentials = () => {
+    setShowEditCredentialsModal(true);
   };
 
   const handleSaveProfile = async (editedData: EditProfileData) => {
@@ -125,6 +116,10 @@ const ProfilePage = () => {
     } finally {
       setEditLoading(false);
     }
+  };
+
+  const handleSaveCredentials = async () => {
+    await fetchCredentials();
   };
 
   const getEditableProfileData = (): EditProfileData | null => {
@@ -146,7 +141,7 @@ const ProfilePage = () => {
     };
   };
 
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
       <main className="max-w-[1240px] mx-auto h-screen p-6">
         <div className="bg-white rounded-lg shadow-sm">
@@ -186,6 +181,7 @@ const ProfilePage = () => {
                 credentials={credentials}
                 loading={credentialsLoading}
                 onAddCredential={() => setShowAddCredentialsModal(true)}
+                onEditCredentials={handleEditCredentials}
                 getPositionInfo={getPositionInfo}
                 formatDate={formatDate}
                 eventYear={eventYear}
@@ -208,7 +204,7 @@ const ProfilePage = () => {
         onClose={() => setShowAddCredentialsModal(false)}
         onSuccess={() => {
           setShowAddCredentialsModal(false);
-          refetchCredentials();
+          fetchCredentials();
         }}
       />
 
@@ -217,6 +213,15 @@ const ProfilePage = () => {
         onClose={() => setShowFeaturedEditor(false)}
         onSave={handleFeaturedSave}
         initialFeatured={featuredCosplays}
+      />
+
+      <EditCredentialsModal
+        isOpen={showEditCredentialsModal}
+        onClose={() => setShowEditCredentialsModal(false)}
+        credentials={credentials}
+        onSave={handleSaveCredentials}
+        getPositionInfo={getPositionInfo}
+        formatDate={formatDate}
       />
     </>
   );

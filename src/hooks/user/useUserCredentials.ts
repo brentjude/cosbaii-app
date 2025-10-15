@@ -1,15 +1,20 @@
-// Create: src/hooks/user/useUserCredentials.ts
-import { useState, useEffect, useCallback } from 'react'; // ✅ Added useCallback
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { CompetitionCredential } from "@/types/profile";
+import { CompetitionCredential } from '@/types/profile';
 
-export function useUserCredentials() {
+interface UseUserCredentialsReturn {
+  credentials: CompetitionCredential[];
+  loading: boolean;
+  error: string | null;
+  fetchCredentials: () => Promise<void>;
+}
+
+export function useUserCredentials(): UseUserCredentialsReturn {
   const { data: session } = useSession();
   const [credentials, setCredentials] = useState<CompetitionCredential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Wrapped fetchCredentials with useCallback
   const fetchCredentials = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false);
@@ -18,32 +23,39 @@ export function useUserCredentials() {
 
     try {
       setLoading(true);
+      setError(null);
+
+      console.log('Fetching credentials for user:', session.user.id);
+
       const response = await fetch('/api/user/credentials');
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCredentials(data.credentials || []);
-        setError(null);
-      } else {
-        setError('Failed to fetch credentials');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch credentials');
       }
+
+      const data = await response.json();
+      console.log('Credentials fetched:', data.credentials?.length || 0);
+      
+      setCredentials(data.credentials || []);
     } catch (err) {
-      setError('Network error occurred');
       console.error('Error fetching credentials:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch credentials');
+      setCredentials([]);
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]); // ✅ Added session?.user?.id as dependency
+  }, [session?.user?.id]);
 
-  // ✅ Added fetchCredentials to dependency array
+  // Initial fetch when hook mounts or session changes
   useEffect(() => {
     fetchCredentials();
-  }, [fetchCredentials]); // ✅ Now includes fetchCredentials
+  }, [fetchCredentials]);
 
   return {
     credentials,
     loading,
     error,
-    refetch: fetchCredentials,
+    fetchCredentials,
   };
-};
+}

@@ -231,7 +231,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // ✅ Transform to match frontend expectations
       const credential = {
         id: participant.id,
         cosplayTitle: participant.cosplayTitle,
@@ -240,8 +239,8 @@ export async function GET(request: NextRequest) {
         description: participant.description,
         position: participant.position || 'PARTICIPANT',
         category: participant.category,
-        verified: participant.status === 'APPROVED', // ✅ Map status to verified
-        imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null, // ✅ Get first photo
+        verified: participant.status === 'APPROVED',
+        imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null,
         competition: participant.competition,
         awards: participant.awards,
         submittedAt: participant.submittedAt,
@@ -254,7 +253,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // ✅ Fetch all user credentials with proper transformation
+    // ✅ Fetch all user credentials ordered by the 'order' field
     const participants = await prisma.competitionParticipant.findMany({
       where: {
         userId,
@@ -283,12 +282,12 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: {
-        submittedAt: 'desc',
-      },
+      orderBy: [
+        { order: 'asc' }, // ✅ Primary sort by custom order
+        { submittedAt: 'desc' }, // ✅ Secondary sort by submission date
+      ],
     });
 
-    // ✅ Transform participants to credentials format expected by frontend
     const credentials = participants.map(participant => ({
       id: participant.id,
       cosplayTitle: participant.cosplayTitle,
@@ -297,8 +296,8 @@ export async function GET(request: NextRequest) {
       description: participant.description,
       position: participant.position || 'PARTICIPANT',
       category: participant.category,
-      verified: participant.status === 'APPROVED', // ✅ Map status to verified boolean
-      imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null, // ✅ Get first photo from JSON array
+      verified: participant.status === 'APPROVED',
+      imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null,
       competition: participant.competition,
       awards: participant.awards || [],
       submittedAt: participant.submittedAt,
@@ -307,13 +306,88 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      credentials, // ✅ Return as 'credentials' not 'participants'
+      credentials,
       count: credentials.length,
     });
   } catch (error) {
     console.error('Error fetching credentials:', error);
     return NextResponse.json(
       { error: 'Failed to fetch credentials' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const params = await props.params;
+    const credentialId = parseInt(params.id);
+    const userId = parseInt(session.user.id);
+
+    if (isNaN(credentialId)) {
+      return NextResponse.json(
+        { error: 'Invalid credential ID' },
+        { status: 400 }
+      );
+    }
+
+    // Check if credential exists and belongs to user
+    const credential = await prisma.competitionParticipant.findUnique({
+      where: { id: credentialId },
+      select: {
+        userId: true,
+        status: true,
+        competitionId: true,
+      },
+    });
+
+    if (!credential) {
+      return NextResponse.json(
+        { error: 'Credential not found' },
+        { status: 404 }
+      );
+    }
+
+    if (credential.userId !== userId) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this credential' },
+        { status: 403 }
+      );
+    }
+
+    // Delete the credential
+    await prisma.competitionParticipant.delete({
+      where: { id: credentialId },
+    });
+
+    // ✅ Create notification for user
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'CREDENTIAL_DELETED',
+        title: 'Credential Deleted',
+        message: `You have deleted a competition credential.`,
+        relatedId: credential.competitionId,
+        isRead: false,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Credential deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting credential:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete credential' },
       { status: 500 }
     );
   }
