@@ -1,3 +1,4 @@
+// Update: src/app/api/admin/users/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -5,11 +6,16 @@ import prisma from "@/lib/prisma";
 import { hash } from "bcrypt";
 import { z } from "zod";
 
-// Validation schema matching your Prisma schema
+// ✅ Fix: Make username required and add lowercase transform
 const createUserSchema = z.object({
   name: z.string().min(1).max(100).optional().nullable(),
   email: z.string().email().min(1),
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/).optional().nullable(),
+  username: z
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be less than 20 characters")
+    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
+    .transform((val) => val.toLowerCase()), // ✅ Auto-convert to lowercase
   password: z.string().min(8).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/),
   role: z.enum(["USER", "ADMIN", "MODERATOR"]).default("USER"),
   status: z.enum(["ACTIVE", "INACTIVE", "BANNED"]).default("INACTIVE"),
@@ -110,28 +116,31 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // Check username uniqueness if provided
-    if (username) {
-      const existingUserByUsername = await prisma.user.findUnique({
-        where: { username }
-      });
+    // ✅ Check username uniqueness (case-insensitive)
+    const existingUserByUsername = await prisma.user.findFirst({
+      where: {
+        username: {
+          equals: username.toLowerCase(),
+          mode: 'insensitive',
+        },
+      },
+    });
 
-      if (existingUserByUsername) {
-        return NextResponse.json({ 
-          message: "Username is already taken." 
-        }, { status: 409 });
-      }
+    if (existingUserByUsername) {
+      return NextResponse.json({ 
+        message: "Username is already taken." 
+      }, { status: 409 });
     }
 
     // Hash password
     const hashedPassword = await hash(password, 12);
 
-    // Create user
+    // ✅ Create user with required username
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
-        username,
+        username, // ✅ Now required, already lowercase from transform
         password: hashedPassword,
         role,
         status,

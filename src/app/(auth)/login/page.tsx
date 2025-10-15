@@ -1,46 +1,87 @@
-// Update: src/app/(auth)/login/page.tsx
 "use client";
 
 import Image from "next/image";
 import LoginForm from "@/app/components/form/LoginForm";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { UserRole, UserStatus } from "@/types";
+
+
+interface ExtendedUser {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: UserRole;
+  username?: string | null;
+  status: UserStatus;
+  emailVerified: boolean;
+}
 
 function LoginContent() {
-  const { data: session, status } = useSession();
+  const router = useRouter();
+  const { data: session, status, update } = useSession(); // ✅ Add update function
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     console.log("=== Login Page Status ===");
     console.log("Session status:", status);
     console.log("Has session:", !!session);
-    console.log("User role:", session?.user?.role);
-    console.log("Is redirecting:", isRedirecting);
+    console.log("User data:", session?.user);
 
     if (status === "authenticated" && session?.user && !isRedirecting) {
-      setIsRedirecting(true);
+      // ✅ Force session refresh to get latest data
+      update().then(() => {
+        setIsRedirecting(true);
 
-      const user = session.user as {
-        id: string;
-        email: string;
-        name?: string | null;
-        role: string;
-        username?: string | null;
-      };
+        const user = session.user as ExtendedUser;
 
-      // ✅ Simple role-based redirect
-      const redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+        console.log("User authenticated, checking status...");
+        console.log("User role:", user.role);
+        console.log("User status:", user.status);
+        console.log("Email verified:", user.emailVerified);
 
-      console.log("User authenticated, role:", user.role);
-      console.log("Redirecting to:", redirectPath);
+        // ✅ Check if user is INACTIVE and not verified
+        if (user.status === "INACTIVE" && !user.emailVerified) {
+          console.log("User is inactive and not verified, redirecting to email verification");
+          setTimeout(() => {
+            router.push(`/verify-email?email=${encodeURIComponent(user.email)}`);
+          }, 500);
+          return;
+        }
 
-      // ✅ Use window.location.href for hard redirect
-      setTimeout(() => {
-        console.log("Executing redirect now...");
-        window.location.href = redirectPath;
-      }, 500);
+        // ✅ Check if user is INACTIVE but verified (waiting for admin approval)
+        if (user.status === "INACTIVE" && user.emailVerified) {
+          console.log("User is verified but account is inactive (pending admin approval)");
+          setTimeout(() => {
+            router.push("/unauthorized?reason=pending-approval");
+          }, 500);
+          return;
+        }
+
+        // ✅ Check if user is BANNED or SUSPENDED
+        if (user.status === "BANNED") {
+          console.log("User account is banned or suspended");
+          setTimeout(() => {
+            router.push(`/unauthorized?reason=${user.status.toLowerCase()}`);
+          }, 500);
+          return;
+        }
+
+        // ✅ User is ACTIVE, redirect based on role
+        if (user.status === "ACTIVE") {
+          const redirectPath = user.role === "ADMIN" ? "/admin" : "/dashboard";
+          console.log("User is active, role:", user.role);
+          console.log("Redirecting to:", redirectPath);
+
+          setTimeout(() => {
+            console.log("Executing redirect now...");
+            window.location.href = redirectPath;
+          }, 500);
+        }
+      });
     }
-  }, [session, status, isRedirecting]);
+  }, [session, status, isRedirecting, router, update]);
 
   if (status === "loading") {
     return (
