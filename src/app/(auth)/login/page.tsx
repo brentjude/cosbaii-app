@@ -54,7 +54,7 @@ function LoginContent() {
         if (user.status === "INACTIVE" && user.emailVerified) {
           console.log("User is verified but account is inactive (pending admin approval)");
           setTimeout(() => {
-            router.push("/not-authorized?reason=pending-approval");
+            router.push("/unauthorized?reason=pending-approval");
           }, 500);
           return;
         }
@@ -63,7 +63,7 @@ function LoginContent() {
         if (user.status === "BANNED") {
           console.log("User account is banned or suspended");
           setTimeout(() => {
-            router.push(`/not-authorized?reason=${user.status.toLowerCase()}`);
+            router.push(`/unauthorized?reason=${user.status.toLowerCase()}`);
           }, 500);
           return;
         }
