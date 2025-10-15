@@ -26,11 +26,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     switch (notification.type) {
       case 'COMPETITION_SUBMITTED':
         return <ClockIcon className="w-5 h-5 text-yellow-500" />;
-      case 'COMPETITION_APPROVED':
+      case 'COMPETITION_ACCEPTED':
         return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
       case 'COMPETITION_REJECTED':
         return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      case 'CREDENTIAL_VERIFIED':
+      case 'PARTICIPANT_APPROVED':
         return <TrophyIcon className="w-5 h-5 text-blue-500" />;
       default:
         return <ClockIcon className="w-5 h-5 text-gray-500" />;
@@ -41,11 +41,11 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     switch (notification.type) {
       case 'COMPETITION_SUBMITTED':
         return 'border-l-yellow-400 bg-yellow-50';
-      case 'COMPETITION_APPROVED':
+      case 'COMPETITION_ACCEPTED':
         return 'border-l-green-400 bg-green-50';
       case 'COMPETITION_REJECTED':
         return 'border-l-red-400 bg-red-50';
-      case 'CREDENTIAL_VERIFIED':
+      case 'PARTICIPANT_APPROVED':
         return 'border-l-blue-400 bg-blue-50';
       default:
         return 'border-l-gray-400 bg-gray-50';

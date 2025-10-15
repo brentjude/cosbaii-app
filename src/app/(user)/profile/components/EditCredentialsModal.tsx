@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react/no-unescaped-entities */
 
 import { useState, useEffect } from "react";
 import {
@@ -37,7 +38,6 @@ export default function EditCredentialsModal({
   formatDate,
 }: EditCredentialsModalProps) {
   const [orderedCredentials, setOrderedCredentials] = useState<CompetitionCredential[]>([]);
-  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,8 +47,8 @@ export default function EditCredentialsModal({
   // Initialize ordered credentials when modal opens
   useEffect(() => {
     if (isOpen) {
+      console.log('Initial credentials:', credentials); // ✅ Debug log
       setOrderedCredentials([...credentials]);
-      setDeletingIds(new Set());
       setConfirmDeleteId(null);
       setHasChanges(false);
       setError(null);
@@ -62,6 +62,8 @@ export default function EditCredentialsModal({
     [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
     setOrderedCredentials(newOrder);
     setHasChanges(true);
+    
+    console.log('After move up:', newOrder.map((c, i) => ({ id: c.id, newIndex: i }))); // ✅ Debug log
   };
 
   const handleMoveDown = (index: number) => {
@@ -71,6 +73,8 @@ export default function EditCredentialsModal({
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
     setOrderedCredentials(newOrder);
     setHasChanges(true);
+    
+    console.log('After move down:', newOrder.map((c, i) => ({ id: c.id, newIndex: i }))); // ✅ Debug log
   };
 
   const handleDeleteClick = (credentialId: number) => {
@@ -93,11 +97,6 @@ export default function EditCredentialsModal({
 
       // Remove from local state
       setOrderedCredentials((prev) => prev.filter((c) => c.id !== credentialId));
-      setDeletingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.add(credentialId);
-        return newSet;
-      });
       setConfirmDeleteId(null);
       setHasChanges(true);
     } catch (err) {
@@ -128,17 +127,22 @@ export default function EditCredentialsModal({
         order: index,
       }));
 
+      console.log('Sending order updates:', orderUpdates); // ✅ Debug log
+
       const response = await fetch("/api/user/credentials/reorder", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credentials: orderUpdates }),
       });
 
+      const result = await response.json();
+      console.log('Reorder response:', result); // ✅ Debug log
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to save changes");
+        throw new Error(result.error || "Failed to save changes");
       }
 
+      // Refresh credentials
       await onSave();
       onClose();
     } catch (err) {

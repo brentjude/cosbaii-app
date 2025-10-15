@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
 
             case 'AWARD_RECEIVED':
               if (notification.relatedId) {
-                const award = await prisma.award.findUnique({
+                const awards = await prisma.awards.findUnique({
                   where: { id: notification.relatedId },
                   select: {
                     id: true,
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
                     },
                   },
                 });
-                relatedData = award;
+                relatedData = awards;
               }
               break;
 

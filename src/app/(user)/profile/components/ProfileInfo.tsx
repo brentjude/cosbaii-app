@@ -3,7 +3,7 @@ import { UserSettings } from "@/types/settings";
 
 interface Props {
   profile: Profile | null;
-  userSettings?: UserSettings | null; // ✅ Make it optional
+  userSettings?: UserSettings | null;
 }
 
 export default function ProfileInfo({ profile, userSettings }: Props) {

@@ -15,8 +15,8 @@ import FeaturedCosplaysEditor from "@/app/components/user/modals/FeaturedCosplay
 import EditCredentialsModal from "./components/EditCredentialsModal";
 import { getPositionInfo } from "@/lib/user/profile/position";
 import { formatDate, eventYear } from "@/lib/user/profile/format";
-import { getCosplayerTypeInfo } from "@/lib/user/profile/cosplayer-type"; // ✅ Fixed import
-import { EditProfileData, FeaturedItem, SkillLevel } from "@/types/profile";
+import { getCosplayerTypeInfo } from "@/lib/user/profile/cosplayer-type";
+import { EditProfileData, FeaturedItem, SkillLevel, CosplayerType } from "@/types/profile";
 
 const ProfilePage = () => {
   const { data: session } = useSession();
@@ -93,7 +93,6 @@ const ProfilePage = () => {
   ).length;
   const totalCompetitions = credentials.length;
 
-  // ✅ Fixed function call
   const cosplayerTypeInfo = getCosplayerTypeInfo(profile?.cosplayerType);
 
   const handleEditProfile = () => {
@@ -125,12 +124,19 @@ const ProfilePage = () => {
   const getEditableProfileData = (): EditProfileData | null => {
     if (!profile) return null;
 
+    const getCosplayerType = (type: string): CosplayerType => {
+      const validTypes: CosplayerType[] = ["COMPETITIVE", "HOBBY", "PROFESSIONAL"];
+      return validTypes.includes(type as CosplayerType) 
+        ? (type as CosplayerType) 
+        : "HOBBY";
+    };
+
     return {
       displayName: profile.displayName || "",
       bio: profile.bio || "",
       profilePicture: profile.profilePicture || "/images/default-avatar.png",
       coverImage: profile.coverImage || "/images/default-cover.jpg",
-      cosplayerType: profile.cosplayerType,
+      cosplayerType: getCosplayerType(profile.cosplayerType),
       yearsOfExperience: profile.yearsOfExperience,
       specialization: profile.specialization || "",
       skillLevel: (profile.skillLevel as SkillLevel) || "beginner",
@@ -169,7 +175,8 @@ const ProfilePage = () => {
           />
 
           <div className="flex flex-row items-start gap-4 mt-4">
-            <ProfileInfo profile={profile} session={session} userSettings={userSettings} />
+            {/* ✅ Removed session prop */}
+            <ProfileInfo profile={profile} userSettings={userSettings} />
 
             <div className="basis-2/3 flex flex-col gap-4">
               <ProfileFeatured

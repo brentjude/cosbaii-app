@@ -1,4 +1,3 @@
-// Update: src/app/(user)/settings/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -13,7 +12,7 @@ import DeleteAccountModal from "@/app/components/user/settings/DeleteAccountModa
 import EditProfileModal from "@/app/components/user/modals/EditProfileModal";
 import { useProfile } from "@/app/context/ProfileContext";
 
-import { EditProfileData } from "@/types/profile";
+import { EditProfileData, CosplayerType, SkillLevel } from "@/types/profile"; // ✅ Add CosplayerType import
 
 interface UserSettings {
   id?: number;
@@ -27,7 +26,7 @@ interface UserSettings {
 
 const SettingsPage = () => {
   const { data: session } = useSession();
-  const { profile, updateProfile } = useProfile(); // ✅ Add updateProfile here
+  const { profile, updateProfile } = useProfile();
   const [activeTab, setActiveTab] = useState<"account" | "profile">("account");
 
   // Settings state
@@ -43,7 +42,7 @@ const SettingsPage = () => {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
 
-  ///loading state
+  // Loading state
   const [editLoading, setEditLoading] = useState(false);
 
   // Load user settings on mount
@@ -63,7 +62,7 @@ const SettingsPage = () => {
     }
   };
 
-  //Handle save profile data
+  // Handle save profile data
   const handleSaveProfile = async (data: EditProfileData) => {
     setEditLoading(true);
     try {
@@ -83,6 +82,23 @@ const SettingsPage = () => {
     }
   };
 
+  // ✅ Helper function to validate cosplayer type
+  const getCosplayerType = (type: string | null | undefined): CosplayerType => {
+    const validTypes: CosplayerType[] = ["COMPETITIVE", "HOBBY", "PROFESSIONAL"];
+    return validTypes.includes(type as CosplayerType) 
+      ? (type as CosplayerType) 
+      : "HOBBY";
+  };
+
+  // ✅ Helper function to validate skill level
+  const getSkillLevel = (level: string | null | undefined): SkillLevel => {
+    const validLevels: SkillLevel[] = ["beginner", "intermediate", "advanced"];
+    const normalizedLevel = level?.toLowerCase();
+    return validLevels.includes(normalizedLevel as SkillLevel)
+      ? (normalizedLevel as SkillLevel)
+      : "beginner";
+  };
+
   const getEditableProfileData = (): EditProfileData | null => {
     if (!profile) return null;
 
@@ -91,23 +107,18 @@ const SettingsPage = () => {
       bio: profile.bio || "",
       profilePicture: profile.profilePicture || "/images/default-avatar.png",
       coverImage: profile.coverImage || "/images/default-cover.jpg",
-      cosplayerType: profile.cosplayerType || "HOBBY",
-      yearsOfExperience: profile.yearsOfExperience || 0,
+      cosplayerType: getCosplayerType(profile.cosplayerType), // ✅ Use helper function
+      yearsOfExperience: profile.yearsOfExperience ?? 0, // ✅ Use nullish coalescing
       specialization: profile.specialization || "",
-      skillLevel:
-        (profile.skillLevel?.toLowerCase() as
-          | "beginner"
-          | "intermediate"
-          | "advanced") || "beginner", // ✅ Provide proper type
-      facebookUrl: profile.facebookUrl || null,
-      instagramUrl: profile.instagramUrl || null,
-      twitterUrl: profile.twitterUrl || null,
+      skillLevel: getSkillLevel(profile.skillLevel), // ✅ Use helper function
+      facebookUrl: profile.facebookUrl || "",
+      instagramUrl: profile.instagramUrl || "",
+      twitterUrl: profile.twitterUrl || "",
       featured: [],
     };
   };
 
   const updateSetting = async (key: keyof UserSettings, value: boolean) => {
-    // ✅ Changed from 'any' to 'boolean'
     try {
       const response = await fetch("/api/user/settings", {
         method: "PUT",

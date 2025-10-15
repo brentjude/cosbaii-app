@@ -5,7 +5,6 @@ import { XMarkIcon, CameraIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import {
   EditProfileData,
-  FeaturedItem,
 } from "@/types/profile";
 
 interface EditProfileModalProps {
@@ -38,7 +37,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     twitterUrl: "",
   });
 
-  const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
   const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
@@ -67,14 +65,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setCoverImagePreview(null);
     }
   }, [profileData]);
-
-  const handleFeaturedSave = async (featured: FeaturedItem[]): Promise<void> => {
-    setFormData((prev) => ({
-      ...prev,
-      featured,
-    }));
-    setShowFeaturedEditor(false);
-  };
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
