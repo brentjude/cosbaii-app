@@ -3,11 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
+    "dev": "dotenv -e .env.development -- next dev",
+    "build": "dotenv -e .env.production -- next build",
+    "start": "dotenv -e .env.production -- next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    
+    "prisma:studio:dev": "dotenv -e .env.development -- npx prisma studio",
+    "prisma:studio:prod": "dotenv -e .env.production -- npx prisma studio",
+    
+    "prisma:generate": "npx prisma generate",
+    
+    "prisma:migrate:dev": "dotenv -e .env.development -- npx prisma migrate dev",
+    "prisma:migrate:prod": "dotenv -e .env.production -- npx prisma migrate deploy",
+    
+    "prisma:push:dev": "dotenv -e .env.development -- npx prisma db push",
+    "prisma:push:prod": "dotenv -e .env.production -- npx prisma db push",
+    
+    "prisma:seed:dev": "dotenv -e .env.development -- npx prisma db seed",
+    "prisma:seed:prod": "dotenv -e .env.production -- npx prisma db seed",
+    
+    "prisma:reset:dev": "dotenv -e .env.development -- npx prisma migrate reset",
+    
+    "db:pull:dev": "dotenv -e .env.development -- npx prisma db pull",
+    "db:pull:prod": "dotenv -e .env.production -- npx prisma db pull"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -36,6 +54,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "daisyui": "^5.0.48",
+    "dotenv-cli": "^10.0.0",
     "eslint": "^9.37.0",
     "eslint-config-next": "15.4.4",
     "prisma": "^6.13.0",
