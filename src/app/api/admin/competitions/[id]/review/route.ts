@@ -1,16 +1,16 @@
-// Update: src/app/api/admin/competitions/[id]/review/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { REVIEW_ACTIONS } from "@/types/competition";
 
+// ✅ Use enum values from types
 const reviewSchema = z.object({
-  action: z.enum(["ACCEPT", "REJECT"]),
+  action: z.enum([REVIEW_ACTIONS.ACCEPT, REVIEW_ACTIONS.REJECT]),
   rejectionReason: z.string().optional(),
 });
 
-// ✅ Make sure this is the ONLY named export
 export async function POST(
   request: NextRequest,
   props: { params: Promise<{ id: string }> }
@@ -27,7 +27,6 @@ export async function POST(
       );
     }
 
-    // ✅ Await params properly
     const params = await props.params;
     const competitionId = parseInt(params.id);
 
@@ -86,7 +85,8 @@ export async function POST(
 
     const { action, rejectionReason } = validationResult.data;
 
-    if (action === "REJECT" && !rejectionReason?.trim()) {
+    // ✅ Use enum for comparison
+    if (action === REVIEW_ACTIONS.REJECT && !rejectionReason?.trim()) {
       return NextResponse.json(
         {
           message: "Rejection reason is required when rejecting a competition",
@@ -95,7 +95,8 @@ export async function POST(
       );
     }
 
-    const newStatus = action === "ACCEPT" ? "ACCEPTED" : "REJECTED";
+    // ✅ Use enum for status determination
+    const newStatus = action === REVIEW_ACTIONS.ACCEPT ? "ACCEPTED" : "REJECTED";
     const reviewedBy = parseInt(session.user.id);
 
     const updatedCompetition = await prisma.competition.update({
@@ -104,7 +105,7 @@ export async function POST(
         status: newStatus,
         reviewedById: reviewedBy,
         reviewedAt: new Date(),
-        rejectionReason: action === "REJECT" ? rejectionReason : null,
+        rejectionReason: action === REVIEW_ACTIONS.REJECT ? rejectionReason : null,
       },
       include: {
         submittedBy: {
@@ -130,10 +131,12 @@ export async function POST(
       data: {
         userId: existingCompetition.submittedById,
         type:
-          action === "ACCEPT" ? "COMPETITION_ACCEPTED" : "COMPETITION_REJECTED",
+          action === REVIEW_ACTIONS.ACCEPT
+            ? "COMPETITION_ACCEPTED"
+            : "COMPETITION_REJECTED",
         title: `Competition ${action.toLowerCase()}ed`,
         message:
-          action === "ACCEPT"
+          action === REVIEW_ACTIONS.ACCEPT
             ? `Your competition "${existingCompetition.name}" has been approved!`
             : `Your competition "${existingCompetition.name}" was rejected. Reason: ${rejectionReason}`,
         relatedId: competitionId,
@@ -158,6 +161,5 @@ export async function POST(
   }
 }
 
-// ✅ Add runtime config to prevent static optimization
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

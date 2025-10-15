@@ -1,230 +1,115 @@
-// src/app/(dashboard)/admin/competitions/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  CheckIcon,
-  XMarkIcon,
-  ClockIcon,
-  PlusIcon,
-  FunnelIcon,
-  ExclamationTriangleIcon,
-  TrophyIcon,
-  CalendarIcon,
-  MapPinIcon,
-  UserIcon,
-} from "@heroicons/react/24/outline";
-import { useAuthSession } from "@/hooks/auth/useAuthSession";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { PlusIcon } from "@heroicons/react/24/outline";
+import { Competition, CompetitionStatus } from "@/types/competition";
+import { useCompetitions } from "@/hooks/admin/useCompetition";
 
-// ✅ Fixed import path - removed extra 't' in 'AddCompeittionModal'
-import AddCompetitionModal from "@/app/components/admin/competitions/modals/AddCompetitionModal";
-import ReviewCompetitionModal from "@/app/components/admin/competitions/modals/ReviewCompetitionModal";
-import DeleteCompetitionModal from "@/app/components/admin/competitions/modals/DeleteCompetitionModal";
-import ViewCompetitionModal from "@/app/components/admin/competitions/modals/ViewCompetitionModal";
-import EditCompetitionModal from "@/app/components/admin/competitions/modals/EditCompetitionModal";
+// Components
+import StatsCards from "./components/StatsCards";
+import CompetitionsTable from "./components/CompetitionsTable";
+import ParticipantsModal from "./components/ParticipantsModal";
+import CreateCompetitionModal from "./components/CreateCompetitionModal";
+import EditCompetitionModal from "./components/EditCompetitionModal";
+import ViewCompetitionModal from "./components/ViewCompetitionModal";
+import ReviewCompetitionModal from "./components/ReviewCompetitionModal";
 
-// Types
-type CompetitionStatus =
-  | "DRAFT"
-  | "SUBMITTED"
-  | "ACCEPTED"
-  | "ONGOING"
-  | "COMPLETED"
-  | "REJECTED"
-  | "CANCELLED";
+export default function AdminCompetitionsPage() {
+  const { data: session, status } = useSession();
+  const authLoading = status === "loading";
+  const user = session?.user;
+  const isAdmin = user?.role === "ADMIN";
 
-type CompetitionType = "GENERAL" | "ARMOR" | "CLOTH" | "SINGING";
-type RivalryType = "SOLO" | "DUO" | "GROUP";
-type CompetitionLevel =
-  | "BARANGAY"
-  | "LOCAL"
-  | "REGIONAL"
-  | "NATIONAL"
-  | "WORLDWIDE";
-
-interface Competition {
-  id: number;
-  name: string;
-  description: string | null;
-  eventDate: string;
-  location: string | null;
-  organizer: string | null;
-  // ✅ Add new fields
-  competitionType: CompetitionType;
-  rivalryType: RivalryType;
-  level: CompetitionLevel;
-  // ✅ NEW: Logo and reference links
-  logoUrl: string | null;
-  eventUrl: string | null;
-  facebookUrl: string | null;
-  instagramUrl: string | null;
-  referenceLinks: string | null;
-  // System fields
-  submittedById: number;
-  submittedBy: {
-    id: number;
-    name: string | null;
-    email: string;
-    username: string | null;
-    role: string;
-  };
-  status: CompetitionStatus;
-  reviewedById: number | null;
-  reviewedAt: string | null;
-  rejectionReason: string | null;
-  createdAt: string;
-  updatedAt: string;
-  _count: {
-    participants: number;
-    awards: number;
-  };
-}
-
-interface NewCompetitionData {
-  name: string;
-  description: string | null;
-  eventDate: string;
-  location: string | null;
-  organizer: string | null;
-  competitionType: CompetitionType;
-  rivalryType: RivalryType;
-  level: CompetitionLevel;
-  // Ensure these are in ALL definitions
-  logoUrl: string | null;
-  eventUrl: string | null;
-  facebookUrl: string | null;
-  instagramUrl: string | null;
-  referenceLinks: string | null;
-}
-
-interface EditCompetitionData {
-  name: string;
-  description: string | null;
-  eventDate: string;
-  location: string | null;
-  organizer: string | null;
-  competitionType: CompetitionType;
-  rivalryType: RivalryType;
-  level: CompetitionLevel;
-  logoUrl: string | null;
-  eventUrl: string | null;
-  facebookUrl: string | null;
-  instagramUrl: string | null;
-  referenceLinks: string | null;
-}
-
-
-const CompetitionsManagementPage = () => {
-  const { isAdmin, loading: authLoading } = useAuthSession();
-
-  // State management
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [addModalError, setAddModalError] = useState<string | null>(null);
-  const [editModalError, setEditModalError] = useState<string | null>(null); // ✅ Move this inside the component
-
-  // Filter states
-  const [selectedStatus, setSelectedStatus] = useState<
-    CompetitionStatus | "ALL"
-  >("ALL");
+  const {
+    competitions,
+    stats,
+    loading,
+    error,
+    actionLoading,
+    setError,
+    fetchCompetitions,
+    createCompetition,
+    updateCompetition,
+    deleteCompetition,
+    reviewCompetition,
+  } = useCompetitions(isAdmin, authLoading);
 
   // Modal states
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-
-  // Selected competition and action states
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false);
   const [selectedCompetition, setSelectedCompetition] =
     useState<Competition | null>(null);
-  const [reviewAction, setReviewAction] = useState<"ACCEPT" | "REJECT" | null>(
-    null
-  );
+  const [reviewAction, setReviewAction] = useState<"ACCEPT" | "REJECT">("ACCEPT");
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    accepted: 0,
-    rejected: 0,
-  });
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<CompetitionStatus | "">("SUBMITTED");
 
-  // Fetch competitions
-  const fetchCompetitions = async (status?: CompetitionStatus) => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Redirect if not admin
+  if (!authLoading && !isAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="alert alert-error">
+          <span>Access denied. Admin privileges required.</span>
+        </div>
+      </div>
+    );
+  }
 
-      const params = new URLSearchParams();
-      if (status) params.append("status", status);
-
-      const response = await fetch(
-        `/api/admin/competitions?${params.toString()}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch competitions");
-      }
-
-      const data = await response.json();
-      setCompetitions(data.competitions || []);
-      setStats(
-        data.stats || { total: 0, pending: 0, accepted: 0, rejected: 0 }
-      );
-    } catch (error) {
-      console.error("Error fetching competitions:", error);
-      setError("Failed to load competitions");
-    } finally {
-      setLoading(false);
+  // Handlers (same as before)
+  const handleCreate = async (data: any) => {
+    const result = await createCompetition(data);
+    if (result.success) {
+      setShowCreateModal(false);
+    } else {
+      setError(result.error || "Failed to create competition");
     }
   };
 
-  // Initial fetch
-  useEffect(() => {
-    if (!authLoading && isAdmin) {
-      fetchCompetitions();
+  const handleEdit = async (data: any) => {
+    if (!selectedCompetition) return;
+    const result = await updateCompetition(selectedCompetition.id, data);
+    if (result.success) {
+      setShowEditModal(false);
+      setSelectedCompetition(null);
+    } else {
+      setError(result.error || "Failed to update competition");
     }
-  }, [authLoading, isAdmin]);
-
-  // Filter competitions based on selected status
-  const filteredCompetitions =
-    selectedStatus === "ALL"
-      ? competitions
-      : competitions.filter((comp) => comp.status === selectedStatus);
-
-  // Event handlers
-  const handleStatusFilter = async (status: CompetitionStatus | "ALL") => {
-    setSelectedStatus(status);
-    await fetchCompetitions(status === "ALL" ? undefined : status);
   };
 
-  const handleAddCompetition = () => {
-    setShowAddModal(true);
+  const handleDelete = async (competition: Competition) => {
+    if (!confirm(`Are you sure you want to delete "${competition.name}"?`))
+      return;
+
+    const result = await deleteCompetition(competition.id);
+    if (!result.success) {
+      setError(result.error || "Failed to delete competition");
+    }
   };
 
-  const handleViewCompetition = (competition: Competition) => {
-    setSelectedCompetition(competition);
-    setShowViewModal(true);
+  const handleReview = async () => {
+    if (!selectedCompetition) return;
+
+    const result = await reviewCompetition(
+      selectedCompetition.id,
+      reviewAction,
+      reviewAction === "REJECT" ? rejectionReason : undefined
+    );
+
+    if (result.success) {
+      setShowReviewModal(false);
+      setSelectedCompetition(null);
+      setRejectionReason("");
+    } else {
+      setError(result.error || "Failed to review competition");
+    }
   };
 
-  const handleEditCompetition = (competition: Competition) => {
-    setSelectedCompetition(competition);
-    setShowEditModal(true);
-  };
-
-  const handleDeleteCompetition = (competition: Competition) => {
-    setSelectedCompetition(competition);
-    setShowDeleteModal(true);
-  };
-
-  const handleReviewCompetition = (
+  const handleOpenReview = (
     competition: Competition,
     action: "ACCEPT" | "REJECT"
   ) => {
@@ -234,498 +119,160 @@ const CompetitionsManagementPage = () => {
     setShowReviewModal(true);
   };
 
-  // API actions
-  const confirmCreate = async (data: NewCompetitionData) => {
-    setActionLoading(true);
-    setAddModalError(null);
-    try {
-      const response = await fetch("/api/admin/competitions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        closeModals();
-        await fetchCompetitions();
-      } else {
-        const error = await response.json();
-        setAddModalError(error.message || "Failed to create competition");
-      }
-    } catch { 
-      setAddModalError("Failed to create competition");
-    } finally {
-      setActionLoading(false);
-    }
+  const handleViewParticipants = (competition: Competition) => {
+    setSelectedCompetition(competition);
+    setShowParticipantsModal(true);
   };
 
-  const confirmReview = async () => {
-    if (!selectedCompetition || !reviewAction) return;
-
-    setActionLoading(true);
-    try {
-      const response = await fetch(
-        `/api/admin/competitions/${selectedCompetition.id}/review`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: reviewAction,
-            rejectionReason:
-              reviewAction === "REJECT" ? rejectionReason : undefined,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        closeModals();
-        await fetchCompetitions();
-      } else {
-        const error = await response.json();
-        setError(error.message || "Failed to review competition");
-      }
-    } catch { 
-      setError("Failed to review competition");
-    } finally {
-      setActionLoading(false);
-    }
+  const handleStatusFilterChange = (status: CompetitionStatus | "") => {
+    setStatusFilter(status);
+    fetchCompetitions(status || undefined);
   };
-
-  // Add the confirmUpdate function
-const confirmUpdate = async (data: EditCompetitionData) => {
-    if (!selectedCompetition) return;
-
-    setActionLoading(true);
-    setEditModalError(null);
-    try {
-      const response = await fetch(`/api/admin/competitions/${selectedCompetition.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        closeModals();
-        await fetchCompetitions();
-      } else {
-        const error = await response.json();
-        setEditModalError(error.message || "Failed to update competition");
-      }
-    } catch { 
-      setEditModalError("Failed to update competition");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-
-  const confirmDelete = async () => {
-    if (!selectedCompetition) return;
-
-    setActionLoading(true);
-    try {
-      const response = await fetch(
-        `/api/admin/competitions/${selectedCompetition.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (response.ok) {
-        closeModals();
-        await fetchCompetitions();
-      } else {
-        const error = await response.json();
-        setError(error.message || "Failed to delete competition");
-      }
-    } catch { 
-      setError("Failed to delete competition");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
- const closeModals = () => {
-  setShowAddModal(false);
-  setShowViewModal(false);
-  setShowEditModal(false);
-  setShowDeleteModal(false);
-  setShowReviewModal(false);
-  setSelectedCompetition(null);
-  setReviewAction(null);
-  setRejectionReason("");
-  setError(null);
-  setAddModalError(null);
-  setEditModalError(null); // Add this line
-};
-
-  // Utility functions
-  const getStatusBadgeClass = (status: CompetitionStatus) => {
-    switch (status) {
-      case "DRAFT":
-        return "badge-ghost";
-      case "SUBMITTED":
-        return "badge-warning";
-      case "ACCEPTED":
-        return "badge-success";
-      case "ONGOING":
-        return "badge-info";
-      case "COMPLETED":
-        return "badge-primary";
-      case "REJECTED":
-        return "badge-error";
-      case "CANCELLED":
-        return "badge-ghost";
-      default:
-        return "badge-ghost";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // ✅ Helper function to format enum values for display
-  const formatEnumValue = (value: string) => {
-    return value.charAt(0) + value.slice(1).toLowerCase().replace("_", " ");
-  };
-
-  // Loading and auth checks
-  if (authLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="flex flex-col items-center gap-4">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-            <p className="text-base-content/70">Checking permissions...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="alert alert-error max-w-md">
-            <ExclamationTriangleIcon className="w-6 h-6" />
-            <span>You don&apos;t have permission to access this page.</span> {/* ✅ Fixed apostrophe */}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* Error Alert */}
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Competition Management</h1>
+          <p className="text-base-content/70 mt-1">
+            Manage and review competition submissions
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="btn btn-primary gap-2"
+        >
+          <PlusIcon className="w-5 h-5" />
+          Add Competition
+        </button>
+      </div>
+
       {error && (
-        <div className="alert alert-error">
-          <ExclamationTriangleIcon className="w-6 h-6" />
+        <div className="alert alert-error mb-6">
           <span>{error}</span>
-          <button
-            className="btn btn-sm btn-ghost"
-            onClick={() => setError(null)}
-          >
-            <XMarkIcon className="w-4 h-4" />
+          <button className="btn btn-sm btn-ghost" onClick={() => setError(null)}>
+            ✕
           </button>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Competition Management</h1>
-          <p className="text-base-content/70">
-            Review and manage cosplay competitions
-          </p>
-        </div>
+      <StatsCards stats={stats} />
 
-        <div className="flex gap-2">
-          <button
-            className="btn btn-primary"
-            onClick={handleAddCompetition}
-            disabled={actionLoading}
-          >
-            <PlusIcon className="w-4 h-4" />
-            Add Competition
-          </button>
-
-          {/* Status Filter */}
-          <div className="dropdown dropdown-end">
-            <div tabIndex={0} role="button" className="btn btn-outline">
-              <FunnelIcon className="w-4 h-4" />
-              Filter: {selectedStatus === "ALL" ? "All Status" : selectedStatus}
-            </div>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
+      {/* Filter Section */}
+      <div className="bg-base-100 rounded-lg shadow p-4 mb-6">
+        <div className="flex gap-2 items-center flex-wrap">
+          <span className="font-semibold">Filter by Status:</span>
+          <div className="btn-group">
+            <button
+              className={`btn btn-sm ${statusFilter === "" ? "btn-active" : ""}`}
+              onClick={() => handleStatusFilterChange("")}
             >
-              <li>
-                <a onClick={() => handleStatusFilter("ALL")}>All Status</a>
-              </li>
-              <li>
-                <a onClick={() => handleStatusFilter("SUBMITTED")}>Submitted</a>
-              </li>
-              <li>
-                <a onClick={() => handleStatusFilter("ACCEPTED")}>Accepted</a>
-              </li>
-              <li>
-                <a onClick={() => handleStatusFilter("REJECTED")}>Rejected</a>
-              </li>
-              <li>
-                <a onClick={() => handleStatusFilter("ONGOING")}>Ongoing</a>
-              </li>
-              <li>
-                <a onClick={() => handleStatusFilter("COMPLETED")}>Completed</a>
-              </li>
-            </ul>
+              All
+            </button>
+            <button
+              className={`btn btn-sm ${
+                statusFilter === "SUBMITTED" ? "btn-active" : ""
+              }`}
+              onClick={() => handleStatusFilterChange("SUBMITTED")}
+            >
+              Submitted
+            </button>
+            <button
+              className={`btn btn-sm ${
+                statusFilter === "ACCEPTED" ? "btn-active" : ""
+              }`}
+              onClick={() => handleStatusFilterChange("ACCEPTED")}
+            >
+              Accepted
+            </button>
+            <button
+              className={`btn btn-sm ${
+                statusFilter === "ONGOING" ? "btn-active" : ""
+              }`}
+              onClick={() => handleStatusFilterChange("ONGOING")}
+            >
+              Ongoing
+            </button>
+            <button
+              className={`btn btn-sm ${
+                statusFilter === "COMPLETED" ? "btn-active" : ""
+              }`}
+              onClick={() => handleStatusFilterChange("COMPLETED")}
+            >
+              Completed
+            </button>
+            <button
+              className={`btn btn-sm ${
+                statusFilter === "REJECTED" ? "btn-active" : ""
+              }`}
+              onClick={() => handleStatusFilterChange("REJECTED")}
+            >
+              Rejected
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="stat bg-base-100 rounded-lg shadow">
-          <div className="stat-figure text-primary">
-            <TrophyIcon className="w-8 h-8" />
-          </div>
-          <div className="stat-title">Total Competitions</div>
-          <div className="stat-value text-primary">{stats.total}</div>
-        </div>
-
-        <div className="stat bg-base-100 rounded-lg shadow">
-          <div className="stat-figure text-warning">
-            <ClockIcon className="w-8 h-8" />
-          </div>
-          <div className="stat-title">Pending Review</div>
-          <div className="stat-value text-warning">{stats.pending}</div>
-        </div>
-
-        <div className="stat bg-base-100 rounded-lg shadow">
-          <div className="stat-figure text-success">
-            <CheckIcon className="w-8 h-8" />
-          </div>
-          <div className="stat-title">Accepted</div>
-          <div className="stat-value text-success">{stats.accepted}</div>
-        </div>
-
-        <div className="stat bg-base-100 rounded-lg shadow">
-          <div className="stat-figure text-error">
-            <XMarkIcon className="w-8 h-8" />
-          </div>
-          <div className="stat-title">Rejected</div>
-          <div className="stat-value text-error">{stats.rejected}</div>
-        </div>
+      {/* Table Section */}
+      <div className="bg-base-100 rounded-lg shadow">
+        <CompetitionsTable
+          competitions={competitions}
+          loading={loading}
+          actionLoading={actionLoading}
+          onView={(competition) => {
+            setSelectedCompetition(competition);
+            setShowViewModal(true);
+          }}
+          onEdit={(competition) => {
+            setSelectedCompetition(competition);
+            setShowEditModal(true);
+          }}
+          onDelete={handleDelete}
+          onReview={handleOpenReview}
+          onViewParticipants={handleViewParticipants}
+        />
       </div>
 
-      {/* Competitions Table */}
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <div className="overflow-x-auto">
-            <table className="table table-zebra">
-              <thead>
-                <tr>
-                  <th>Competition</th>
-                  <th>Event Date</th>
-                  <th>Submitted By</th>
-                  <th>Status</th>
-                  <th>Participants</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCompetitions.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8">
-                      <div className="text-base-content/50">
-                        <TrophyIcon className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                        <p>No competitions found</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCompetitions.map((competition) => (
-                    <tr key={competition.id} className="hover">
-                      <td>
-                        <div>
-                          <div className="font-semibold">
-                            {competition.name}
-                          </div>
-                          {/* ✅ Show new competition details with formatted badges */}
-                          <div className="flex gap-2 mt-1">
-                            <span className="badge badge-sm badge-outline">
-                              {formatEnumValue(competition.competitionType)}
-                            </span>
-                            <span className="badge badge-sm badge-info">
-                              {formatEnumValue(competition.rivalryType)}
-                            </span>
-                            <span className="badge badge-sm badge-accent">
-                              {formatEnumValue(competition.level)}
-                            </span>
-                          </div>
-                          {competition.location && (
-                            <div className="text-sm text-base-content/70 flex items-center gap-1 mt-1">
-                              <MapPinIcon className="w-3 h-3" />
-                              {competition.location}
-                            </div>
-                          )}
-                          {competition.organizer && (
-                            <div className="text-sm text-base-content/70">
-                              Org: {competition.organizer}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="w-4 h-4 text-base-content/50" />
-                          {formatDate(competition.eventDate)}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="w-4 h-4 text-base-content/50" />
-                          <div>
-                            <div className="font-medium">
-                              {competition.submittedBy.name ||
-                                competition.submittedBy.email}
-                            </div>
-                            <div className="text-sm text-base-content/70">
-                              {competition.submittedBy.role}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div
-                          className={`badge ${getStatusBadgeClass(
-                            competition.status
-                          )}`}
-                        >
-                          {competition.status}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="text-center">
-                          {competition._count.participants}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex gap-1">
-                          {/* Review Actions (only for SUBMITTED competitions) */}
-                          {competition.status === "SUBMITTED" && (
-                            <>
-                              <button
-                                className="btn btn-sm btn-success"
-                                onClick={() =>
-                                  handleReviewCompetition(competition, "ACCEPT")
-                                }
-                                title="Accept Competition"
-                                disabled={actionLoading}
-                              >
-                                <CheckIcon className="w-4 h-4" />
-                              </button>
-                              <button
-                                className="btn btn-sm btn-error"
-                                onClick={() =>
-                                  handleReviewCompetition(competition, "REJECT")
-                                }
-                                title="Reject Competition"
-                                disabled={actionLoading}
-                              >
-                                <XMarkIcon className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
+      {/* Modals */}
+      <CreateCompetitionModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleCreate}
+        loading={actionLoading}
+        errorMessage={error}
+        onClearError={() => setError(null)}
+      />
 
-                          {/* View Competition */}
-                          <button
-                            className="btn btn-sm btn-info btn-outline"
-                            onClick={() => handleViewCompetition(competition)}
-                            title="View Competition Details"
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </button>
-
-                          {/* Edit Competition */}
-                          <button
-                            className="btn btn-sm btn-ghost"
-                            onClick={() => handleEditCompetition(competition)}
-                            title="Edit Competition"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-
-                          {/* Delete Competition */}
-                          <button
-                            className="btn btn-sm btn-error btn-outline"
-                            onClick={() => handleDeleteCompetition(competition)}
-                            title="Delete Competition"
-                            disabled={actionLoading}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Competition Modal */}
       <EditCompetitionModal
         isOpen={showEditModal}
-        onClose={closeModals}
-        onSave={confirmUpdate}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedCompetition(null);
+        }}
+        onSave={handleEdit}
         competition={selectedCompetition}
         loading={actionLoading}
-        errorMessage={editModalError}
-        onClearError={() => setEditModalError(null)}
+        errorMessage={error}
+        onClearError={() => setError(null)}
       />
 
-      {/* View Competition Modal */}
       <ViewCompetitionModal
         isOpen={showViewModal}
-        onClose={closeModals}
+        onClose={() => {
+          setShowViewModal(false);
+          setSelectedCompetition(null);
+        }}
         competition={selectedCompetition}
       />
 
-      {/* Add Competition Modal */}
-      <AddCompetitionModal
-        isOpen={showAddModal}
-        onClose={closeModals}
-        onSave={confirmCreate}
-        loading={actionLoading}
-        // ✅ NEW: Add error props for modal-level errors
-        errorMessage={addModalError}
-        onClearError={() => setAddModalError(null)}
-      />
-
-      {/* Review Competition Modal */}
       <ReviewCompetitionModal
         isOpen={showReviewModal}
-        onClose={closeModals}
-        onConfirm={confirmReview}
+        onClose={() => {
+          setShowReviewModal(false);
+          setSelectedCompetition(null);
+          setRejectionReason("");
+        }}
+        onConfirm={handleReview}
         competition={selectedCompetition}
         action={reviewAction}
         rejectionReason={rejectionReason}
@@ -733,16 +280,14 @@ const confirmUpdate = async (data: EditCompetitionData) => {
         loading={actionLoading}
       />
 
-      {/* Delete Competition Modal */}
-      <DeleteCompetitionModal
-        isOpen={showDeleteModal}
-        onClose={closeModals}
-        onConfirm={confirmDelete}
+      <ParticipantsModal
+        isOpen={showParticipantsModal}
+        onClose={() => {
+          setShowParticipantsModal(false);
+          setSelectedCompetition(null);
+        }}
         competition={selectedCompetition}
-        loading={actionLoading}
       />
     </div>
   );
-};
-
-export default CompetitionsManagementPage;
+}

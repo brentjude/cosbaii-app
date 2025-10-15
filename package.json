@@ -1,10 +1,10 @@
 {
   "name": "cosbaii-app",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",
-    "build": "dotenv -e .env.production -- next build",
+    "build": "npx prisma generate --no-engine && dotenv -e .env.production -- next build",
     "start": "dotenv -e .env.production -- next start",
     "lint": "next lint",
     
@@ -12,6 +12,7 @@
     "prisma:studio:prod": "dotenv -e .env.production -- npx prisma studio",
     
     "prisma:generate": "npx prisma generate",
+    "prisma:generate:no-engine": "npx prisma generate --no-engine",
     
     "prisma:migrate:dev": "dotenv -e .env.development -- npx prisma migrate dev",
     "prisma:migrate:prod": "dotenv -e .env.production -- npx prisma migrate deploy",

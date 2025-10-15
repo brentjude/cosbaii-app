@@ -263,34 +263,36 @@ model Competition {
 }
 
 model CompetitionParticipant {
-  id            Int         @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   userId        Int
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   competitionId Int
-  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  cosplayTitle  String?      @db.VarChar(200)
+  characterName String?      @db.VarChar(200)
+  seriesName    String?      @db.VarChar(200)
+  description   String?      @db.Text
+  status        String       @default("PENDING") @db.VarChar(20) // ✅ Add this field
+  submittedAt   DateTime     @default(now())
+  reviewedAt    DateTime?    // ✅ Add this field
+  photos        String?      @db.Text
+  videoUrl      String?      @db.VarChar(500)
+  isTeam        Boolean      @default(false)
+  teamMembers   String?      @db.Text
+  contactEmail  String?      @db.VarChar(255)
+  contactPhone  String?      @db.VarChar(50)
+  verifiedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  //competition result details
-  position     ParticipantPosition? // Position in the competition (e.g., Champion, First Place, etc.)
-  cosplayTitle String? // Title of the cosplay for display
-  description  String? // Description of the cosplay
-  imageUrl     String? // URL of the cosplay image
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  awards      Awards[]
 
-  // Compeitition specific details
-  category String? // Category of the competition (e.g., "Armor Cosplay", "Clothed Cosplay", "Group Cosplay")
-  score    Float?
-
-  //Verification system (admin can verify the credentials of the participant)
-  verified     Boolean   @default(false) // Whether the participant's credentials have been verified by an admin
-  verifiedById Int? // Admin who verified the participant
-  verifiedAt   DateTime? // When the participant was verified
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, competitionId]) // Ensure a user can only participate in a competition once
-  @@map("competition_participants") // Database table will be named "competition_participants"
+  @@unique([userId, competitionId])
+  @@index([competitionId])
+  @@index([userId])
+  @@index([status]) // ✅ Add index for better query performance
+  @@map("competition_participants")
 }
-
 model Awards {
   id            Int         @id @default(autoincrement())
   competitionId Int
@@ -301,6 +303,8 @@ model Awards {
   category    String?
 
   createdAt DateTime @default(now())
+
+  CompetitionParticipant CompetitionParticipant[]
 
   @@map("awards") // Database table will be named "awards" instead of "Awards"
 }
