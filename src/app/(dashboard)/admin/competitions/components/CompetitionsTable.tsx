@@ -33,7 +33,9 @@ export default function CompetitionsTable({
   if (competitions.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-base-content/70">No competitions found</p>
+        <p className="text-base-content/70">
+          No competitions found matching your search criteria
+        </p>
       </div>
     );
   }

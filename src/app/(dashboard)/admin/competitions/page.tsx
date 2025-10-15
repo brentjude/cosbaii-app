@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Competition, CompetitionStatus } from "@/types/competition";
 import { useCompetitions } from "@/hooks/admin/useCompetition";
 
@@ -46,8 +46,36 @@ export default function AdminCompetitionsPage() {
   const [reviewAction, setReviewAction] = useState<"ACCEPT" | "REJECT">("ACCEPT");
   const [rejectionReason, setRejectionReason] = useState("");
 
-  // Filter state
+  // Filter and search states
   const [statusFilter, setStatusFilter] = useState<CompetitionStatus | "">("SUBMITTED");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter and search competitions
+  const filteredCompetitions = useMemo(() => {
+    return competitions.filter((competition) => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const name = competition.name.toLowerCase();
+        const organizer = competition.organizer?.toLowerCase() || "";
+        const location = competition.location?.toLowerCase() || "";
+        const submitterName = competition.submittedBy.name?.toLowerCase() || "";
+        const submitterEmail = competition.submittedBy.email.toLowerCase();
+        const submitterUsername = competition.submittedBy.username?.toLowerCase() || "";
+
+        return (
+          name.includes(query) ||
+          organizer.includes(query) ||
+          location.includes(query) ||
+          submitterName.includes(query) ||
+          submitterEmail.includes(query) ||
+          submitterUsername.includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [competitions, searchQuery]);
 
   // Redirect if not admin
   if (!authLoading && !isAdmin) {
@@ -60,7 +88,7 @@ export default function AdminCompetitionsPage() {
     );
   }
 
-  // Handlers (same as before)
+  // Handlers
   const handleCreate = async (data: any) => {
     const result = await createCompetition(data);
     if (result.success) {
@@ -126,6 +154,7 @@ export default function AdminCompetitionsPage() {
 
   const handleStatusFilterChange = (status: CompetitionStatus | "") => {
     setStatusFilter(status);
+    setSearchQuery(""); // Reset search when changing status filter
     fetchCompetitions(status || undefined);
   };
 
@@ -158,11 +187,12 @@ export default function AdminCompetitionsPage() {
 
       <StatsCards stats={stats} />
 
-      {/* Filter Section */}
-      <div className="bg-base-100 rounded-lg shadow p-4 mb-6">
+      {/* Filter and Search Section */}
+      <div className="bg-base-100 rounded-lg shadow p-4 mb-6 space-y-4">
+        {/* Status Filter */}
         <div className="flex gap-2 items-center flex-wrap">
           <span className="font-semibold">Filter by Status:</span>
-          <div className="btn-group">
+          <div className="btn-group flex-wrap">
             <button
               className={`btn btn-sm ${statusFilter === "" ? "btn-active" : ""}`}
               onClick={() => handleStatusFilterChange("")}
@@ -211,12 +241,40 @@ export default function AdminCompetitionsPage() {
             </button>
           </div>
         </div>
+
+        {/* Search Bar */}
+        <div className="form-control">
+          <div className="input-group">
+            <input
+              type="text"
+              placeholder="Search by competition name, organizer, location, or submitter..."
+              className="input input-bordered w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                className="btn btn-ghost btn-square"
+                onClick={() => setSearchQuery("")}
+              >
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Count */}
+        {searchQuery && (
+          <div className="text-sm text-base-content/70">
+            Showing {filteredCompetitions.length} of {competitions.length} competitions
+          </div>
+        )}
       </div>
 
       {/* Table Section */}
       <div className="bg-base-100 rounded-lg shadow">
         <CompetitionsTable
-          competitions={competitions}
+          competitions={filteredCompetitions}
           loading={loading}
           actionLoading={actionLoading}
           onView={(competition) => {
