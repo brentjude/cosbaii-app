@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { createCompetitionSubmittedNotification } from '@/lib/notification';
 import { triggerParticipationBadges } from '@/lib/badgeTriggers';
 
-// ✅ Use local type definition to avoid build errors
+// ✅ Use local type definition
 type CompetitionStatus = 
   | 'DRAFT'
   | 'SUBMITTED'
@@ -15,7 +14,6 @@ type CompetitionStatus =
   | 'REJECTED'
   | 'CANCELLED';
 
-// ✅ Add type for Prisma errors
 interface PrismaError {
   code?: string;
   meta?: Record<string, unknown>;
@@ -32,17 +30,12 @@ export async function POST(request: NextRequest) {
     const userId = parseInt(session.user.id);
     const competitionData = await request.json();
 
-    console.log('Competition submission data:', competitionData);
-    console.log('User ID:', userId);
-
-    // Extract required fields
     const {
       name,
       eventDate,
       competitionType,
       rivalryType,
       level,
-      // Optional fields
       description,
       location,
       organizer,
@@ -53,43 +46,13 @@ export async function POST(request: NextRequest) {
       referenceLinks,
     } = competitionData;
 
-    // ✅ Only validate essential required fields
     if (!name || !eventDate || !competitionType || !rivalryType || !level) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, eventDate, competitionType, rivalryType, and level are required' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // ✅ Validate enum values
-    const validCompetitionTypes = ['GENERAL', 'ARMOR', 'CLOTH', 'SINGING'];
-    const validRivalryTypes = ['SOLO', 'DUO', 'GROUP'];
-    const validLevels = ['BARANGAY', 'LOCAL', 'REGIONAL', 'NATIONAL', 'WORLDWIDE'];
-
-    if (!validCompetitionTypes.includes(competitionType)) {
-      return NextResponse.json(
-        { error: `Invalid competition type. Must be one of: ${validCompetitionTypes.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    if (!validRivalryTypes.includes(rivalryType)) {
-      return NextResponse.json(
-        { error: `Invalid rivalry type. Must be one of: ${validRivalryTypes.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    if (!validLevels.includes(level)) {
-      return NextResponse.json(
-        { error: `Invalid level. Must be one of: ${validLevels.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    console.log('Creating competition...');
-
-    // ✅ Create the competition with proper handling of optional fields
     const competition = await prisma.competition.create({
       data: {
         name: name.trim(),
@@ -110,58 +73,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ Trigger badge check for competition submission
+    // ✅ Trigger badge check
     try {
-      console.log('Triggering badge check for competition submission...');
       await triggerParticipationBadges(userId);
-      console.log('Badge check completed for competition submission');
     } catch (badgeError) {
-      console.error('Error checking badges after competition submission:', badgeError);
+      console.error('Error checking badges:', badgeError);
     }
 
-    console.log('Competition created successfully:', competition.id, competition.name);
-
-    // ✅ Create notification - Make this more robust
-    let notificationCreated = false;
+    // ✅ Create notifications for ALL admins
     try {
-      console.log('Creating notification for user:', userId, 'competition:', competition.name);
-      
-      const notification = await createCompetitionSubmittedNotification(
-        userId,
-        competition.name,
-        competition.id
-      );
-      
-      console.log('Notification created successfully:', notification);
-      notificationCreated = true;
-    } catch (notificationError) {
-      console.error('Failed to create notification:', notificationError);
-      
-      // ✅ Try manual notification creation as fallback
-      try {
-        console.log('Attempting manual notification creation...');
-        const manualNotification = await prisma.notification.create({
-          data: {
-            userId,
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map(admin => ({
+            userId: admin.id,
             type: 'COMPETITION_SUBMITTED',
-            title: 'Competition Submitted',
-            message: `Your competition "${competition.name}" has been submitted for admin review.`,
+            title: 'New Competition Submitted',
+            message: `${session.user.name || session.user.email} submitted a new competition: "${competition.name}"`,
             relatedId: competition.id,
             isRead: false,
-          },
+          })),
         });
-        console.log('Manual notification created:', manualNotification);
-        notificationCreated = true;
-      } catch (manualError) {
-        console.error('Manual notification creation also failed:', manualError);
       }
+    } catch (notificationError) {
+      console.error('Failed to create admin notifications:', notificationError);
     }
 
     return NextResponse.json({
       success: true,
       competition,
-      notificationCreated,
-      message: 'Competition submitted successfully and is pending admin review',
+      message: 'Competition submitted successfully',
     });
 
   } catch (error) {
@@ -169,9 +114,6 @@ export async function POST(request: NextRequest) {
     
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as PrismaError;
-      console.error('Prisma error code:', prismaError.code);
-      console.error('Prisma error meta:', prismaError.meta);
-      
       if (prismaError.code === 'P2002') {
         return NextResponse.json(
           { error: 'A competition with this name already exists' },
@@ -180,11 +122,8 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Detailed error:', errorMessage);
-    
     return NextResponse.json(
-      { error: 'Failed to submit competition', details: errorMessage },
+      { error: 'Failed to submit competition' },
       { status: 500 }
     );
   }
@@ -202,7 +141,6 @@ export async function GET(request: NextRequest) {
     const statusParam = searchParams.get('status');
     const userId = parseInt(session.user.id);
 
-    // ✅ Build where clause with proper typing
     const where: {
       submittedById: number;
       status?: CompetitionStatus;
@@ -210,7 +148,6 @@ export async function GET(request: NextRequest) {
       submittedById: userId,
     };
 
-    // ✅ Validate and cast status
     if (statusParam) {
       const validStatuses: CompetitionStatus[] = [
         'DRAFT',

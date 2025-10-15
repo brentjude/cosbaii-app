@@ -1,16 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
-import { z } from "zod";
-import { PARTICIPANT_REVIEW_ACTIONS } from "@/types/competition";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { z } from 'zod';
 
-// ✅ Use enum values from types
-const participantReviewSchema = z.object({
-  action: z.enum([
-    PARTICIPANT_REVIEW_ACTIONS.APPROVE,
-    PARTICIPANT_REVIEW_ACTIONS.REJECT,
-  ]),
+const reviewSchema = z.object({
+  action: z.enum(['APPROVE', 'REJECT']),
 });
 
 export async function POST(
@@ -20,15 +15,8 @@ export async function POST(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Forbidden - Admin access required" },
-        { status: 403 }
-      );
+    if (!session?.user?.id || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const params = await props.params;
@@ -37,18 +25,18 @@ export async function POST(
 
     if (isNaN(competitionId) || isNaN(participantId)) {
       return NextResponse.json(
-        { error: "Invalid ID provided" },
+        { error: 'Invalid IDs' },
         { status: 400 }
       );
     }
 
     const body = await request.json();
-    const validationResult = participantReviewSchema.safeParse(body);
+    const validationResult = reviewSchema.safeParse(body);
 
     if (!validationResult.success) {
       return NextResponse.json(
         {
-          error: "Invalid action. Must be APPROVE or REJECT",
+          error: 'Validation failed',
           details: validationResult.error.flatten().fieldErrors,
         },
         { status: 400 }
@@ -57,24 +45,22 @@ export async function POST(
 
     const { action } = validationResult.data;
 
-    // Check if participant exists and belongs to the competition
-    const participant = await prisma.competitionParticipant.findFirst({
-      where: {
-        id: participantId,
-        competitionId,
-      },
+    // Get participant
+    const participant = await prisma.competitionParticipant.findUnique({
+      where: { id: participantId },
       include: {
         user: {
           select: {
             id: true,
-            email: true,
             name: true,
+            email: true,
           },
         },
         competition: {
           select: {
             id: true,
             name: true,
+            eventDate: true,
           },
         },
       },
@@ -82,60 +68,57 @@ export async function POST(
 
     if (!participant) {
       return NextResponse.json(
-        { error: "Participant not found in this competition" },
+        { error: 'Participant not found' },
         { status: 404 }
       );
     }
 
-    if (participant.status !== "PENDING") {
+    if (participant.competitionId !== competitionId) {
       return NextResponse.json(
-        { error: `Participant already ${participant.status.toLowerCase()}` },
+        { error: 'Participant does not belong to this competition' },
         { status: 400 }
       );
     }
 
-    // ✅ Use enum for status determination
-    const newStatus =
-      action === PARTICIPANT_REVIEW_ACTIONS.APPROVE ? "APPROVED" : "REJECTED";
+    if (participant.status !== 'PENDING') {
+      return NextResponse.json(
+        { error: 'Participant has already been reviewed' },
+        { status: 400 }
+      );
+    }
 
+    const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+
+    // Update participant status
     const updatedParticipant = await prisma.competitionParticipant.update({
       where: { id: participantId },
       data: {
         status: newStatus,
         reviewedAt: new Date(),
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            username: true,
-            profile: {
-              select: {
-                displayName: true,
-                profilePicture: true,
-              },
-            },
-          },
-        },
-      },
     });
 
-    // Optional: Create notification for participant
+    // ✅ Create notification for the participant
+    const notificationType = action === 'APPROVE' 
+      ? 'PARTICIPANT_APPROVED' 
+      : 'PARTICIPANT_REJECTED';
+
+    const notificationTitle = action === 'APPROVE'
+      ? 'Participation Approved'
+      : 'Participation Rejected';
+
+    const notificationMessage = action === 'APPROVE'
+      ? `Your participation in "${participant.competition.name}" has been approved! You are now officially registered for this competition.`
+      : `Your participation in "${participant.competition.name}" was not approved. Please contact the organizers for more information.`;
+
     await prisma.notification.create({
       data: {
-        userId: participant.userId,
-        type:
-          action === PARTICIPANT_REVIEW_ACTIONS.APPROVE
-            ? "PARTICIPANT_APPROVED"
-            : "PARTICIPANT_REJECTED",
-        title: `Participation ${action.toLowerCase()}d`,
-        message:
-          action === PARTICIPANT_REVIEW_ACTIONS.APPROVE
-            ? `Your participation in "${participant.competition.name}" has been approved!`
-            : `Your participation in "${participant.competition.name}" was rejected.`,
-        relatedId: competitionId,
+        userId: participant.user.id,
+        type: notificationType,
+        title: notificationTitle,
+        message: notificationMessage,
+        relatedId: competitionId, // Link to competition
+        isRead: false,
       },
     });
 
@@ -143,16 +126,15 @@ export async function POST(
       success: true,
       message: `Participant ${action.toLowerCase()}d successfully`,
       participant: updatedParticipant,
-      action,
     });
   } catch (error) {
-    console.error("Error reviewing participant:", error);
+    console.error('Error reviewing participant:', error);
     return NextResponse.json(
-      { error: "Failed to review participant" },
+      { error: 'Failed to review participant' },
       { status: 500 }
     );
   }
 }
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';

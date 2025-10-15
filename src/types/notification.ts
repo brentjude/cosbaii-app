@@ -1,19 +1,69 @@
-// Update: src/types/notification.ts
+export type NotificationType =
+  | 'COMPETITION_SUBMITTED'
+  | 'COMPETITION_ACCEPTED'
+  | 'COMPETITION_REJECTED'
+  | 'PARTICIPANT_SUBMITTED'
+  | 'PARTICIPANT_APPROVED'
+  | 'PARTICIPANT_REJECTED'
+  | 'BADGE_EARNED'
+  | 'AWARD_RECEIVED'
+  | 'NEW_USER_REGISTERED'
+  | 'FEEDBACK_SUBMITTED';
+
 export interface Notification {
   id: number;
   userId: number;
-  type: 'COMPETITION_SUBMITTED' | 'COMPETITION_APPROVED' | 'COMPETITION_REJECTED' | 'CREDENTIAL_VERIFIED';
+  type: NotificationType;
   title: string;
   message: string;
-  data?: string | null; // JSON string for additional data
-  isRead: boolean; // ✅ Fixed: Changed from 'read' to 'isRead'
-  relatedId?: number | null;
+  relatedId: number | null;
+  isRead: boolean;
   createdAt: string;
-  updatedAt: string;
+  relatedData?: {
+    competition?: {
+      id: number;
+      name: string;
+      status: string;
+      eventDate: string;
+      location: string | null;
+      competitionType?: string;
+      rivalryType?: string;
+      level?: string;
+      logoUrl: string | null;
+      rejectionReason?: string | null;
+    };
+    participant?: {
+      id: number;
+      status: string;
+      cosplayTitle: string | null;
+      characterName: string | null;
+      seriesName: string | null;
+      submittedAt: string;
+      reviewedAt: string | null;
+    };
+    badge?: {
+      id: number;
+      name: string;
+      description: string;
+      iconUrl: string;
+      type: string;
+    };
+    award?: {
+      id: number;
+      title: string;
+      description: string | null;
+      category: string | null;
+      competition: {
+        id: number;
+        name: string;
+        eventDate: string;
+      };
+    };
+  };
 }
 
-export interface CompetitionNotificationData {
-  competitionId: number;
-  competitionName: string;
-  submittedBy?: string;
+export interface NotificationResponse {
+  success: boolean;
+  notifications: Notification[];
+  unreadCount: number;
 }
