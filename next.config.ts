@@ -1,4 +1,3 @@
-// Update: next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -30,8 +29,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // ✅ Optimize fonts
-  optimizeFonts: true,
+  // ✅ Removed optimizeFonts - it's automatic in Next.js 15
 };
 
 export default nextConfig;

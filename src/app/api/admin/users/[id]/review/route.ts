@@ -1,11 +1,10 @@
-// 📁 c:\Website Projects\cosbaii-app\src\app\api\admin\users\[id]\review\route.ts
+// Update: src/app/api/admin/users/[id]/review/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
-// Option 2: Custom error messages using .refine()
 const reviewSchema = z.object({
   action: z.string().refine(
     (val) => val === "APPROVE" || val === "BAN",
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }, { status: 401 });
     }
 
-    const { id } = await params; // ✅ Await params first
+    const { id } = await params;
     const userId = parseInt(id);
     if (isNaN(userId)) {
       return NextResponse.json({ message: "Invalid user ID format" }, { status: 400 });
@@ -50,20 +49,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const newStatus = action === "APPROVE" ? "ACTIVE" : "BANNED";
     const reviewedBy = session.user.name || session.user.email || "Admin";
 
+    // ✅ Solution 1: Exclude password in the select query
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
         status: newStatus,
         reviewedBy,
         updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        image: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        reviewedBy: true,
+        isPremiumUser: true,
+        emailVerified: true,
+        // password is excluded by not selecting it
       }
     });
 
-    // ✅ Fixed: Use rest operator with underscore prefix to exclude password without assignment
-    const { password: _password, ...rest } = updatedUser;
-
     return NextResponse.json({ 
-      user: rest,
+      user: updatedUser,
       message: `User ${action.toLowerCase()}ed successfully`
     }, { status: 200 });
 

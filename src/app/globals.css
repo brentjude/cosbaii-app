@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "daisyui";
+
 @plugin "daisyui/theme" {
   name: "cosbaii";
   default: true;
@@ -27,7 +28,7 @@
   --color-error-content: oklch(93% 0.032 17.717);
   --radius-selector: 0.5rem;
   --radius-field: 2rem;
-  --radius-box: 2rem;
+  --radius-box: 1rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -49,17 +50,25 @@ body {
 
 .button-gradient {
   background: #F17105;
-background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1) 100%);
+  background: linear-gradient(50deg, rgba(241, 113, 5, 1) 0%, rgba(246, 188, 0, 1) 100%);
+}
+
+.color-cosbaii-primary {
+  color: #F17305;
 }
 
 /* Homepage */
 
 .font-paytone {
-  font-family: 'Paytone One'!important;
+  font-family: 'Paytone One' !important;
 }
 
 .bg-pale {
   background-color: #FFF2E8;
+}
+
+.text-cosbaii-gray {
+  color: #3C3C3C;
 }
 
 /* Cosbaii Card CSS */

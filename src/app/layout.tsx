@@ -21,8 +21,8 @@ const paytoneOne = Paytone_One({
 });
 
 export const metadata: Metadata = {
-  title: "Cosbaii - Cosplay Competition Platform",
-  description: "Join the ultimate cosplay competition platform",
+  title: "Cosbaii | The Only Platform For Cosplayers",
+  description: "Join the ultimate cosplay competition platform"
 };
 
 export default function RootLayout({

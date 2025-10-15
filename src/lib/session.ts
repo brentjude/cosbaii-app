@@ -4,10 +4,10 @@ import { NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 
 // Session configuration
-const secretKey = 'testingsecret';
+const secretKey = process.env.NEXTAUTH_SECRET || process.env.SESSION_SECRET;
 
 if (!secretKey) {
-  throw new Error('SESSION_SECRET environment variable is not set');
+  throw new Error('NEXTAUTH_SECRET or SESSION_SECRET environment variable is not set');
 }
 
 const encodedKey = new TextEncoder().encode(secretKey);
