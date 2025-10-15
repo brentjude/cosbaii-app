@@ -16,7 +16,7 @@ const AboutCosbaii = () => {
   };
 
   return (
-    <section ref={ref} className="w-full bg-primary">
+    <section id="about" ref={ref} className="w-full bg-primary">
       <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row py-10 sm:py-20 gap-6 sm:gap-24">
         {/* Left side - Feature cards */}
         <div className="flex flex-col sm:flex-row w-full sm:w-[50%] gap-8 sm:gap-8 px-4 sm:px-0">

@@ -40,13 +40,13 @@ const Header = () => {
             <a href="#about" className="text-base hover:text-primary transition-colors">
               About Cosbaii
             </a>
-            <a href="#feature" className="text-base hover:text-primary transition-colors">
+            <a href="#cosplayJourney" className="text-base hover:text-primary transition-colors">
               Features
             </a>
-            <a href="/pricing" className="text-base hover:text-primary transition-colors">
+            <a href="#roadmap" className="text-base hover:text-primary transition-colors">
               Roadmap
             </a>
-            <a href="/contact" className="text-base hover:text-primary transition-colors">
+            <a href="#earlyAccess" className="text-base hover:text-primary transition-colors">
               Early Access
             </a>
           </nav>
@@ -96,21 +96,21 @@ const Header = () => {
                 About Cosbaii
               </a>
               <a
-                href="#feature"
+                href="#cosplayJourney"
                 className="block px-4 py-3 text-base hover:bg-base-200 rounded-lg transition-colors"
                 onClick={closeMobileMenu}
               >
                 Features
               </a>
               <a
-                href="/pricing"
+                href="#roadmap"
                 className="block px-4 py-3 text-base hover:bg-base-200 rounded-lg transition-colors"
                 onClick={closeMobileMenu}
               >
                 Roadmap
               </a>
               <a
-                href="/contact"
+                href="#earlyAccess"
                 className="block px-4 py-3 text-base hover:bg-base-200 rounded-lg transition-colors"
                 onClick={closeMobileMenu}
               >

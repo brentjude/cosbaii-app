@@ -9,7 +9,7 @@ const Roadmap = () => {
   const isInView = useInView(ref, { once: true, amount: 0.2 });
 
   return (
-    <section ref={ref} className="w-full bg-[#F6F6F6] py-16 sm:py-24 px-8">
+    <section id="roadmap" ref={ref} className="w-full bg-[#F6F6F6] py-16 sm:py-24 px-8">
       <div className="max-w-[1440px] mx-auto text-center">
         <motion.h2
           className="font-paytone color-cosbaii-primary text-[32px] sm:text-[64px]"

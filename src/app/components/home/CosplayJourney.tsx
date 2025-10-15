@@ -10,7 +10,7 @@ const CosplayJourney = () => {
   const isInView = useInView(ref, { once: true, amount: 0.3 });
 
   return (
-    <section
+    <section id="cosplayJourney"
       ref={ref}
       className="w-full sm:w-[1440px] mx-auto flex flex-col-reverse sm:flex-row gap-8 sm:gap-16 py-20"
     >
