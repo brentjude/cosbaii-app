@@ -1,21 +1,21 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { useSession } from "next-auth/react";
-// ✅ Rename the import to avoid conflict
 import { 
   Profile as ProfileType, 
-  EditProfileData, 
+  EditProfileData,
+  ProfileSetupData, // ✅ Import ProfileSetupData
   FeaturedItem 
 } from "@/types/profile";
 
 interface ProfileContextType {
-  profile: ProfileType | null; // ✅ Use ProfileType instead of Profile
+  profile: ProfileType | null;
   featuredItems: FeaturedItem[];
   hasProfile: boolean;
   loading: boolean;
   updateProfile: (data: EditProfileData) => Promise<boolean>;
-  setupProfile: (data: EditProfileData) => Promise<boolean>;
+  setupProfile: (data: ProfileSetupData) => Promise<boolean>; // ✅ Changed to ProfileSetupData
   fetchProfile: () => Promise<void>;
 }
 
@@ -23,12 +23,12 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export const ProfileContextProvider = ({ children }: { children: ReactNode }) => {
   const { data: session } = useSession();
-  const [profile, setProfile] = useState<ProfileType | null>(null); // ✅ Use ProfileType
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [featuredItems, setFeaturedItems] = useState<FeaturedItem[]>([]);
   const [hasProfile, setHasProfile] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     if (!session?.user?.id) {
       setLoading(false);
       return;
@@ -47,7 +47,7 @@ export const ProfileContextProvider = ({ children }: { children: ReactNode }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]);
 
   const updateProfile = async (data: EditProfileData): Promise<boolean> => {
     try {
@@ -68,12 +68,19 @@ export const ProfileContextProvider = ({ children }: { children: ReactNode }) =>
     }
   };
 
-  const setupProfile = async (data: EditProfileData): Promise<boolean> => {
+  // ✅ Accept ProfileSetupData and convert it internally
+  const setupProfile = async (data: ProfileSetupData): Promise<boolean> => {
     try {
+      // Convert ProfileSetupData to EditProfileData by adding empty featured array
+      const dataWithFeatured: EditProfileData = {
+        ...data,
+        featured: [], // Initialize with empty featured items
+      };
+
       const response = await fetch("/api/user/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(dataWithFeatured),
       });
 
       if (response.ok) {
@@ -89,7 +96,7 @@ export const ProfileContextProvider = ({ children }: { children: ReactNode }) =>
 
   useEffect(() => {
     fetchProfile();
-  }, [session?.user?.id]); // ✅ Use dependency instead of fetchProfile
+  }, [fetchProfile]);
 
   const value = {
     profile,

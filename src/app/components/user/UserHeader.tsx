@@ -1,34 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import UserLogout from "./UserLogout";
-import ProfileSetupModal from "./modals/ProfileSetupModal";
-import { useProfile } from "@/app/context/ProfileContext";
-import { ProfileSetupData } from "@/types/profile"; // ✅ Import proper type
-
-//icons
+import Image from "next/image";
 import {
-  UserIcon,
   HomeIcon,
-  ArrowRightEndOnRectangleIcon,
+  UserIcon,
   Cog6ToothIcon,
-} from "@heroicons/react/16/solid";
+  ArrowRightEndOnRectangleIcon,
+} from "@heroicons/react/24/outline";
+import { useProfile } from "@/app/context/ProfileContext";
+import ProfileSetupModal from "./modals/ProfileSetupModal";
+import UserLogout from "./UserLogout";
+import { ProfileSetupData } from "@/types/profile";
 
-const UserHeader = () => {
+export default function UserHeader() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [setupLoading, setSetupLoading] = useState(false);
 
-  // ✅ Removed unused 'updateProfile' and 'loading' from destructuring
   const { profile, hasProfile, setupProfile } = useProfile();
 
-  // ✅ Ensure component is mounted on client
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -37,17 +33,17 @@ const UserHeader = () => {
     (document.activeElement as HTMLElement)?.blur();
   };
 
-  // ✅ Fixed: Use proper type instead of 'any'
+  // ✅ Fixed: setupProfile returns boolean, not { success, error }
   const handleProfileSetupComplete = async (profileData: ProfileSetupData) => {
     setSetupLoading(true);
     try {
       const result = await setupProfile(profileData);
 
-      if (result.success) {
+      if (result) { // ✅ Changed from result.success to result
         setShowProfileSetup(false);
         console.log("Profile setup successful!");
       } else {
-        throw new Error(result.error || "Failed to setup profile");
+        throw new Error("Failed to setup profile");
       }
     } catch (error) {
       console.error("Profile setup error:", error);
@@ -70,15 +66,12 @@ const UserHeader = () => {
     }
   };
 
-  // Check if route is active
   const isActiveRoute = (route: string) => {
     if (route === "/dashboard") {
       return pathname === "/dashboard" || pathname.startsWith("/dashboard");
     }
     return pathname === route;
   };
-
-  // ✅ Removed unused getAvatarSrc function - inline the logic instead
 
   return (
     <>
@@ -130,7 +123,6 @@ const UserHeader = () => {
               <span className="text-sm">{session.user.username}</span>
             )}
 
-            {/* ✅ Uses context hasProfile state */}
             {isClient &&
               status !== "loading" &&
               session?.user &&
@@ -158,7 +150,6 @@ const UserHeader = () => {
                   role="button"
                   className="btn btn-ghost btn-circle avatar"
                 >
-                  {/* ✅ Inlined avatar logic - removed unused getAvatarSrc function */}
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-base-200">
                     {profile?.profilePicture &&
                     profile.profilePicture !== "/images/default-avatar.png" ? (
@@ -220,7 +211,6 @@ const UserHeader = () => {
         </div>
       </header>
 
-      {/* ✅ Only render modal after client mount */}
       {isClient && (
         <ProfileSetupModal
           isOpen={showProfileSetup}
@@ -231,6 +221,4 @@ const UserHeader = () => {
       )}
     </>
   );
-};
-
-export default UserHeader;
+}

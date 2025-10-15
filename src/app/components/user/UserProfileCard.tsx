@@ -1,10 +1,8 @@
-"use client";
-
 import React from "react";
-import { useProfile } from "@/app/context/ProfileContext"; // ✅ Import context
 import Image from "next/image";
 import { useSession } from "next-auth/react";
-import { UserIcon, CameraIcon } from "@heroicons/react/24/outline";
+import { useProfile } from "@/app/context/ProfileContext";
+import { CameraIcon, UserIcon } from "@heroicons/react/24/outline";
 
 interface ProfileCardProps {
   champions?: number;
@@ -18,7 +16,7 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
   joined = 0,
 }) => {
   const { data: session } = useSession();
-  const { profile, hasProfile, loading } = useProfile(); // ✅ Use context
+  const { profile, hasProfile, loading } = useProfile();
 
   // ✅ Show loading skeleton with DaisyUI classes
   if (loading) {
@@ -177,9 +175,9 @@ const UserProfileCard: React.FC<ProfileCardProps> = ({
                   <span className="opacity-70">Skill Level:</span>
                   <div
                     className={`badge badge-xs ${
-                      profile.skillLevel === "ADVANCED"
+                      profile.skillLevel === "advanced"  // ✅ Changed to lowercase
                         ? "badge-success"
-                        : profile.skillLevel === "INTERMEDIATE"
+                        : profile.skillLevel === "intermediate"  // ✅ Changed to lowercase
                         ? "badge-warning"
                         : "badge-info"
                     }`}

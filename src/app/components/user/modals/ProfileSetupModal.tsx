@@ -78,6 +78,8 @@ const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
     "Other",
   ];
 
+  
+
   // ✅ File upload handler
   const handleFileUpload = async (file: File, type: "profile" | "cover") => {
     if (!file) return;

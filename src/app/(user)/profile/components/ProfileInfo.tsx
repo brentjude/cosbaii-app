@@ -7,9 +7,7 @@ interface Props {
   userSettings: UserSettings | null;
 }
 
-export default function ProfileInfo({ profile, session, userSettings }: Props) {
-  // ✅ Handle null displayName safely
-  const displayName = profile?.displayName || session?.user?.name || "No Display Name";
+export default function ProfileInfo({ profile, userSettings }: Props) {
 
   return (
     <div className="basis-1/3 bg-white rounded-2xl p-6 border border-gray-200">
