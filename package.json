@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "dotenv -e .env.development -- next dev",
-    "build": "npx prisma generate --no-engine && dotenv -e .env.production -- next build",
-    "start": "dotenv -e .env.production -- next start",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     
     "prisma:studio:dev": "dotenv -e .env.development -- npx prisma studio",
     "prisma:studio:prod": "dotenv -e .env.production -- npx prisma studio",
