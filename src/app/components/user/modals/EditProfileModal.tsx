@@ -1,15 +1,11 @@
-// Update: src/app/components/user/modals/EditProfileModal.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import { XMarkIcon, CameraIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import FeaturedCosplaysEditor from "./FeaturedCosplaysEditor";
-// In both EditProfileModal.tsx and page.tsx
 import {
   EditProfileData,
-  SkillLevel,
-  CosplayerType,
   FeaturedItem,
 } from "@/types/profile";
 
@@ -34,578 +30,426 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     profilePicture: "/images/default-avatar.png",
     coverImage: "/images/default-cover.jpg",
     cosplayerType: "HOBBY",
-    yearsOfExperience: null,
+    yearsOfExperience: 0,
     specialization: "",
     skillLevel: "beginner",
     featured: [],
+    facebookUrl: "",
+    instagramUrl: "",
+    twitterUrl: "",
   });
 
-  const [errors, setErrors] = useState<Partial<EditProfileData>>({});
   const [showFeaturedEditor, setShowFeaturedEditor] = useState(false);
-  const [imageUploading, setImageUploading] = useState<{
-    profile: boolean;
-    cover: boolean;
-  }>({ profile: false, cover: false });
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+  const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
+  const [profilePicPreview, setProfilePicPreview] = useState<string | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
-  const profileInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
+  const profilePicInputRef = useRef<HTMLInputElement>(null);
+  const coverImageInputRef = useRef<HTMLInputElement>(null);
 
-  const specializationOptions = [
-    "Sewing & Tailoring",
-    "Armor Crafting",
-    "Makeup & SFX",
-    "Prop Making",
-    "Wig Styling",
-    "Photography",
-    "Performance",
-    "General Crafting",
-    "Other",
-  ];
-
-  // Initialize form data when profileData changes
+  // ✅ Handle null/undefined values when loading profile data
   useEffect(() => {
     if (profileData) {
-      setFormData(profileData);
-      setErrors({});
+      setFormData({
+        ...profileData,
+        featured: profileData.featured || [],
+        yearsOfExperience: profileData.yearsOfExperience ?? 0,
+        displayName: profileData.displayName || "",
+        bio: profileData.bio || "",
+        specialization: profileData.specialization || "",
+        facebookUrl: profileData.facebookUrl || "",
+        instagramUrl: profileData.instagramUrl || "",
+        twitterUrl: profileData.twitterUrl || "",
+      });
+      setProfilePicPreview(null);
+      setCoverImagePreview(null);
     }
   }, [profileData]);
 
-  // Handle image upload with Cloudinary
-  const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    type: "profile" | "cover"
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleFeaturedSave = async (featured: FeaturedItem[]): Promise<void> => {
+    setFormData((prev) => ({
+      ...prev,
+      featured,
+    }));
+    setShowFeaturedEditor(false);
+  };
 
-    // Validate file
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
-      return;
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+
+      setProfilePictureFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size must be less than 5MB");
+        return;
+      }
+
+      setCoverImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File, type: "profile" | "cover"): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
+
+    const response = await fetch("/api/user/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to upload image");
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB");
-      return;
-    }
+    const data = await response.json();
+    return data.url;
+  };
 
-    setImageUploading((prev) => ({ ...prev, [type]: true }));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
-      // ✅ Use your existing upload API route
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", type);
+      const updatedFormData = { ...formData };
 
-      const response = await fetch("/api/upload/profile", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to upload image");
+      if (profilePictureFile) {
+        setUploadingProfilePic(true);
+        const profilePictureUrl = await uploadImage(profilePictureFile, "profile");
+        updatedFormData.profilePicture = profilePictureUrl;
+        setUploadingProfilePic(false);
       }
 
-      const data = await response.json();
-      console.log("Upload successful:", data);
+      if (coverImageFile) {
+        setUploadingCoverImage(true);
+        const coverImageUrl = await uploadImage(coverImageFile, "cover");
+        updatedFormData.coverImage = coverImageUrl;
+        setUploadingCoverImage(false);
+      }
 
-      // ✅ Update form data with the returned URL
+      onSave(updatedFormData);
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      alert(error instanceof Error ? error.message : "Failed to upload images");
+      setUploadingProfilePic(false);
+      setUploadingCoverImage(false);
+    }
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    
+    // ✅ Handle number input specifically
+    if (name === "yearsOfExperience") {
+      const numValue = value === "" ? 0 : parseInt(value);
       setFormData((prev) => ({
         ...prev,
-        [type === "profile" ? "profilePicture" : "coverImage"]: data.url,
+        [name]: isNaN(numValue) ? 0 : numValue,
       }));
-    } catch (error) {
-      console.error(`Error uploading ${type} image:`, error);
-      alert(`Failed to upload ${type} image. Please try again.`);
-    } finally {
-      setImageUploading((prev) => ({ ...prev, [type]: false }));
-      if (event.target) {
-        event.target.value = "";
-      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
     }
-  };
-
-  // Form validation (removed displayName validation)
-  const validateForm = (): boolean => {
-    const newErrors: Partial<EditProfileData> = {};
-
-    if (formData.bio.length > 160) {
-      newErrors.bio = "Bio must be 160 characters or less";
-    }
-
-    if (!formData.specialization) {
-      newErrors.specialization = "Please select a specialization";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSave(formData);
-    }
-  };
-
-  const handleClose = () => {
-    setErrors({});
-    onClose();
-  };
-
-  const handleFeaturedSave = (featured: FeaturedItem[]) => {
-    setFormData((prev) => ({ ...prev, featured }));
-    setShowFeaturedEditor(false);
   };
 
   if (!isOpen) return null;
 
+  const isUploading = uploadingProfilePic || uploadingCoverImage;
+
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-50" onClick={handleClose} />
-
-      {/* Modal */}
-      <div className="fixed inset-4 z-50 overflow-y-auto">
-        <div className="min-h-full flex items-center justify-center p-4">
-          <div className="bg-base-100 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden">
-            {/* Fixed Header */}
-            <div className="flex justify-between items-center p-6 border-b border-base-200 bg-base-100">
-              <div>
-                <h2 className="text-2xl font-bold">Edit Profile</h2>
-                <p className="text-base-content/70">
-                  Update your basic profile information
-                </p>
-              </div>
-              <button
-                onClick={handleClose}
-                className="btn btn-sm btn-circle btn-ghost"
-                disabled={loading}
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scrollable Content */}
-            <form
-              onSubmit={handleSubmit}
-              className="overflow-y-auto max-h-[calc(95vh-140px)]"
+      <div className="modal modal-open">
+        <div className="modal-box max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4 sticky top-0 bg-base-100 z-10 pb-2">
+            <h3 className="font-bold text-lg">Edit Profile</h3>
+            <button
+              onClick={onClose}
+              className="btn btn-sm btn-circle btn-ghost"
+              disabled={loading || isUploading}
             >
-              <div className="p-6 space-y-8">
-                {/* Profile Images Section */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
-                    Profile Images
-                  </h3>
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
 
-                  {/* Cover Image */}
-                  <div className="space-y-2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Cover Image
-                      </span>
-                    </label>
-                    <div
-                      className="h-40 bg-base-200 rounded-lg overflow-hidden relative group cursor-pointer border-2 border-dashed border-base-300 hover:border-primary"
-                      onClick={() =>
-                        !imageUploading.cover && coverInputRef.current?.click()
-                      }
-                    >
-                      <Image
-                        src={formData.coverImage}
-                        alt="Cover"
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="text-center text-white">
-                          {imageUploading.cover ? (
-                            <>
-                              <span className="loading loading-spinner loading-lg mb-2"></span>
-                              <p className="text-sm">
-                                Uploading cover image...
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <CameraIcon className="w-8 h-8 mx-auto mb-2" />
-                              <p className="text-sm">Click to change cover</p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <input
-                      ref={coverInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, "cover")}
-                      className="hidden"
-                      disabled={imageUploading.cover}
-                    />
-                  </div>
-
-                  {/* Profile Picture */}
-                  <div className="space-y-2">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Profile Picture
-                      </span>
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-base-300">
-                          <Image
-                            src={formData.profilePicture}
-                            alt="Profile"
-                            width={96}
-                            height={96}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className="absolute bottom-0 right-0 btn btn-circle btn-sm btn-primary"
-                          onClick={() =>
-                            !imageUploading.profile &&
-                            profileInputRef.current?.click()
-                          }
-                          disabled={imageUploading.profile}
-                        >
-                          {imageUploading.profile ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          ) : (
-                            <CameraIcon className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                      <div>
-                        <button
-                          type="button"
-                          className="btn btn-outline btn-sm"
-                          onClick={() =>
-                            !imageUploading.profile &&
-                            profileInputRef.current?.click()
-                          }
-                          disabled={imageUploading.profile}
-                        >
-                          {imageUploading.profile ? (
-                            <>
-                              <span className="loading loading-spinner loading-sm"></span>
-                              Uploading...
-                            </>
-                          ) : (
-                            "Change Photo"
-                          )}
-                        </button>
-                        <p className="text-xs text-base-content/60 mt-1">
-                          JPG, PNG, GIF up to 10MB
-                        </p>
-                      </div>
-                    </div>
-                    <input
-                      ref={profileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, "profile")}
-                      className="hidden"
-                      disabled={imageUploading.profile}
-                    />
-                  </div>
-                </div>
-                {/* Rest of your form sections remain the same... */}
-                {/* Basic Information */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
-                    Basic Information
-                  </h3>
-
-                  {/* Display Name - Read Only with Info */}
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Display Name
-                      </span>
-                      <span className="label-text-alt text-info">
-                        Can only be changed once every 7 days
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered input-disabled"
-                      value={formData.displayName}
-                      disabled
-                      placeholder="Display name can only be changed in settings"
-                    />
-                    <label className="label">
-                      <span className="label-text-alt text-base-content/60">
-                        To change your display name, go to Settings → Account
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Bio */}
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">Bio</span>
-                      <span className="label-text-alt">
-                        {formData.bio.length}/160
-                      </span>
-                    </label>
-                    <textarea
-                      className={`textarea textarea-bordered h-20 ${
-                        errors.bio ? "textarea-error" : ""
-                      }`}
-                      value={formData.bio}
-                      onChange={(e) => {
-                        if (e.target.value.length <= 160) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            bio: e.target.value,
-                          }));
-                        }
-                      }}
-                      placeholder="Tell us about yourself and your cosplay journey..."
-                      maxLength={160}
-                    />
-                    {errors.bio && (
-                      <label className="label">
-                        <span className="label-text-alt text-error">
-                          {errors.bio}
-                        </span>
-                      </label>
-                    )}
-                  </div>
-                </div>
-                {/* Cosplayer Information */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
-                    Cosplayer Information
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Cosplayer Type */}
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Cosplayer Type
-                        </span>
-                      </label>
-                      <select
-                        className="select select-bordered"
-                        value={formData.cosplayerType}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            cosplayerType: e.target.value as CosplayerType,
-                          }))
-                        }
-                      >
-                        <option value="HOBBY">🎨 Hobby Cosplayer</option>
-                        <option value="COMPETITIVE">
-                          🏆 Competitive Cosplayer
-                        </option>
-                        <option value="PROFESSIONAL">
-                          💼 Professional Cosplayer
-                        </option>
-                      </select>
-                    </div>
-
-                    {/* Years of Experience */}
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Years of Experience
-                        </span>
-                      </label>
-                      <select
-                        className="select select-bordered"
-                        value={formData.yearsOfExperience || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            yearsOfExperience: e.target.value
-                              ? parseInt(e.target.value)
-                              : null,
-                          }))
-                        }
-                      >
-                        <option value="">Select experience</option>
-                        <option value="0">Just starting</option>
-                        <option value="1">1 year</option>
-                        <option value="2">2 years</option>
-                        <option value="3">3 years</option>
-                        <option value="4">4 years</option>
-                        <option value="5">5 years</option>
-                        <option value="6">6-10 years</option>
-                        <option value="10">10+ years</option>
-                      </select>
-                    </div>
-
-                    {/* Main Specialization */}
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Main Specialization *
-                        </span>
-                      </label>
-                      <select
-                        className={`select select-bordered ${
-                          errors.specialization ? "select-error" : ""
-                        }`}
-                        value={formData.specialization}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            specialization: e.target.value,
-                          }))
-                        }
-                        required
-                      >
-                        <option value="">Select your main skill</option>
-                        {specializationOptions.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.specialization && (
-                        <label className="label">
-                          <span className="label-text-alt text-error">
-                            {errors.specialization}
-                          </span>
-                        </label>
-                      )}
-                    </div>
-
-                    {/* Skill Level */}
-                    <div className="form-control">
-                      <label className="label">
-                        <span className="label-text font-medium">
-                          Skill Level
-                        </span>{" "}
-                        <br />
-                      </label>
-                      <select
-                        className="select select-bordered"
-                        value={formData.skillLevel}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            skillLevel: e.target.value as SkillLevel,
-                          }))
-                        }
-                      >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social Media Links */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Social Media Links</h3>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Facebook URL
-                      </span>
-                    </label>
-                    <input
-                      type="url"
-                      className="input input-bordered"
-                      placeholder="https://facebook.com/yourprofile"
-                      value={formData.facebookUrl || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          facebookUrl: e.target.value || null,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Instagram URL
-                      </span>
-                    </label>
-                    <input
-                      type="url"
-                      className="input input-bordered"
-                      placeholder="https://instagram.com/yourprofile"
-                      value={formData.instagramUrl || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          instagramUrl: e.target.value || null,
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-medium">
-                        Twitter/X URL
-                      </span>
-                    </label>
-                    <input
-                      type="url"
-                      className="input input-bordered"
-                      placeholder="https://twitter.com/yourprofile"
-                      value={formData.twitterUrl || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          twitterUrl: e.target.value || null,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Fixed Footer */}
-              <div className="p-6 border-t border-base-200 bg-base-100 flex justify-end gap-3">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Cover Image Section */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-semibold">Cover Image</span>
+              </label>
+              <div className="relative w-full h-48 bg-base-200 rounded-lg overflow-hidden group">
+                <Image
+                  src={coverImagePreview || formData.coverImage || "/images/default-cover.jpg"}
+                  alt="Cover"
+                  fill
+                  className="object-cover"
+                />
                 <button
                   type="button"
-                  onClick={handleClose}
-                  className="btn btn-ghost"
-                  disabled={
-                    loading || imageUploading.profile || imageUploading.cover
-                  }
+                  onClick={() => coverImageInputRef.current?.click()}
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  disabled={uploadingCoverImage}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={
-                    loading || imageUploading.profile || imageUploading.cover
-                  }
-                >
-                  {loading ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm"></span>
-                      Saving...
-                    </>
+                  {uploadingCoverImage ? (
+                    <span className="loading loading-spinner loading-lg"></span>
                   ) : (
-                    "Save Changes"
+                    <CameraIcon className="w-12 h-12 text-white" />
                   )}
                 </button>
               </div>
-            </form>
-          </div>
+              <input
+                ref={coverImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleCoverImageChange}
+                className="hidden"
+              />
+            </div>
+
+            {/* Profile Picture Section */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-semibold">Profile Picture</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden group">
+                  <Image
+                    src={profilePicPreview || formData.profilePicture || "/images/default-avatar.png"}
+                    alt="Profile"
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => profilePicInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    disabled={uploadingProfilePic}
+                  >
+                    {uploadingProfilePic ? (
+                      <span className="loading loading-spinner"></span>
+                    ) : (
+                      <CameraIcon className="w-8 h-8 text-white" />
+                    )}
+                  </button>
+                </div>
+                <input
+                  ref={profilePicInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureChange}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* Basic Information */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Display Name</span>
+              </label>
+              <input
+                type="text"
+                name="displayName"
+                value={formData.displayName || ""} // ✅ Handle null
+                onChange={handleInputChange}
+                className="input input-bordered w-full"
+                placeholder="Enter your display name"
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Bio</span>
+              </label>
+              <textarea
+                name="bio"
+                value={formData.bio || ""} // ✅ Handle null
+                onChange={handleInputChange}
+                className="textarea textarea-bordered h-24"
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Cosplayer Type</span>
+                </label>
+                <select
+                  name="cosplayerType"
+                  value={formData.cosplayerType}
+                  onChange={handleInputChange}
+                  className="select select-bordered w-full"
+                >
+                  <option value="HOBBY">Hobby Cosplayer</option>
+                  <option value="COMPETITIVE">Competitive Cosplayer</option>
+                  <option value="PROFESSIONAL">Professional Cosplayer</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Years of Experience</span>
+                </label>
+                <input
+                  type="number"
+                  name="yearsOfExperience"
+                  value={formData.yearsOfExperience ?? 0} // ✅ Handle null
+                  onChange={handleInputChange}
+                  className="input input-bordered w-full"
+                  min="0"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Skill Level</span>
+                </label>
+                <select
+                  name="skillLevel"
+                  value={formData.skillLevel || "beginner"} // ✅ Handle null
+                  onChange={handleInputChange}
+                  className="select select-bordered w-full"
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="professional">Professional</option>
+                </select>
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Specialization</span>
+                </label>
+                <input
+                  type="text"
+                  name="specialization"
+                  value={formData.specialization || ""} // ✅ Handle null
+                  onChange={handleInputChange}
+                  className="input input-bordered w-full"
+                  placeholder="e.g., Armor crafting, Sewing, Prop making"
+                />
+              </div>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="divider">Social Media</div>
+
+            <div className="space-y-3">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Facebook URL</span>
+                </label>
+                <input
+                  type="url"
+                  name="facebookUrl"
+                  value={formData.facebookUrl || ""} // ✅ Handle null/undefined
+                  onChange={handleInputChange}
+                  className="input input-bordered w-full"
+                  placeholder="https://facebook.com/username"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Instagram URL</span>
+                </label>
+                <input
+                  type="url"
+                  name="instagramUrl"
+                  value={formData.instagramUrl || ""} // ✅ Handle null/undefined
+                  onChange={handleInputChange}
+                  className="input input-bordered w-full"
+                  placeholder="https://instagram.com/username"
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Twitter URL</span>
+                </label>
+                <input
+                  type="url"
+                  name="twitterUrl"
+                  value={formData.twitterUrl || ""} // ✅ Handle null/undefined
+                  onChange={handleInputChange}
+                  className="input input-bordered w-full"
+                  placeholder="https://twitter.com/username"
+                />
+              </div>
+            </div>
+
+            {/* Featured Cosplays Section */}
+            <div className="divider">Featured Cosplays</div>
+            <div className="form-control">
+              <button
+                type="button"
+                onClick={() => setShowFeaturedEditor(true)}
+                className="btn btn-outline btn-primary"
+              >
+                Edit Featured Cosplays ({formData.featured?.length || 0}/3)
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="modal-action sticky bottom-0 bg-base-100 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn btn-ghost"
+                disabled={loading || isUploading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading || isUploading}
+              >
+                {loading || isUploading ? (
+                  <>
+                    <span className="loading loading-spinner"></span>
+                    {uploadingProfilePic && "Uploading Profile Picture..."}
+                    {uploadingCoverImage && "Uploading Cover Image..."}
+                    {loading && !isUploading && "Saving..."}
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
-      {/* Featured Cosplays Editor */}
       <FeaturedCosplaysEditor
         isOpen={showFeaturedEditor}
         onClose={() => setShowFeaturedEditor(false)}

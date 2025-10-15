@@ -1,115 +1,67 @@
-"use client";
+import { CheckCircleIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
+import { User } from "@/types/admin";
 
-interface User {
-  id: number;
-  name: string | null;
-  email: string;
-  username: string | null;
-  role: "USER" | "ADMIN" | "MODERATOR";
-  status: "INACTIVE" | "ACTIVE" | "BANNED";
-  createdAt: string;
-  updatedAt: string;
-  reviewedBy: string | null; // ✅ Fixed: Changed from optional to string | null
-}
-
-interface ReviewUserModalProps {
+interface Props {
   isOpen: boolean;
   user: User | null;
   action: "APPROVE" | "BAN" | null;
   onClose: () => void;
   onConfirm: () => void;
-  loading?: boolean; // ✅ Add loading prop
+  loading: boolean;
 }
 
-const ReviewUserModal = ({
-  isOpen,
-  user,
-  action,
-  onClose,
-  onConfirm,
-  loading = false,
-}: ReviewUserModalProps) => {
+export default function ReviewUserModal({ isOpen, user, action, onClose, onConfirm, loading }: Props) {
   if (!isOpen || !user || !action) return null;
 
-  const handleConfirm = () => {
-    if (!loading) {
-      onConfirm();
-    }
-  };
-
-  const handleClose = () => {
-    if (!loading) {
-      onClose();
-    }
-  };
+  const isApprove = action === "APPROVE";
 
   return (
-    <dialog className="modal modal-open">
+    <div className="modal modal-open">
       <div className="modal-box">
-        <h3 className="font-bold text-lg">
-          {action === "APPROVE" ? "Approve User" : "Ban User"}
-        </h3>
-        <p className="py-4">
-          Are you sure you want to {action.toLowerCase()}{" "}
-          <strong>{user.name || user.email}</strong>?
-          {action === "APPROVE" && (
-            <span className="block mt-2 text-success text-sm">
-              ✅ This user will gain access to the platform and can participate
-              in competitions.
-            </span>
+        <div className="flex items-center gap-4 mb-4">
+          {isApprove ? (
+            <CheckCircleIcon className="w-12 h-12 text-success" />
+          ) : (
+            <NoSymbolIcon className="w-12 h-12 text-error" />
           )}
-          {action === "BAN" && (
-            <span className="block mt-2 text-error text-sm">
-              ❌ This user will be banned and cannot access the platform.
-            </span>
-          )}
-        </p>
-
-        {/* User details for confirmation */}
-        <div className="bg-base-200 p-3 rounded-md mb-4">
-          <div className="text-sm">
-            <div>
-              <strong>Email:</strong> {user.email}
-            </div>
-            {user.username && (
-              <div>
-                <strong>Username:</strong> @{user.username}
-              </div>
-            )}
-            <div>
-              <strong>Role:</strong> {user.role}
-            </div>
-            <div>
-              <strong>Current Status:</strong> {user.status}
-            </div>
-            <div>
-              <strong>Registered:</strong>{" "}
-              {new Date(user.createdAt).toLocaleDateString()}
-            </div>
+          <div>
+            <h3 className="font-bold text-lg">
+              {isApprove ? "Approve User" : "Ban User"}
+            </h3>
+            <p className="text-sm text-base-content/70">
+              {isApprove ? "Grant access to the platform" : "Restrict user access"}
+            </p>
           </div>
         </div>
 
+        <div className={`${isApprove ? "bg-success/10" : "bg-error/10"} p-4 rounded-lg mb-4`}>
+          <p className="text-sm">
+            Are you sure you want to {isApprove ? "approve" : "ban"}{" "}
+            <strong>{user.name || user.email}</strong>?
+          </p>
+          {isApprove ? (
+            <p className="text-sm mt-2 text-base-content/70">
+              The user will be granted access to the platform and can log in.
+            </p>
+          ) : (
+            <p className="text-sm mt-2 text-base-content/70">
+              The user will be banned and won&apos;t be able to access the platform.
+            </p>
+          )}
+        </div>
+
         <div className="modal-action">
-          <button
-            className="btn btn-ghost"
-            onClick={handleClose}
-            disabled={loading}
-          >
+          <button className="btn" onClick={onClose} disabled={loading}>
             Cancel
           </button>
           <button
-            className={`btn ${
-              action === "APPROVE" ? "btn-success" : "btn-error"
-            }`}
-            onClick={handleConfirm}
+            className={`btn ${isApprove ? "btn-success" : "btn-error"}`}
+            onClick={onConfirm}
             disabled={loading}
           >
             {loading ? (
-              <>
-                <span className="loading loading-spinner loading-sm"></span>
-                {action === "APPROVE" ? "Approving..." : "Banning..."}
-              </>
-            ) : action === "APPROVE" ? (
+              <span className="loading loading-spinner"></span>
+            ) : isApprove ? (
               "Approve User"
             ) : (
               "Ban User"
@@ -117,15 +69,7 @@ const ReviewUserModal = ({
           </button>
         </div>
       </div>
-
-      {/* Backdrop */}
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={handleClose} disabled={loading}>
-          close
-        </button>
-      </form>
-    </dialog>
+      <div className="modal-backdrop" onClick={onClose}></div>
+    </div>
   );
-};
-
-export default ReviewUserModal;
+}

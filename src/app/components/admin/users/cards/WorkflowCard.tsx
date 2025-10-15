@@ -1,40 +1,20 @@
-"use client";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 
-import { CheckIcon, XMarkIcon, ClockIcon } from "@heroicons/react/24/outline";
-
-const WorkflowCard = () => {
+export default function WorkflowCard() {
   return (
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <h2 className="card-title mb-4">User Review Workflow</h2>
-        <div className="flex justify-center">
-          <div className="w-[500px] max-md:w-[300px] steps steps-horizontal">
-            <div className="step step-warning">
-              <div className="flex flex-col items-center">
-                <ClockIcon className="w-6 h-6 mb-1" />
-                <span className="text-xs">Inactive</span>
-                <span className="text-xs text-base-content/70">New signup</span>
-              </div>
-            </div>
-            <div className="step step-success">
-              <div className="flex flex-col items-center">
-                <CheckIcon className="w-6 h-6 mb-1" />
-                <span className="text-xs">Active</span>
-                <span className="text-xs text-base-content/70">Approved</span>
-              </div>
-            </div>
-            <div className="step step-error">
-              <div className="flex flex-col items-center">
-                <XMarkIcon className="w-6 h-6 mb-1" />
-                <span className="text-xs">Banned</span>
-                <span className="text-xs text-base-content/70">Rejected</span>
-              </div>
-            </div>
-          </div>
+    <div className="alert bg-info/10 border-info/20">
+      <InformationCircleIcon className="w-6 h-6 text-info" />
+      <div>
+        <h3 className="font-bold">User Management Workflow</h3>
+        <div className="text-sm">
+          <ol className="list-decimal list-inside mt-2 space-y-1">
+            <li>New users register and appear with <span className="badge badge-warning badge-sm">INACTIVE</span> status</li>
+            <li>Review user details and either <span className="text-success font-semibold">Approve</span> or <span className="text-error font-semibold">Ban</span></li>
+            <li>Approved users get <span className="badge badge-success badge-sm">ACTIVE</span> status and can access the platform</li>
+            <li>Banned users get <span className="badge badge-error badge-sm">BANNED</span> status and cannot log in</li>
+          </ol>
         </div>
       </div>
     </div>
   );
-};
-
-export default WorkflowCard;
+}
