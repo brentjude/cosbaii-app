@@ -29,7 +29,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // ✅ Removed optimizeFonts - it's automatic in Next.js 15
+  // ✅ Prisma webpack configuration for Vercel
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        '@prisma/client': 'commonjs @prisma/client',
+      });
+    }
+    return config;
+  },
+  // ✅ FIXED: Use serverExternalPackages instead of experimental.serverComponentsExternalPackages
+  serverExternalPackages: ['@prisma/client', '@prisma/engines'],
 };
 
 export default nextConfig;
