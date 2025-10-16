@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -22,7 +21,6 @@ import { useProfile } from "@/app/context/ProfileContext";
 import AddCredentialsModal from "./modals/AddCredentialsModal";
 
 export default function MobileBottomNav() {
-  const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const { profile } = useProfile();

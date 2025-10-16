@@ -186,8 +186,12 @@ export async function PATCH(
       );
     }
 
-    // Update the credential
-    const updateData: any = {};
+    // Update the credential with proper typing
+    const updateData: {
+      order?: number;
+      status?: string;
+    } = {};
+    
     if (order !== undefined) updateData.order = order;
     if (status !== undefined) updateData.status = status;
 
