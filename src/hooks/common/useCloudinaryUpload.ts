@@ -1,147 +1,203 @@
-// Update: src/hooks/common/useCloudinaryUpload.ts
-import { useState } from 'react';
+"use client";
 
-// ✅ Add interface for Cloudinary upload result
-interface CloudinaryUploadResult {
-  secure_url: string;
-  public_id: string;
-  width: number;
-  height: number;
-  format: string;
-  resource_type: string;
-  bytes: number;
-  created_at: string;
-  [key: string]: unknown; // Allow additional properties
-}
-
-// ✅ Add interface for Cloudinary error
-interface CloudinaryErrorResponse {
-  error?: {
-    message: string;
-  };
-}
+import { useState, useCallback } from "react";
 
 interface UploadOptions {
-  folder?: string;
   uploadPreset: string;
-  onSuccess?: (result: CloudinaryUploadResult) => void; // ✅ Fixed type
-  onError?: (error: Error) => void; // ✅ Fixed type
+  folder?: string;
+  onSuccess?: (result: CloudinaryUploadResult) => void;
+  onError?: (error: Error) => void;
+}
+
+interface CloudinaryUploadResult {
+  url: string;
+  publicId: string;
+  secureUrl: string;
+  format: string;
+  width: number;
+  height: number;
+  bytes: number;
 }
 
 export const useCloudinaryUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
-  const uploadImage = async (
-    file: File,
-    options: UploadOptions
-  ): Promise<{ url: string; publicId: string } | null> => {
-    setUploading(true);
-    setError(null);
+  const uploadImage = useCallback(
+    async (
+      file: File,
+      options: UploadOptions
+    ): Promise<CloudinaryUploadResult | null> => {
+      setUploading(true);
+      setError(null);
+      setProgress(0);
 
-    try {
-      // Validate file
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Please select an image file');
-      }
-
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        throw new Error('File size must be less than 10MB');
-      }
-
-      // Get upload signature from your API
-      const timestamp = Math.round(new Date().getTime() / 1000);
-      
-      const signatureResponse = await fetch('/api/upload/signature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          timestamp,
-          upload_preset: options.uploadPreset,
-          folder: options.folder,
-        }),
-      });
-
-      if (!signatureResponse.ok) {
-        throw new Error('Failed to get upload signature');
-      }
-
-      const { signature, api_key, cloud_name } = await signatureResponse.json();
-
-      // Prepare form data for Cloudinary
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('signature', signature);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('api_key', api_key);
-      formData.append('upload_preset', options.uploadPreset);
-      
-      if (options.folder) {
-        formData.append('folder', options.folder);
-      }
-
-      // Upload to Cloudinary
-      const cloudinaryResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
+      try {
+        // ✅ Get cloud name from environment
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        
+        if (!cloudName) {
+          console.error("Missing NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME");
+          throw new Error(
+            "Cloudinary configuration missing. Please contact support."
+          );
         }
-      );
 
-      if (!cloudinaryResponse.ok) {
-        throw new Error('Failed to upload image to Cloudinary');
+        // ✅ Validate file type
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Only image files are allowed");
+        }
+
+        // ✅ Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error("File size must be less than 10MB");
+        }
+
+        // ✅ Prepare form data for unsigned upload
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", options.uploadPreset);
+        
+        if (options.folder) {
+          formData.append("folder", options.folder);
+        }
+
+        // ✅ Add timestamp for cache busting
+        formData.append("timestamp", Math.round(Date.now() / 1000).toString());
+
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+        console.log("📤 Starting Cloudinary upload:", {
+          cloudName,
+          uploadPreset: options.uploadPreset,
+          folder: options.folder,
+          fileName: file.name,
+          fileSize: `${(file.size / 1024).toFixed(2)} KB`,
+          fileType: file.type,
+        });
+
+        // ✅ Upload with XMLHttpRequest for progress tracking
+        const response = await new Promise<CloudinaryUploadResult>(
+          (resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            // Track upload progress
+            xhr.upload.addEventListener("progress", (e) => {
+              if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                setProgress(percentComplete);
+                console.log(`📊 Upload progress: ${percentComplete}%`);
+              }
+            });
+
+            // Handle successful upload
+            xhr.addEventListener("load", () => {
+              if (xhr.status === 200) {
+                try {
+                  const result = JSON.parse(xhr.responseText);
+                  console.log("✅ Upload successful:", {
+                    url: result.secure_url,
+                    publicId: result.public_id,
+                    format: result.format,
+                    size: `${(result.bytes / 1024).toFixed(2)} KB`,
+                  });
+
+                  resolve({
+                    url: result.secure_url || result.url,
+                    publicId: result.public_id,
+                    secureUrl: result.secure_url,
+                    format: result.format,
+                    width: result.width,
+                    height: result.height,
+                    bytes: result.bytes,
+                  });
+                } catch (parseError) {
+                  console.error("❌ Failed to parse Cloudinary response:", parseError);
+                  reject(new Error("Failed to parse upload response"));
+                }
+              } else {
+                // Handle error response
+                try {
+                  const errorResponse = JSON.parse(xhr.responseText);
+                  console.error("❌ Upload failed:", {
+                    status: xhr.status,
+                    error: errorResponse,
+                  });
+
+                  reject(
+                    new Error(
+                      errorResponse.error?.message ||
+                        `Upload failed with status ${xhr.status}`
+                    )
+                  );
+                } catch {
+                  console.error("❌ Upload failed with status:", xhr.status);
+                  reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+              }
+            });
+
+            // Handle network error
+            xhr.addEventListener("error", () => {
+              console.error("❌ Network error during upload");
+              reject(
+                new Error(
+                  "Network error. Please check your internet connection."
+                )
+              );
+            });
+
+            // Handle timeout
+            xhr.addEventListener("timeout", () => {
+              console.error("❌ Upload timeout");
+              reject(new Error("Upload timeout. Please try again."));
+            });
+
+            // Send request
+            xhr.open("POST", cloudinaryUrl);
+            xhr.timeout = 60000; // 60 seconds
+            xhr.send(formData);
+          }
+        );
+
+        // Call success callback
+        if (options.onSuccess) {
+          options.onSuccess(response);
+        }
+
+        return response;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Upload failed";
+
+        console.error("❌ Cloudinary upload error:", {
+          error: err,
+          message: errorMessage,
+          cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+          uploadPreset: options.uploadPreset,
+        });
+
+        setError(errorMessage);
+
+        // Call error callback
+        if (options.onError) {
+          options.onError(err instanceof Error ? err : new Error(errorMessage));
+        }
+
+        return null;
+      } finally {
+        setUploading(false);
+        setProgress(0);
       }
-
-      const result = await cloudinaryResponse.json() as CloudinaryUploadResult & CloudinaryErrorResponse; // ✅ Fixed type
-
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-
-      const uploadResult = {
-        url: result.secure_url,
-        publicId: result.public_id,
-      };
-
-      options.onSuccess?.(result);
-      return uploadResult;
-
-    } catch (err) { // ✅ Fixed: removed 'any' type
-      const errorMessage = err instanceof Error ? err.message : 'Failed to upload image';
-      setError(errorMessage);
-      options.onError?.(err instanceof Error ? err : new Error(errorMessage));
-      return null;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Function to delete image
-  const deleteImage = async (imageUrl: string, publicId?: string) => {
-    try {
-      const response = await fetch('/api/upload/delete-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl, publicId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete image');
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      throw error;
-    }
-  };
+    },
+    []
+  );
 
   return {
     uploadImage,
-    deleteImage,
     uploading,
     error,
+    progress,
   };
 };

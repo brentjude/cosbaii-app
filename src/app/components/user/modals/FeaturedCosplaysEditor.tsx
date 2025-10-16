@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { XMarkIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, PlusIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
 import { FeaturedItem, UserCredential } from "@/types/profile";
 import FeaturedItemCard from "./FeaturedItemCard";
@@ -42,6 +42,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
   const [showDropdowns, setShowDropdowns] = useState<boolean[]>([false, false, false]);
   const [showAddCredentialsModal, setShowAddCredentialsModal] = useState(false);
   const [imageUploading, setImageUploading] = useState<Record<number, boolean>>({});
+  const [uploadErrors, setUploadErrors] = useState<Record<number, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   const { uploadImage, uploading: cloudinaryUploading, error: uploadError } = useCloudinaryUpload();
@@ -187,27 +188,58 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
   }, []);
 
   const handleImageUpload = useCallback(async (file: File, index: number) => {
+    // ✅ Clear previous errors
+    setUploadErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[index];
+      return newErrors;
+    });
+
+    // ✅ Validate file type
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      const errorMsg = "Please select an image file";
+      setUploadErrors((prev) => ({ ...prev, [index]: errorMsg }));
       return;
     }
 
+    // ✅ Validate file size
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size must be less than 10MB");
+      const errorMsg = "File size must be less than 10MB";
+      setUploadErrors((prev) => ({ ...prev, [index]: errorMsg }));
       return;
     }
 
     setImageUploading((prev) => ({ ...prev, [index]: true }));
 
     try {
+      console.log("Starting upload for index:", index, {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+        uploadPreset: "cosbaii-profiles",
+      });
+
       const uploadResult = await uploadImage(file, {
         uploadPreset: "cosbaii-profiles",
         folder: `cosbaii/featured-cosplays`,
         onSuccess: (result) => {
-          console.log("Featured image upload successful:", result);
+          console.log("Featured image upload successful:", {
+            index,
+            url: result.url,
+            publicId: result.publicId,
+          });
         },
         onError: (error) => {
-          console.error("Featured image upload error:", error);
+          console.error("Featured image upload error:", {
+            index,
+            error: error.message,
+            stack: error.stack,
+          });
+          setUploadErrors((prev) => ({
+            ...prev,
+            [index]: error.message || "Upload failed",
+          }));
         },
       });
 
@@ -220,10 +252,20 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
           };
           return newFeatured;
         });
+      } else {
+        // ✅ Handle case where uploadResult is null
+        const errorMsg = "Failed to upload image. Please try again.";
+        setUploadErrors((prev) => ({ ...prev, [index]: errorMsg }));
       }
     } catch (error) {
-      console.error("Error uploading featured image:", error);
-      alert("Failed to upload image. Please try again.");
+      console.error("Error uploading featured image:", {
+        index,
+        error,
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+      
+      const errorMsg = error instanceof Error ? error.message : "Failed to upload image. Please try again.";
+      setUploadErrors((prev) => ({ ...prev, [index]: errorMsg }));
     } finally {
       setImageUploading((prev) => ({ ...prev, [index]: false }));
     }
@@ -260,6 +302,7 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
     }
     setSearchTerms(["", "", ""]);
     setShowDropdowns([false, false, false]);
+    setUploadErrors({});
     onClose();
   };
 
@@ -299,15 +342,45 @@ const FeaturedCosplaysEditor: React.FC<FeaturedCosplaysEditorProps> = ({
           </div>
 
           {/* Alerts - Fixed */}
-          {(uploadError || isSaving) && (
-            <div className="flex-none px-4 sm:px-6 pt-3">
+          {(uploadError || isSaving || Object.keys(uploadErrors).length > 0) && (
+            <div className="flex-none px-4 sm:px-6 pt-3 space-y-2">
+              {/* Global upload error */}
               {uploadError && (
-                <div className="alert alert-error text-xs sm:text-sm mb-2">
-                  <span>{uploadError}</span>
+                <div className="alert alert-error text-xs sm:text-sm py-2">
+                  <ExclamationCircleIcon className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold">Upload Error</p>
+                    <p className="text-[11px] mt-0.5">{uploadError}</p>
+                  </div>
                 </div>
               )}
+
+              {/* Individual item errors */}
+              {Object.entries(uploadErrors).map(([index, error]) => (
+                <div key={index} className="alert alert-error text-xs sm:text-sm py-2">
+                  <ExclamationCircleIcon className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-semibold">Featured #{parseInt(index) + 1} Error</p>
+                    <p className="text-[11px] mt-0.5">{error}</p>
+                  </div>
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={() => {
+                      setUploadErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors[parseInt(index)];
+                        return newErrors;
+                      });
+                    }}
+                  >
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Saving state */}
               {isSaving && (
-                <div className="alert alert-info text-xs sm:text-sm">
+                <div className="alert alert-info text-xs sm:text-sm py-2">
                   <span className="loading loading-spinner loading-sm"></span>
                   <span>Saving your featured cosplays...</span>
                 </div>
