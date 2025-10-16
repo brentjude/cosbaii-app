@@ -155,13 +155,6 @@ export default function EditCredentialsModal({
     return credential.verified || !credential.verified;
   };
 
-  const getDeleteTooltip = (credential: CompetitionCredential) => {
-    if (!credential.verified) {
-      return "Delete pending credential";
-    }
-    return "Delete credential";
-  };
-
   if (!isOpen) return null;
 
   return (
