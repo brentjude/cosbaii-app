@@ -10,6 +10,7 @@ import {
   UserIcon,
   Cog6ToothIcon,
   ArrowRightEndOnRectangleIcon,
+  BellIcon,
 } from "@heroicons/react/24/outline";
 import { useProfile } from "@/app/context/ProfileContext";
 import ProfileSetupModal from "./modals/ProfileSetupModal";
@@ -33,13 +34,12 @@ export default function UserHeader() {
     (document.activeElement as HTMLElement)?.blur();
   };
 
-  // ✅ Fixed: setupProfile returns boolean, not { success, error }
   const handleProfileSetupComplete = async (profileData: ProfileSetupData) => {
     setSetupLoading(true);
     try {
       const result = await setupProfile(profileData);
 
-      if (result) { // ✅ Changed from result.success to result
+      if (result) {
         setShowProfileSetup(false);
         console.log("Profile setup successful!");
       } else {
@@ -75,7 +75,8 @@ export default function UserHeader() {
 
   return (
     <>
-      <header className="w-full shadow-xs sticky top-0 z-50 bg-base-100">
+      {/* ✅ Changed from sticky to relative, removed z-50 */}
+      <header className="w-full shadow-xs bg-base-100">
         <div className="navbar max-w-[1240px] mx-auto">
           <div className="navbar-start">
             <Link
@@ -91,6 +92,7 @@ export default function UserHeader() {
             </Link>
           </div>
 
+          {/* ✅ Desktop Navigation - Hidden on Mobile */}
           <div className="navbar-center hidden lg:flex">
             <ul className="menu menu-horizontal flex items-center gap-10 !p-0">
               <li>
@@ -102,7 +104,7 @@ export default function UserHeader() {
                       : "text-base-400"
                   }`}
                 >
-                  <HomeIcon className="text-base-400 size-8" />
+                  <HomeIcon className="text-base-400 size-7" />
                 </Link>
               </li>
               <li>
@@ -112,23 +114,39 @@ export default function UserHeader() {
                     isActiveRoute("/profile") ? "text-primary" : "text-base-400"
                   }`}
                 >
-                  <UserIcon className="text-base-400 size-8" />
+                  <UserIcon className="text-base-400 size-7" />
                 </Link>
               </li>
             </ul>
           </div>
 
           <div className="navbar-end flex items-center gap-2">
+            {/* ✅ Notification Icon - Visible on all screens */}
+            <button
+              className="btn btn-ghost btn-circle"
+              aria-label="Notifications"
+            >
+              <div className="indicator">
+                <BellIcon className="w-6 h-6" />
+                {/* Notification badge */}
+                <span className="badge badge-xs badge-primary indicator-item"></span>
+              </div>
+            </button>
+
+            {/* ✅ Username - Hidden on Mobile */}
             {session?.user && (
-              <span className="text-sm">{session.user.username}</span>
+              <span className="text-sm hidden lg:inline-block">
+                {session.user.username}
+              </span>
             )}
 
+            {/* ✅ Complete Profile Button */}
             {isClient &&
               status !== "loading" &&
               session?.user &&
               !hasProfile && (
                 <button
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary btn-sm hidden lg:flex"
                   onClick={handleOpenProfileSetup}
                   disabled={setupLoading}
                 >
@@ -143,8 +161,9 @@ export default function UserHeader() {
                 </button>
               )}
 
-            {session?.user ? (
-              <div className="dropdown dropdown-bottom dropdown-end">
+            {/* ✅ Desktop Avatar Dropdown - Hidden on Mobile */}
+            {session?.user && (
+              <div className="dropdown dropdown-bottom dropdown-end hidden lg:block">
                 <div
                   tabIndex={0}
                   role="button"
@@ -202,8 +221,6 @@ export default function UserHeader() {
                   </li>
                 </ul>
               </div>
-            ) : (
-              <span className="text-sm">Guest</span>
             )}
           </div>
 
