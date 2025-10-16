@@ -47,7 +47,7 @@ export default function EditCredentialsModal({
   // Initialize ordered credentials when modal opens
   useEffect(() => {
     if (isOpen) {
-      console.log('Initial credentials:', credentials);
+      console.log('Initial credentials:', credentials); // ✅ Debug log
       setOrderedCredentials([...credentials]);
       setConfirmDeleteId(null);
       setHasChanges(false);
@@ -63,7 +63,7 @@ export default function EditCredentialsModal({
     setOrderedCredentials(newOrder);
     setHasChanges(true);
     
-    console.log('After move up:', newOrder.map((c, i) => ({ id: c.id, newIndex: i })));
+    console.log('After move up:', newOrder.map((c, i) => ({ id: c.id, newIndex: i }))); // ✅ Debug log
   };
 
   const handleMoveDown = (index: number) => {
@@ -74,7 +74,7 @@ export default function EditCredentialsModal({
     setOrderedCredentials(newOrder);
     setHasChanges(true);
     
-    console.log('After move down:', newOrder.map((c, i) => ({ id: c.id, newIndex: i })));
+    console.log('After move down:', newOrder.map((c, i) => ({ id: c.id, newIndex: i }))); // ✅ Debug log
   };
 
   const handleDeleteClick = (credentialId: number) => {
@@ -127,7 +127,7 @@ export default function EditCredentialsModal({
         order: index,
       }));
 
-      console.log('Sending order updates:', orderUpdates);
+      console.log('Sending order updates:', orderUpdates); // ✅ Debug log
 
       const response = await fetch("/api/user/credentials/reorder", {
         method: "PUT",
@@ -136,7 +136,7 @@ export default function EditCredentialsModal({
       });
 
       const result = await response.json();
-      console.log('Reorder response:', result);
+      console.log('Reorder response:', result); // ✅ Debug log
 
       if (!response.ok) {
         throw new Error(result.error || "Failed to save changes");
@@ -171,47 +171,47 @@ export default function EditCredentialsModal({
     <>
       <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
 
-      <div className="fixed inset-2 sm:inset-4 z-50 overflow-y-auto">
-        <div className="min-h-full flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-base-100 rounded-xl sm:rounded-2xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+      <div className="fixed inset-4 z-50 overflow-y-auto">
+        <div className="min-h-full flex items-center justify-center p-4">
+          <div className="bg-base-100 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-start sm:items-center p-4 sm:p-6 border-b border-base-200 bg-base-100 sticky top-0 z-10">
-              <div className="flex-1 pr-2">
-                <h2 className="text-lg sm:text-2xl font-bold">Manage Competition Credentials</h2>
-                <p className="text-xs sm:text-sm text-base-content/70 mt-1">
+            <div className="flex justify-between items-center p-6 border-b border-base-200 bg-base-100 sticky top-0 z-10">
+              <div>
+                <h2 className="text-2xl font-bold">Manage Competition Credentials</h2>
+                <p className="text-base-content/70 text-sm mt-1">
                   Rearrange or delete your competition participations
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="btn btn-sm btn-circle btn-ghost flex-shrink-0"
+                className="btn btn-sm btn-circle btn-ghost"
                 disabled={isSaving || isDeleting}
               >
-                <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
             {/* Error Alert */}
             {error && (
-              <div className="mx-3 sm:mx-6 mt-3 sm:mt-4 alert alert-error text-xs sm:text-sm">
-                <ExclamationTriangleIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="mx-6 mt-4 alert alert-error">
+                <ExclamationTriangleIcon className="w-5 h-5" />
                 <span>{error}</span>
                 <button
-                  className="btn btn-xs sm:btn-sm btn-ghost"
+                  className="btn btn-sm btn-ghost"
                   onClick={() => setError(null)}
                 >
-                  <XMarkIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <XMarkIcon className="w-4 h-4" />
                 </button>
               </div>
             )}
 
             {/* Info Alert */}
-            <div className="mx-3 sm:mx-6 mt-3 sm:mt-4 alert alert-info text-xs sm:text-sm">
+            <div className="mx-6 mt-4 alert alert-info">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                className="stroke-current shrink-0 w-4 h-4 sm:w-6 sm:h-6"
+                className="stroke-current shrink-0 w-6 h-6"
               >
                 <path
                   strokeLinecap="round"
@@ -220,7 +220,7 @@ export default function EditCredentialsModal({
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
-              <div className="text-xs sm:text-sm">
+              <div className="text-sm">
                 <p className="font-medium">Credential Management</p>
                 <ul className="list-disc list-inside mt-1 space-y-1">
                   <li>You can delete any credential (pending or verified)</li>
@@ -231,19 +231,19 @@ export default function EditCredentialsModal({
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(95vh-250px)] sm:max-h-[calc(95vh-250px)] p-3 sm:p-6">
+            <div className="overflow-y-auto max-h-[calc(95vh-250px)] p-6">
               {orderedCredentials.length === 0 ? (
-                <div className="text-center py-8 sm:py-12">
-                  <TrophyIcon className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+                <div className="text-center py-12">
+                  <TrophyIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
                     No credentials to manage
                   </h3>
-                  <p className="text-sm sm:text-base text-gray-500">
+                  <p className="text-gray-500">
                     Add competition credentials to manage them here.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-4">
                   {orderedCredentials.map((credential, index) => {
                     const positionInfo = getPositionInfo(credential.position);
                     const isConfirmingDelete = confirmDeleteId === credential.id;
@@ -255,41 +255,40 @@ export default function EditCredentialsModal({
                           isConfirmingDelete ? "ring-2 ring-error" : ""
                         }`}
                       >
-                        <div className="card-body p-3 sm:p-4">
+                        <div className="card-body p-4">
                           {/* Confirmation Overlay */}
                           {isConfirmingDelete && (
-                            <div className="mb-3 sm:mb-4 bg-error/10 border border-error rounded-lg p-3 sm:p-4">
-                              <div className="flex items-start gap-2 sm:gap-3">
-                                <ExclamationTriangleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-error flex-shrink-0 mt-1" />
+                            <div className="mb-4 bg-error/10 border border-error rounded-lg p-4">
+                              <div className="flex items-start gap-3">
+                                <ExclamationTriangleIcon className="w-6 h-6 text-error flex-shrink-0 mt-1" />
                                 <div className="flex-1">
-                                  <h4 className="text-sm sm:text-base font-semibold text-error mb-2">
+                                  <h4 className="font-semibold text-error mb-2">
                                     Confirm Deletion
                                   </h4>
-                                  <p className="text-xs sm:text-sm text-base-content/80 mb-2 sm:mb-3">
+                                  <p className="text-sm text-base-content/80 mb-3">
                                     Are you sure you want to delete this credential? This
                                     action cannot be undone.
                                   </p>
                                   <div className="flex gap-2">
                                     <button
-                                      className="btn btn-error btn-xs sm:btn-sm"
+                                      className="btn btn-error btn-sm"
                                       onClick={() => handleConfirmDelete(credential.id)}
                                       disabled={isDeleting}
                                     >
                                       {isDeleting ? (
                                         <>
                                           <span className="loading loading-spinner loading-xs"></span>
-                                          <span className="hidden sm:inline">Deleting...</span>
+                                          Deleting...
                                         </>
                                       ) : (
                                         <>
-                                          <TrashIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-                                          <span className="hidden sm:inline">Confirm Delete</span>
-                                          <span className="sm:hidden">Delete</span>
+                                          <TrashIcon className="w-4 h-4" />
+                                          Confirm Delete
                                         </>
                                       )}
                                     </button>
                                     <button
-                                      className="btn btn-ghost btn-xs sm:btn-sm"
+                                      className="btn btn-ghost btn-sm"
                                       onClick={handleCancelDelete}
                                       disabled={isDeleting}
                                     >
@@ -301,18 +300,18 @@ export default function EditCredentialsModal({
                             </div>
                           )}
 
-                          <div className="flex items-start gap-2 sm:gap-4">
+                          <div className="flex items-start gap-4">
                             {/* Reorder Controls */}
-                            <div className="flex flex-col gap-0.5 sm:gap-1">
+                            <div className="flex flex-col gap-1">
                               <button
                                 className="btn btn-xs btn-ghost btn-square tooltip tooltip-right"
                                 data-tip="Move up"
                                 onClick={() => handleMoveUp(index)}
                                 disabled={index === 0 || isSaving || isDeleting}
                               >
-                                <ArrowUpIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <ArrowUpIcon className="w-4 h-4" />
                               </button>
-                              <div className="text-[10px] sm:text-xs text-center font-semibold text-base-content/50">
+                              <div className="text-xs text-center font-semibold text-base-content/50">
                                 {index + 1}
                               </div>
                               <button
@@ -325,12 +324,12 @@ export default function EditCredentialsModal({
                                   isDeleting
                                 }
                               >
-                                <ArrowDownIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <ArrowDownIcon className="w-4 h-4" />
                               </button>
                             </div>
 
-                            {/* Credential Image - Hidden on mobile */}
-                            <div className="relative flex-shrink-0 hidden sm:block">
+                            {/* Credential Image */}
+                            <div className="relative flex-shrink-0">
                               <Image
                                 src={
                                   credential.imageUrl ||
@@ -356,76 +355,76 @@ export default function EditCredentialsModal({
 
                             {/* Credential Info */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2 mb-1 sm:mb-2">
+                              <div className="flex items-start justify-between gap-2 mb-2">
                                 <div className="flex-1">
-                                  <h3 className="text-sm sm:text-base font-semibold truncate">
+                                  <h3 className="font-semibold text-base truncate">
                                     {credential.competition.name}
                                   </h3>
-                                  <p className="text-xs sm:text-sm text-base-content/70">
+                                  <p className="text-sm text-base-content/70">
                                     {credential.competition.competitionType} •{" "}
                                     {credential.competition.rivalryType} •{" "}
                                     {credential.competition.level}
                                   </p>
                                 </div>
 
-                                <div className="flex items-center gap-1 sm:gap-2">
+                                <div className="flex items-center gap-2">
                                   {credential.verified ? (
                                     <div
                                       className="tooltip tooltip-left"
                                       data-tip="Verified by admin"
                                     >
-                                      <CheckBadgeIcon className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                                      <CheckBadgeIcon className="w-5 h-5 text-success" />
                                     </div>
                                   ) : (
                                     <div
                                       className="tooltip tooltip-left"
                                       data-tip="Under review"
                                     >
-                                      <ClockIcon className="w-4 h-4 sm:w-5 sm:h-5 text-warning animate-pulse" />
+                                      <ClockIcon className="w-5 h-5 text-warning animate-pulse" />
                                     </div>
                                   )}
                                 </div>
                               </div>
 
                               {credential.cosplayTitle && (
-                                <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
-                                  <span className="text-[10px] sm:text-xs text-base-content/60">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs text-base-content/60">
                                     Cosplay:
                                   </span>
-                                  <span className="text-xs sm:text-sm font-medium truncate">
+                                  <span className="text-sm font-medium">
                                     {credential.cosplayTitle}
                                   </span>
                                 </div>
                               )}
 
                               {credential.characterName && (
-                                <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
-                                  <span className="text-[10px] sm:text-xs text-base-content/60">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs text-base-content/60">
                                     Character:
                                   </span>
-                                  <span className="text-xs sm:text-sm truncate">
+                                  <span className="text-sm">
                                     {credential.characterName}
                                     {credential.seriesName && ` (${credential.seriesName})`}
                                   </span>
                                 </div>
                               )}
 
-                              <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
-                                <span className="text-[10px] sm:text-xs text-base-content/60">Date:</span>
-                                <span className="text-xs sm:text-sm">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs text-base-content/60">Date:</span>
+                                <span className="text-sm">
                                   {formatDate(credential.competition.eventDate)}
                                 </span>
                               </div>
 
-                              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                              <div className="flex items-center gap-2">
                                 <span
-                                  className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full ${positionInfo.bgColor} ${positionInfo.textColor}`}
+                                  className={`px-2 py-1 text-xs font-medium rounded-full ${positionInfo.bgColor} ${positionInfo.textColor}`}
                                 >
                                   {positionInfo.text}
                                 </span>
 
                                 {!credential.verified && (
-                                  <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 bg-warning/20 text-warning text-[10px] sm:text-xs font-medium rounded-full">
+                                  <span className="px-2 py-1 bg-warning/20 text-warning text-xs font-medium rounded-full">
                                     Pending Review
                                   </span>
                                 )}
@@ -436,14 +435,14 @@ export default function EditCredentialsModal({
                             <div className="flex flex-col justify-center">
                               {canDelete(credential) && (
                                 <button
-                                  className="btn btn-error btn-xs sm:btn-sm btn-outline tooltip tooltip-left"
+                                  className="btn btn-error btn-sm btn-outline tooltip tooltip-left"
                                   data-tip={getDeleteTooltip(credential)}
                                   onClick={() => handleDeleteClick(credential.id)}
                                   disabled={
                                     isSaving || isDeleting || isConfirmingDelete
                                   }
                                 >
-                                  <TrashIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  <TrashIcon className="w-4 h-4" />
                                 </button>
                               )}
                             </div>
@@ -457,8 +456,8 @@ export default function EditCredentialsModal({
             </div>
 
             {/* Footer */}
-            <div className="p-3 sm:p-6 border-t border-base-200 bg-base-100 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-0 sticky bottom-0">
-              <div className="text-xs sm:text-sm text-base-content/70 text-center sm:text-left">
+            <div className="p-6 border-t border-base-200 bg-base-100 flex justify-between items-center sticky bottom-0">
+              <div className="text-sm text-base-content/70">
                 {hasChanges ? (
                   <span className="text-warning font-medium">
                     ⚠️ You have unsaved changes
@@ -467,11 +466,11 @@ export default function EditCredentialsModal({
                   <span>No changes made</span>
                 )}
               </div>
-              <div className="flex gap-2 sm:gap-3">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="btn btn-ghost btn-sm sm:btn-md flex-1 sm:flex-none text-xs sm:text-sm"
+                  className="btn btn-ghost"
                   disabled={isSaving || isDeleting}
                 >
                   Cancel
@@ -479,20 +478,16 @@ export default function EditCredentialsModal({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="btn btn-primary btn-sm sm:btn-md flex-1 sm:flex-none text-xs sm:text-sm"
+                  className="btn btn-primary"
                   disabled={!hasChanges || isSaving || isDeleting}
                 >
                   {isSaving ? (
                     <>
-                      <span className="loading loading-spinner loading-xs sm:loading-sm"></span>
-                      <span className="hidden sm:inline">Saving...</span>
-                      <span className="sm:hidden">Saving...</span>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Saving...
                     </>
                   ) : (
-                    <>
-                      <span className="hidden sm:inline">Save Changes</span>
-                      <span className="sm:hidden">Save</span>
-                    </>
+                    "Save Changes"
                   )}
                 </button>
               </div>
