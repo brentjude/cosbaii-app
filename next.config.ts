@@ -29,19 +29,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Add Prisma configuration for Vercel
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push({
-        '@prisma/client': 'commonjs @prisma/client',
-      });
-    }
-    return config;
-  },
-  // Ensure Prisma files are included in the build
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', '@prisma/engines'],
-  },
   // ✅ Removed optimizeFonts - it's automatic in Next.js 15
 };
 
