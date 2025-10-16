@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { XMarkIcon, CameraIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, CameraIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import {
   EditProfileData,
@@ -64,7 +64,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setProfilePicPreview(null);
       setCoverImagePreview(null);
     }
-  }, [profileData]);
+  }, [profileData, isOpen]); // ✅ Added isOpen dependency to reset on modal open
 
   const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,7 +105,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     formData.append("file", file);
     formData.append("type", type);
 
-    const response = await fetch("/api/user/upload/profile", {
+    const response = await fetch("/api/upload/profile", {
       method: "POST",
       body: formData,
     });
@@ -123,6 +123,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     e.preventDefault();
 
     try {
+      // ✅ Create a copy to avoid mutating state directly
       const updatedFormData = { ...formData };
 
       if (profilePictureFile) {
@@ -139,7 +140,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         setUploadingCoverImage(false);
       }
 
-      onSave(updatedFormData);
+      // ✅ Pass the updated data to parent
+      await onSave(updatedFormData);
+
+      // ✅ Reset file states after successful save
+      setProfilePictureFile(null);
+      setCoverImageFile(null);
+      setProfilePicPreview(null);
+      setCoverImagePreview(null);
+
     } catch (error) {
       console.error("Error uploading images:", error);
       alert(error instanceof Error ? error.message : "Failed to upload images");
@@ -223,12 +232,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
 
             {/* Profile Picture Section */}
-            <div className="form-control">
+            <div className="text-center form-control">
               <label className="label">
                 <span className="label-text font-semibold">Profile Picture</span>
               </label>
               <div className="flex items-center gap-4">
-                <div className="relative w-24 h-24 rounded-full overflow-hidden group">
+                <div className="mx-auto relative w-24 h-24 rounded-full overflow-hidden group">
                   <Image
                     src={profilePicPreview || formData.profilePicture || "/images/default-avatar.png"}
                     alt="Profile"
@@ -258,38 +267,60 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </div>
             </div>
 
-            {/* Basic Information */}
+            {/* Display Name with Restrictions */}
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Display Name</span>
+                <span className="label-text font-semibold">Display Name</span>
               </label>
               <input
                 type="text"
                 name="displayName"
-                value={formData.displayName || ""} // ✅ Handle null
+                value={formData.displayName || ""}
                 onChange={handleInputChange}
                 className="input input-bordered w-full"
                 placeholder="Enter your display name"
+                maxLength={50}
               />
+              
+              {/* ✅ Display Name Change Restrictions Alert */}
+              <div className="alert alert-info mt-2 py-2 px-3">
+                <InformationCircleIcon className="w-5 h-5 flex-shrink-0" />
+                <div className="text-xs">
+                  <p className="font-semibold">Display Name Change Policy:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-0.5 text-[11px]">
+                    <li>You can change your display name <strong>3 times</strong> within <strong>7 days</strong></li>
+                    <li>After 3 changes, you must wait <strong>1 month</strong> before changing again</li>
+                    <li>Choose wisely!</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
+            {/* Bio */}
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Bio</span>
+                <span className="label-text font-semibold">Bio</span>
               </label>
               <textarea
                 name="bio"
-                value={formData.bio || ""} // ✅ Handle null
+                value={formData.bio || ""}
                 onChange={handleInputChange}
                 className="textarea textarea-bordered h-24"
                 placeholder="Tell us about yourself..."
+                maxLength={500}
               />
+              <label className="label">
+                <span className="label-text-alt text-base-content/60">
+                  {formData.bio?.length || 0}/500 characters
+                </span>
+              </label>
             </div>
 
+            {/* Cosplayer Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Cosplayer Type</span>
+                  <span className="label-text font-semibold">Cosplayer Type</span>
                 </label>
                 <select
                   name="cosplayerType"
@@ -305,25 +336,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Years of Experience</span>
+                  <span className="label-text font-semibold">Years of Experience</span>
                 </label>
                 <input
                   type="number"
                   name="yearsOfExperience"
-                  value={formData.yearsOfExperience ?? 0} // ✅ Handle null
+                  value={formData.yearsOfExperience ?? 0}
                   onChange={handleInputChange}
                   className="input input-bordered w-full"
                   min="0"
+                  max="50"
                 />
               </div>
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Skill Level</span>
+                  <span className="label-text font-semibold">Skill Level</span>
                 </label>
                 <select
                   name="skillLevel"
-                  value={formData.skillLevel || "beginner"} // ✅ Handle null
+                  value={formData.skillLevel || "beginner"}
                   onChange={handleInputChange}
                   className="select select-bordered w-full"
                 >
@@ -336,31 +368,34 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Specialization</span>
+                  <span className="label-text font-semibold">Specialization</span>
                 </label>
                 <input
                   type="text"
                   name="specialization"
-                  value={formData.specialization || ""} // ✅ Handle null
+                  value={formData.specialization || ""}
                   onChange={handleInputChange}
                   className="input input-bordered w-full"
-                  placeholder="e.g., Armor crafting, Sewing, Prop making"
+                  placeholder="e.g., Armor crafting, Sewing"
+                  maxLength={100}
                 />
               </div>
             </div>
 
             {/* Social Media Links */}
-            <div className="divider">Social Media</div>
+            <div className="divider">Social Media Links</div>
 
             <div className="space-y-3">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Facebook URL</span>
+                  <span className="label-text">
+                    Facebook URL
+                  </span>
                 </label>
                 <input
                   type="url"
                   name="facebookUrl"
-                  value={formData.facebookUrl || ""} // ✅ Handle null/undefined
+                  value={formData.facebookUrl || ""}
                   onChange={handleInputChange}
                   className="input input-bordered w-full"
                   placeholder="https://facebook.com/username"
@@ -369,12 +404,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Instagram URL</span>
+                  <span className="label-text">
+                    Instagram URL
+                  </span>
                 </label>
                 <input
                   type="url"
                   name="instagramUrl"
-                  value={formData.instagramUrl || ""} // ✅ Handle null/undefined
+                  value={formData.instagramUrl || ""}
                   onChange={handleInputChange}
                   className="input input-bordered w-full"
                   placeholder="https://instagram.com/username"
@@ -383,12 +420,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Twitter URL</span>
+                  <span className="label-text">
+                    Twitter/X URL
+                  </span>
                 </label>
                 <input
                   type="url"
                   name="twitterUrl"
-                  value={formData.twitterUrl || ""} // ✅ Handle null/undefined
+                  value={formData.twitterUrl || ""}
                   onChange={handleInputChange}
                   className="input input-bordered w-full"
                   placeholder="https://twitter.com/username"
@@ -396,9 +435,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </div>
             </div>
 
-
             {/* Action Buttons */}
-            <div className="modal-action sticky bottom-0 bg-base-100 pt-4">
+            <div className="modal-action sticky bottom-0 bg-base-100 pt-4 border-t border-base-200">
               <button
                 type="button"
                 onClick={onClose}
@@ -414,21 +452,22 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               >
                 {loading || isUploading ? (
                   <>
-                    <span className="loading loading-spinner"></span>
-                    {uploadingProfilePic && "Uploading Profile Picture..."}
-                    {uploadingCoverImage && "Uploading Cover Image..."}
-                    {loading && !isUploading && "Saving..."}
+                    <span className="loading loading-spinner loading-sm"></span>
+                    {uploadingProfilePic && <span className="hidden sm:inline">Uploading Profile Picture...</span>}
+                    {uploadingCoverImage && <span className="hidden sm:inline">Uploading Cover Image...</span>}
+                    {loading && !isUploading && <span className="hidden sm:inline">Saving...</span>}
+                    <span className="sm:hidden">Saving...</span>
                   </>
                 ) : (
-                  "Save Changes"
+                  <>
+                    <span>Save Changes</span>
+                  </>
                 )}
               </button>
             </div>
           </form>
         </div>
       </div>
-
-
     </>
   );
 };

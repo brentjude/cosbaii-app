@@ -76,16 +76,16 @@ export default function ProfileHeader({
 
         {/* Stats cards */}
         {userSettings?.showCompetitionCounter && (
-          <div className="flex flex-row max-w-[600px] max-md:justify-center gap-2 mr-[-10px] basis-2/3">
-            <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+          <div className="flex flex-row max-w-[400px] sm:max-w-[600px] max-md:justify-center gap-2 mr-[-10px] basis-2/3">
+            <div className="card basis-1/3 flex flex-col justify-center items-center text-center bg-white p-4 shadow-lg rounded-lg">
               <h2 className="text-[32px] font-semibold mb-2">{championCount}</h2>
               <span className="text-sm text-gray-500">Champion</span>
             </div>
-            <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+            <div className="card basis-1/3 flex flex-col justify-center items-center text-center bg-white p-4 shadow-lg rounded-lg">
               <h2 className="text-[32px] font-semibold mb-2">{placedCount}</h2>
               <span className="text-sm text-gray-500">Placed</span>
             </div>
-            <div className="card basis-1/3 flex flex-col justify-center items-center bg-white p-4 shadow-lg rounded-lg">
+            <div className="card basis-1/3 flex flex-col justify-center items-center text-center bg-white p-4 shadow-lg rounded-lg">
               <h2 className="text-[32px] font-semibold mb-2">{totalCompetitions}</h2>
               <span className="text-sm text-gray-500">Competitions Joined</span>
             </div>

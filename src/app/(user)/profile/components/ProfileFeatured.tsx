@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PencilSquareIcon, TrophyIcon } from "@heroicons/react/16/solid";
 import { FeaturedItem } from "@/types/profile";
 import FeaturedCarouselModal from "./FeaturedCarouselModal";
@@ -15,11 +15,31 @@ export default function ProfileFeatured({ featuredCosplays, onEdit, loading = fa
   const hasFeaturedItems = featuredCosplays.some((item) => item.imageUrl && item.imageUrl.trim() !== "");
   const [showCarousel, setShowCarousel] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // Touch/Drag state
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Auto-advance carousel on mobile
+  useEffect(() => {
+    if (!loading && hasFeaturedItems) {
+      const timer = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % 3);
+      }, 5000);
+
+      return () => clearInterval(timer);
+    }
+  }, [loading, hasFeaturedItems]);
 
   const handleItemClick = (index: number) => {
+    // Only open modal if not dragging
+    if (isDragging) return;
+    
     const item = featuredCosplays[index];
     if (item.imageUrl && item.imageUrl.trim() !== "") {
-      // Find the actual index in the filtered valid items
       const validItems = featuredCosplays.filter(
         (item) => item.imageUrl && item.imageUrl.trim() !== ""
       );
@@ -31,25 +51,122 @@ export default function ProfileFeatured({ featuredCosplays, onEdit, loading = fa
     }
   };
 
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + 3) % 3);
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % 3);
+  };
+
+  const handleDotClick = (index: number) => {
+    setCurrentSlide(index);
+  };
+
+  // Touch handlers for swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      handleNextSlide();
+    }
+    if (isRightSwipe) {
+      handlePrevSlide();
+    }
+
+    // Reset
+    setTouchStart(0);
+    setTouchEnd(0);
+    setTimeout(() => setIsDragging(false), 100);
+  };
+
+  // Mouse handlers for desktop drag
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setTouchStart(e.clientX);
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (touchStart === 0) return;
+    setTouchEnd(e.clientX);
+    setIsDragging(true);
+  };
+
+  const handleMouseUp = () => {
+    if (!touchStart || !touchEnd) {
+      setTouchStart(0);
+      setTouchEnd(0);
+      setTimeout(() => setIsDragging(false), 100);
+      return;
+    }
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      handleNextSlide();
+    }
+    if (isRightSwipe) {
+      handlePrevSlide();
+    }
+
+    setTouchStart(0);
+    setTouchEnd(0);
+    setTimeout(() => setIsDragging(false), 100);
+  };
+
+  const handleMouseLeave = () => {
+    setTouchStart(0);
+    setTouchEnd(0);
+    setTimeout(() => setIsDragging(false), 100);
+  };
+
+  // Side area click handlers
+  const handleLeftAreaClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handlePrevSlide();
+  };
+
+  const handleRightAreaClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleNextSlide();
+  };
+
   return (
     <>
-      <div id="featured" className="relative h-100 bg-white rounded-2xl border border-gray-200">
-        <div className="absolute l-4 flex justify-between items-center w-full z-10">
-          <h2 className="absolute top-4 left-4 text-xl font-bold text-white drop-shadow-lg">
+      <div id="featured" className="relative h-130 sm:h-100 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="absolute l-4 flex justify-between items-center w-full z-30">
+          <h2 className="absolute top-4 left-4 text-base sm:text-xl font-bold text-white drop-shadow-lg pointer-events-none">
             Featured
           </h2>
 
           <button
-            className="absolute btn btn-primary btn-sm py-6 rounded-full top-2 right-4 tooltip tooltip-left"
+            className="absolute btn btn-primary btn-xs sm:btn-sm py-4 sm:py-6 rounded-full top-2 right-4 tooltip tooltip-left z-30"
             data-tip="Edit Featured Cosplay"
             onClick={onEdit}
             disabled={loading}
           >
-            <PencilSquareIcon className="w-6 h-6 text-white" />
+            <PencilSquareIcon className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
           </button>
         </div>
 
-        <div className="flex flex-row h-100">
+        {/* Desktop View - 3 columns */}
+        <div className="hidden sm:flex flex-row h-full">
           {loading ? (
             <>
               {[0, 1, 2].map((index) => (
@@ -201,6 +318,210 @@ export default function ProfileFeatured({ featuredCosplays, onEdit, loading = fa
               ))}
             </>
           )}
+        </div>
+
+        {/* Mobile View - Carousel with drag/swipe */}
+        <div className="sm:hidden relative h-full">
+          <div 
+            ref={carouselRef}
+            className="relative h-full overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+          >
+            {loading ? (
+              <div className="w-full h-full flex flex-col justify-end p-4 bg-gray-200 relative animate-pulse">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                
+                <div className="w-full mx-auto py-2 px-3 mb-4 bg-white/90 backdrop-blur-sm rounded-xl shadow-md">
+                  <div className="flex flex-row gap-2 items-center">
+                    <div className="flex-1 space-y-2">
+                      <div className="h-2.5 bg-gray-300 rounded w-3/4"></div>
+                      <div className="h-2 bg-gray-300 rounded w-1/2"></div>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                      <div className="h-1.5 bg-gray-300 rounded w-6"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : hasFeaturedItems ? (
+              <>
+                {/* Carousel Track */}
+                <div 
+                  className="flex transition-transform duration-500 ease-out h-full"
+                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                  {featuredCosplays.map((featured, index) => {
+                    const hasContent = featured.imageUrl && featured.imageUrl.trim() !== "";
+                    
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => handleItemClick(index)}
+                        className={`w-full h-full flex-shrink-0 flex items-end p-4 bg-gray-100 relative ${
+                          hasContent && !isDragging ? "cursor-pointer active:scale-[0.98] transition-transform" : ""
+                        }`}
+                        style={{
+                          backgroundImage: hasContent
+                            ? `url(${featured.imageUrl})`
+                            : `url('/images/feature-placeholder.png')`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      >
+                        {hasContent && (
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                        )}
+
+                        {hasContent && (featured.title || featured.character) && (
+                          <div className="w-full mx-auto py-2 px-3 mb-12 bg-white/95 backdrop-blur-sm rounded-xl shadow-md z-10 relative animate-fade-in pointer-events-none">
+                            <div className="flex flex-row gap-2 items-center">
+                              <div className="flex-1 min-w-0">
+                                {featured.type === "competition" && featured.competition ? (
+                                  <h3 className="text-[11px] font-bold truncate">
+                                    {new Date(featured.competition.eventDate).getFullYear()} |{" "}
+                                    {featured.competition.name}
+                                  </h3>
+                                ) : featured.title ? (
+                                  <h3 className="text-[11px] font-bold truncate">{featured.title}</h3>
+                                ) : null}
+
+                                {featured.character && (
+                                  <div className="flex flex-col gap-0.5 pt-1">
+                                    <span className="text-[9px] text-gray-500">
+                                      {featured.type === "competition"
+                                        ? "Competition Character"
+                                        : "Cosplay Character"}
+                                    </span>
+                                    <span className="text-[10px] font-bold truncate">
+                                      {featured.character}
+                                      {featured.series && ` (${featured.series})`}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-center flex-shrink-0">
+                                {featured.type === "competition" ? (
+                                  <>
+                                    {featured.position === "CHAMPION" ||
+                                    featured.position === "FIRST_PLACE" ? (
+                                      <>
+                                        <TrophyIcon className="w-3.5 h-3.5 text-yellow-500" />
+                                        <span className="text-[7px] text-yellow-600 font-bold whitespace-nowrap">
+                                          Champion
+                                        </span>
+                                      </>
+                                    ) : featured.position === "SECOND_PLACE" ? (
+                                      <>
+                                        <TrophyIcon className="w-3.5 h-3.5 text-gray-500" />
+                                        <span className="text-[7px] text-gray-600 font-bold whitespace-nowrap">
+                                          2nd Place
+                                        </span>
+                                      </>
+                                    ) : featured.position === "THIRD_PLACE" ? (
+                                      <>
+                                        <TrophyIcon className="w-3.5 h-3.5 text-amber-600" />
+                                        <span className="text-[7px] text-amber-700 font-bold whitespace-nowrap">
+                                          3rd Place
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <TrophyIcon className="w-3.5 h-3.5 text-blue-500" />
+                                        <span className="text-[7px] text-blue-600 font-bold whitespace-nowrap">
+                                          Participant
+                                        </span>
+                                      </>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-[7px] text-center text-yellow-600 font-bold leading-tight">
+                                    Featured
+                                    <br />
+                                    Cosplay
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {!hasContent && (
+                          <div className="w-full flex items-center justify-center z-10 relative pointer-events-none mb-12">
+                            <span className="text-gray-500 text-sm">Empty Slot</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Clickable Side Areas - Left (exclude top-right corner for edit button) */}
+                <div
+                  onClick={handleLeftAreaClick}
+                  className="absolute left-0 top-16 bottom-12 w-1/4 z-20 cursor-pointer active:bg-black/10 transition-colors"
+                  aria-label="Previous slide"
+                />
+                
+                {/* Clickable Side Areas - Right (exclude top-right corner for edit button) */}
+                <div
+                  onClick={handleRightAreaClick}
+                  className="absolute right-0 top-16 bottom-12 w-1/4 z-20 cursor-pointer active:bg-black/10 transition-colors"
+                  aria-label="Next slide"
+                />
+
+                {/* Dot Navigation - Inside container at bottom */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                  {[0, 1, 2].map((index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleDotClick(index)}
+                      className={`transition-all duration-300 ${
+                        index === currentSlide
+                          ? "w-6 h-1.5 bg-white rounded-full"
+                          : "w-1.5 h-1.5 bg-white/50 rounded-full hover:bg-white/75"
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100 relative">
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: "url(/images/feature-placeholder.png)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+                <span className="text-gray-500 text-sm z-10 relative">Empty Slot</span>
+                
+                {/* Dot Navigation for empty state */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-20">
+                  {[0, 1, 2].map((index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleDotClick(index)}
+                      className={`transition-all duration-300 ${
+                        index === currentSlide
+                          ? "w-6 h-1.5 bg-gray-400 rounded-full"
+                          : "w-1.5 h-1.5 bg-gray-400/50 rounded-full"
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <style jsx>{`
