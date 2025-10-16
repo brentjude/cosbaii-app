@@ -149,7 +149,7 @@ const ProfilePage = () => {
 
   if (loading || settingsLoading) {
     return (
-      <main className="max-w-[1240px] mx-auto h-screen p-6">
+      <main className="max-w-[1240px] mx-auto h-screen p-4 md:p-6">
         <div className="bg-white rounded-lg shadow-sm">
           <div className="flex items-center justify-center h-64">
             <span className="loading loading-spinner loading-lg"></span>
@@ -161,7 +161,7 @@ const ProfilePage = () => {
 
   return (
     <>
-      <main className="w-full bg-primary/5 p-6">
+      <main className="w-full bg-primary/5 p-3 sm:p-4 md:p-6">
         <div className="max-w-[1240px] mx-auto">
           <ProfileHeader
             profile={profile}
@@ -174,11 +174,15 @@ const ProfilePage = () => {
             onEditProfile={handleEditProfile}
           />
 
-          <div className="flex flex-row items-start gap-4 mt-4">
-            {/* ✅ Removed session prop */}
-            <ProfileInfo profile={profile} userSettings={userSettings} />
+          {/* Mobile: Stack vertically, Desktop: Side by side */}
+          <div className="flex flex-col lg:flex-row items-start gap-3 sm:gap-4 mt-3 sm:mt-4">
+            {/* ProfileInfo - Full width on mobile, 1/3 on desktop */}
+            <div className="w-full lg:basis-1/3">
+              <ProfileInfo profile={profile} userSettings={userSettings} />
+            </div>
 
-            <div className="basis-2/3 flex flex-col gap-4">
+            {/* Featured & Competitions - Full width on mobile, 2/3 on desktop */}
+            <div className="w-full lg:basis-2/3 flex flex-col gap-3 sm:gap-4">
               <ProfileFeatured
                 featuredCosplays={featuredCosplays}
                 onEdit={() => setShowFeaturedEditor(true)}

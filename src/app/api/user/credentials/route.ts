@@ -4,14 +4,14 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
-// ✅ Updated validation schema to match Prisma model
+// ✅ Updated validation schema to include imageUrl
 const credentialsSchema = z.object({
   competitionId: z.number().int().positive(),
   cosplayTitle: z.string().min(1, "Cosplay title is required").max(200),
   characterName: z.string().max(200).optional(),
   seriesName: z.string().max(200).optional(),
   description: z.string().max(5000).optional(),
-  photos: z.string().optional(),
+  imageUrl: z.string().url().optional(), // ✅ Add imageUrl field
   videoUrl: z.string().url().max(500).optional(),
   position: z.string().max(50).optional(),
   category: z.string().max(100).optional(),
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       characterName,
       seriesName,
       description,
-      photos,
+      imageUrl, // ✅ Get imageUrl from validated data
       videoUrl,
       position,
       category,
@@ -96,6 +96,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ✅ Create photos array - store as JSON string
+    const photosArray = imageUrl ? [imageUrl] : [];
+    const photosJson = photosArray.length > 0 ? JSON.stringify(photosArray) : null;
+
     const participant = await prisma.competitionParticipant.create({
       data: {
         userId,
@@ -104,7 +108,7 @@ export async function POST(request: NextRequest) {
         characterName,
         seriesName,
         description,
-        photos,
+        photos: photosJson, // ✅ Store as JSON string
         videoUrl,
         position,
         category,
@@ -169,7 +173,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ✅ Updated GET endpoint - Return data structure that matches frontend expectations
+// ✅ Updated GET endpoint - Parse photos JSON
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -231,6 +235,17 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // ✅ Parse photos JSON
+      let imageUrl = null;
+      if (participant.photos) {
+        try {
+          const photosArray = JSON.parse(participant.photos);
+          imageUrl = Array.isArray(photosArray) && photosArray.length > 0 ? photosArray[0] : null;
+        } catch (error) {
+          console.error('Error parsing photos JSON:', error);
+        }
+      }
+
       const credential = {
         id: participant.id,
         cosplayTitle: participant.cosplayTitle,
@@ -240,7 +255,7 @@ export async function GET(request: NextRequest) {
         position: participant.position || 'PARTICIPANT',
         category: participant.category,
         verified: participant.status === 'APPROVED',
-        imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null,
+        imageUrl,
         competition: participant.competition,
         awards: participant.awards,
         submittedAt: participant.submittedAt,
@@ -253,7 +268,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // ✅ Fetch all user credentials ordered by the 'order' field
+    // ✅ Fetch all user credentials
     const participants = await prisma.competitionParticipant.findMany({
       where: {
         userId,
@@ -283,26 +298,39 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: [
-        { order: 'asc' }, // ✅ Primary sort by custom order
-        { submittedAt: 'desc' }, // ✅ Secondary sort by submission date
+        { order: 'asc' },
+        { submittedAt: 'desc' },
       ],
     });
 
-    const credentials = participants.map(participant => ({
-      id: participant.id,
-      cosplayTitle: participant.cosplayTitle,
-      characterName: participant.characterName,
-      seriesName: participant.seriesName,
-      description: participant.description,
-      position: participant.position || 'PARTICIPANT',
-      category: participant.category,
-      verified: participant.status === 'APPROVED',
-      imageUrl: participant.photos ? JSON.parse(participant.photos)[0] : null,
-      competition: participant.competition,
-      awards: participant.awards || [],
-      submittedAt: participant.submittedAt,
-      reviewedAt: participant.reviewedAt,
-    }));
+    const credentials = participants.map(participant => {
+      // ✅ Parse photos JSON for each participant
+      let imageUrl = null;
+      if (participant.photos) {
+        try {
+          const photosArray = JSON.parse(participant.photos);
+          imageUrl = Array.isArray(photosArray) && photosArray.length > 0 ? photosArray[0] : null;
+        } catch (error) {
+          console.error('Error parsing photos JSON for participant:', participant.id, error);
+        }
+      }
+
+      return {
+        id: participant.id,
+        cosplayTitle: participant.cosplayTitle,
+        characterName: participant.characterName,
+        seriesName: participant.seriesName,
+        description: participant.description,
+        position: participant.position || 'PARTICIPANT',
+        category: participant.category,
+        verified: participant.status === 'APPROVED',
+        imageUrl,
+        competition: participant.competition,
+        awards: participant.awards || [],
+        submittedAt: participant.submittedAt,
+        reviewedAt: participant.reviewedAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -346,6 +374,7 @@ export async function DELETE(
         userId: true,
         status: true,
         competitionId: true,
+        photos: true, // ✅ Get photos to clean up from Cloudinary
       },
     });
 
@@ -361,6 +390,28 @@ export async function DELETE(
         { error: 'You do not have permission to delete this credential' },
         { status: 403 }
       );
+    }
+
+    // ✅ Optional: Delete photos from Cloudinary before deleting credential
+    if (credential.photos) {
+      try {
+        const photosArray = JSON.parse(credential.photos);
+        if (Array.isArray(photosArray) && photosArray.length > 0) {
+          // Import cloudinary utilities
+          const { deleteFromCloudinary, extractPublicIdFromUrl } = await import('@/lib/cloudinary');
+          
+          for (const photoUrl of photosArray) {
+            const publicId = extractPublicIdFromUrl(photoUrl);
+            if (publicId) {
+              await deleteFromCloudinary(publicId);
+              console.log('Deleted photo from Cloudinary:', publicId);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting photos from Cloudinary:', error);
+        // Continue with deletion even if Cloudinary cleanup fails
+      }
     }
 
     // Delete the credential
