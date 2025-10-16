@@ -1,0 +1,442 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+enum CompetitionType {
+  GENERAL
+  ARMOR
+  CLOTH
+  SINGING
+}
+
+enum RivalryType {
+  SOLO
+  DUO
+  GROUP
+}
+
+enum CompetitionLevel {
+  BARANGAY
+  LOCAL
+  REGIONAL
+  NATIONAL
+  WORLDWIDE
+}
+
+enum CompetitionStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  ONGOING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum BadgeType {
+  PARTICIPATION
+  COMPETITION_MILESTONE
+  SPECIAL_ACHIEVEMENT
+  PROFILE_COMPLETION
+}
+
+enum ParticipantPosition {
+  CHAMPION
+  FIRST_PLACE
+  SECOND_PLACE
+  PARTICIPANT
+}
+
+enum CosplayerType {
+  COMPETITIVE
+  HOBBY
+  PROFESSIONAL
+}
+
+model User {
+  id            Int        @id @default(autoincrement())
+  email         String     @unique
+  name          String?
+  username      String     @unique
+  password      String?
+  image         String?
+  role          UserRole   @default(USER)
+  status        UserStatus @default(INACTIVE) // ✅ Changed default to INACTIVE
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  reviewedBy    String?
+  isPremiumUser Boolean    @default(false)
+
+  // ✅ Updated email verification fields
+  emailVerified            Boolean   @default(false) // ✅ Changed to Boolean
+  emailVerifiedDate        DateTime? // ✅ New field for verification date
+  emailVerificationCode    String?
+  emailVerificationExpires DateTime?
+
+  // Email change fields
+  pendingEmail        String?
+  pendingEmailToken   String?
+  pendingEmailExpires DateTime?
+
+  // Relations
+  sessions         Session[]
+  profile          Profile?
+  competitions     Competition[]
+  participations   CompetitionParticipant[]
+  photos           Photo[]
+  userBadges       UserBadge[]
+  featuredCosplays FeaturedCosplay[]
+  blogs            Blog[]
+  feedback         Feedback[]
+  notifications    Notification[]
+  featuredItems    FeaturedItem[]
+  settings         UserSettings?
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model UserSettings {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Profile visibility settings
+  showCompetitionCounter Boolean @default(true)
+  showBadges             Boolean @default(true)
+
+  // Display name change tracking
+  lastDisplayNameChange DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+model Profile {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  //cosplayer type
+  cosplayerType CosplayerType @default(HOBBY)
+
+  //Experience and Specialization
+  yearsOfExperience Int? // Years of cosplaying experience
+  specialization    String? // Specific areas of expertise (e.g., sewing, makeup, prop
+  skillLevel        String? // Skill level (beginner, intermediate, advanced)
+
+  // Add public IDs for Cloudinary image management
+  profilePicturePublicId String? // Store Cloudinary public ID for deletion
+  coverImagePublicId     String? // Store Cloudinary public ID for deletion
+
+  displayName    String?
+  bio            String? //Cosplayers bio
+  profilePicture String? @default("/images/default-avatar.png")
+  coverImage     String? @default("/images/default-cover.jpg")
+
+  //social media links
+  instagramUrl String?
+  facebookUrl  String?
+  twitterUrl   String?
+  tiktokUrl    String?
+  youtubeUrl   String?
+
+  //agreed to receive email updates
+  receiveEmailUpdates Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles") // Database table will be named "profiles" instead of "Profile"
+}
+
+//Feature Items for every profile
+model FeaturedItem {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  title         String
+  description   String?
+  imageUrl      String
+  character     String?
+  series        String?
+  type          String   @default("cosplay") // "competition" or "cosplay"
+  competitionId Int?
+  position      String?
+  award         String?
+  order         Int // For ordering (0, 1, 2 for the 3 slots)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+
+  @@map("featured_items")
+}
+
+//this represents completed competitions
+model Competition {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  eventDate   DateTime //when the competition happened
+  location    String? //Location of the competition
+  organizer   String? //Organizer of the competition
+
+  // ✅ Add new fields
+  competitionType CompetitionType  @default(GENERAL) // Type of competition
+  rivalryType     RivalryType      @default(SOLO) // Solo, duo, or group
+  level           CompetitionLevel @default(LOCAL) // Competition level
+
+  // ✅ NEW: Logo and reference links for verification
+  logoUrl        String? // Competition logo/poster image URL
+  eventUrl       String? // Official event website or page
+  facebookUrl    String? // Facebook event or page URL
+  instagramUrl   String? // Instagram page URL
+  referenceLinks String? // Additional reference links (JSON string or comma-separated)
+
+  //User who submitted the competition
+  submittedById Int
+  submittedBy   User @relation(fields: [submittedById], references: [id], onDelete: Cascade)
+
+  //admin approval workflow
+  status          CompetitionStatus @default(DRAFT) // Status of the competition
+  reviewedById    Int? // Admin who reviewed the competition
+  reviewedAt      DateTime? // When the competition was reviewed
+  rejectionReason String? // Reason for rejection if applicable
+
+  //relations
+  awards        Awards[]
+  participants  CompetitionParticipant[]
+  featuredItems FeaturedItem[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  FeaturedCosplay FeaturedCosplay[]
+
+  @@map("competitions")
+}
+
+model CompetitionParticipant {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  competitionId Int
+  cosplayTitle  String?   @db.VarChar(200)
+  characterName String?   @db.VarChar(200)
+  seriesName    String?   @db.VarChar(200)
+  description   String?   @db.Text
+  position      String?   @db.VarChar(50)
+  category      String?   @db.VarChar(100)
+  status        String    @default("PENDING") @db.VarChar(20) // ✅ Add this field
+  order         Int?      @default(0)
+  submittedAt   DateTime  @default(now())
+  reviewedAt    DateTime? // ✅ Add this field
+  photos        String?   @db.Text
+  videoUrl      String?   @db.VarChar(500)
+  isTeam        Boolean   @default(false)
+  teamMembers   String?   @db.Text
+  contactEmail  String?   @db.VarChar(255)
+  contactPhone  String?   @db.VarChar(50)
+  verifiedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  awards      Awards[]
+
+  @@unique([userId, competitionId])
+  @@index([competitionId])
+  @@index([userId])
+  @@index([status]) // ✅ Add index for better query performance
+  @@index([order])
+  @@map("competition_participants")
+}
+
+model Awards {
+  id            Int         @id @default(autoincrement())
+  competitionId Int
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  category    String?
+
+  createdAt DateTime @default(now())
+
+  CompetitionParticipant CompetitionParticipant[]
+
+  @@map("awards") // Database table will be named "awards" instead of "Awards"
+}
+
+model Photo {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  url     String // URL of the photo
+  caption String? // Optional caption for the photo
+  alt     String? // Alternative text for the photo
+
+  // Photo categorization
+  photoType String? // "Cosplay", "Behind the Scenes", "Event", etc.
+  character String? // Character name if applicable
+  series    String? // Series or franchise name if applicable
+
+  // Metadata for display and optizmiation
+  width    Int?
+  height   Int?
+  size     Int? // Size in bytes
+  mimeType String? // MIME type of the photo (e.g., "image/jpeg", "image/png")
+
+  createdAt DateTime @default(now())
+
+  @@map("photos") // Database table will be named "photos" instead of "Photo"
+}
+
+model FeaturedCosplay {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competitionId Int
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  title       String // Title of the featured cosplay
+  description String? // Description of the featured cosplay
+  imageUrl    String // URL of the featured cosplay image
+  character   String? // Character name if applicable
+  series      String? // Series or franchise name if applicable
+
+  // For competitive cosplayers, this might hightlight their best competition results
+  // for hobby cosplayers, it might showcase their best work
+  position Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, competitionId]) // Ensure a user can only have one featured cosplay per competition
+  @@map("featured_cosplays") // Database table will be named "featured_cosplays" instead of "FeaturedCosplay"
+}
+
+model Badge {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String
+  iconUrl     String
+  type        BadgeType // ✅ Add this field
+  requirement Int? // Optional requirement (for milestone badges)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id      Int   @id @default(autoincrement())
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId Int
+  badge   Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  awardedAt DateTime @default(now()) // When the badge was awarded
+
+  @@unique([userId, badgeId]) // Ensure a user can only have one instance of a badge
+  @@map("user_badges") // Database table will be named "user_badges"
+}
+
+model Blog {
+  id       Int     @id @default(autoincrement())
+  title    String
+  content  String  @db.Text //Large text content for the blog post
+  excerpt  String?
+  slug     String  @unique
+  authorId Int
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  published Boolean @default(false) // Whether the blog is published or in draft mode
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Feedback {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  type        String // BUG, FEATURE_REQUEST, IMPROVEMENT
+  title       String
+  description String   @db.Text
+  status      String   @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade) // ✅ Fix: change 'users' to 'user'
+
+  @@map("feedback")
+}
+
+// Update: prisma/schema.prisma
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  title     String
+  message   String
+  data      String? // JSON string for additional data
+  isRead    Boolean  @default(false) // ✅ Changed from 'read' to 'isRead'
+  relatedId Int? // ✅ Added relatedId field for badge references
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
