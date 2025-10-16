@@ -255,11 +255,13 @@ export async function GET(request: NextRequest) {
         position: participant.position || 'PARTICIPANT',
         category: participant.category,
         verified: participant.status === 'APPROVED',
+        status: participant.status, // ✅ Include status field
         imageUrl,
         competition: participant.competition,
         awards: participant.awards,
         submittedAt: participant.submittedAt,
         reviewedAt: participant.reviewedAt,
+        order: participant.order, // ✅ Include order field
       };
 
       return NextResponse.json({
@@ -324,11 +326,13 @@ export async function GET(request: NextRequest) {
         position: participant.position || 'PARTICIPANT',
         category: participant.category,
         verified: participant.status === 'APPROVED',
+        status: participant.status, // ✅ Include status field
         imageUrl,
         competition: participant.competition,
         awards: participant.awards || [],
         submittedAt: participant.submittedAt,
         reviewedAt: participant.reviewedAt,
+        order: participant.order, // ✅ Include order field
       };
     });
 

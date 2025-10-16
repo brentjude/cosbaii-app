@@ -134,6 +134,7 @@ export interface CompetitionCredential {
   position: string;
   category: string | null;
   verified: boolean;
+  status: string;
   imageUrl: string | null;
   competition: {
     id: number;
@@ -155,6 +156,7 @@ export interface CompetitionCredential {
   }>;
   submittedAt: string;
   reviewedAt: string | null;
+  order?: number;
 }
 // ✅ Export alias for backward compatibility
 export type Credential = CompetitionCredential;
