@@ -105,7 +105,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     formData.append("file", file);
     formData.append("type", type);
 
-    const response = await fetch("/api/user/upload-image", {
+    const response = await fetch("/api/user/upload/profile", {
       method: "POST",
       body: formData,
     });
