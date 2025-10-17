@@ -1,5 +1,6 @@
-// Create: src/types/api/blog.ts
-import { Blog, BlogComment, BlogLike } from "@/types/blog";
+// Update: src/types/api/blog.ts
+import { Blog, BlogComment } from "@/types/blog";
+
 // Request types
 export interface CreateBlogRequest {
   title: string;
@@ -14,7 +15,19 @@ export interface CreateBlogRequest {
   published?: boolean;
 }
 
-export interface UpdateBlogRequest extends Partial<CreateBlogRequest> {}
+// ✅ Fixed: Add properties or use Partial instead of empty extends
+export interface UpdateBlogRequest {
+  title?: string;
+  content?: string;
+  excerpt?: string;
+  slug?: string;
+  featuredImage?: string;
+  category?: string;
+  tags?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  published?: boolean;
+}
 
 export interface CreateCommentRequest {
   content: string;

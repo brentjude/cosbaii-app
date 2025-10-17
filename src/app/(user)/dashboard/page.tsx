@@ -1,7 +1,7 @@
 // Update: src/app/(user)/dashboard/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import UserDashboardSkeleton from "@/app/components/skeletons/user/UserDashboardSkeleton";
 import UserProfileCard from "@/app/components/user/UserProfileCard";
@@ -31,39 +31,28 @@ const DashboardPage = () => {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
-  const ITEMS_PER_PAGE = 5; // ✅ Constant for items per page
+  
+  // ✅ Use ref for page to avoid dependency issues
+  const pageRef = useRef(0);
+  const ITEMS_PER_PAGE = 5;
 
   // Get display name
   const displayName = session?.user?.username || session?.user?.name;
 
-  // ✅ Load initial notifications (only 5)
-  useEffect(() => {
-    if (session?.user) {
-      loadNotifications(true);
-    }
-  }, [session?.user]);
-
-  const loadNotifications = async (isInitial = false) => {
+  // ✅ Fixed: Remove page from dependencies and use ref
+  const loadNotifications = useCallback(async (isInitial = false) => {
     if (isInitial) {
       setNotificationsLoading(true);
-      setPage(0);
+      pageRef.current = 0;
       setNotifications([]); // ✅ Clear existing notifications
     } else {
       setLoadingMore(true);
     }
 
     try {
-      const currentPage = isInitial ? 0 : page;
+      const currentPage = isInitial ? 0 : pageRef.current;
       const skip = currentPage * ITEMS_PER_PAGE;
-      
-      console.log('📡 Fetching notifications:', { 
-        take: ITEMS_PER_PAGE, 
-        skip, 
-        currentPage,
-        isInitial 
-      });
-      
+
       const response = await fetch(
         `/api/user/notifications?take=${ITEMS_PER_PAGE}&skip=${skip}`
       );
@@ -71,35 +60,20 @@ const DashboardPage = () => {
       if (!response.ok) throw new Error("Failed to fetch notifications");
 
       const data = await response.json();
-      
-      console.log('✅ Received notifications:', { 
-        count: data.notifications.length,
-        total: notifications.length + data.notifications.length
-      });
 
       if (isInitial) {
         setNotifications(data.notifications);
       } else {
         // ✅ Append to existing notifications
-        setNotifications((prev) => {
-          const newNotifications = [...prev, ...data.notifications];
-          console.log('📝 Updated notifications list:', newNotifications.length);
-          return newNotifications;
-        });
+        setNotifications((prev) => [...prev, ...data.notifications]);
       }
 
-      // ✅ Update page and check if there are more
-      setPage(currentPage + 1);
+      // ✅ Update ref instead of state
+      pageRef.current = currentPage + 1;
       
       // ✅ If we got less than ITEMS_PER_PAGE, there are no more
       const shouldHaveMore = data.notifications.length === ITEMS_PER_PAGE;
       setHasMore(shouldHaveMore);
-      
-      console.log('🔄 Pagination state:', { 
-        nextPage: currentPage + 1,
-        hasMore: shouldHaveMore,
-        receivedCount: data.notifications.length
-      });
       
     } catch (error) {
       console.error("❌ Error loading notifications:", error);
@@ -108,7 +82,13 @@ const DashboardPage = () => {
       setNotificationsLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [ITEMS_PER_PAGE]); // ✅ Only ITEMS_PER_PAGE in dependencies
+
+  useEffect(() => {
+  if (session?.user?.id) {
+    loadNotifications(true);
+  }
+}, [session?.user?.id, loadNotifications]);
 
   const markAsRead = async (ids: number[]) => {
     try {
@@ -292,10 +272,6 @@ const DashboardPage = () => {
                       {unreadCount}
                     </span>
                   )}
-                  {/* ✅ Debug info - remove in production */}
-                  <span className="text-xs text-gray-500">
-                    ({notifications.length} loaded)
-                  </span>
                 </div>
 
                 {unreadCount > 0 && (
@@ -354,7 +330,7 @@ const DashboardPage = () => {
                               Loading more...
                             </span>
                           ) : (
-                            `See previous notifications (Page ${page + 1})`
+                            `See previous notifications`
                           )}
                         </button>
                       </div>

@@ -1,3 +1,4 @@
+// Update: src/app/components/admin/users/modals/ViewUserModal.tsx
 import { User } from "@/types/admin";
 import {
   getStatusBadge,
@@ -5,6 +6,7 @@ import {
   formatRegistrationDate,
   formatTime,
 } from "@/lib/admin/userUtils";
+import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 
 interface Props {
   isOpen: boolean;
@@ -57,6 +59,35 @@ export default function ViewUserModal({ isOpen, user, onClose }: Props) {
                 <span className="label-text font-semibold">Status</span>
               </label>
               <span className={getStatusBadge(user.status)}>{user.status}</span>
+            </div>
+          </div>
+
+          {/* ✅ Premium User Status */}
+          <div>
+            <label className="label">
+              <span className="label-text font-semibold">Account Type</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {user.isPremiumUser ? (
+                <>
+                  <div className="badge badge-warning badge-lg gap-2">
+                    <CheckBadgeIcon className="w-4 h-4" />
+                    Premium User
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    Has access to premium features
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="badge badge-ghost badge-lg">
+                    Standard User
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    Basic features only
+                  </span>
+                </>
+              )}
             </div>
           </div>
 

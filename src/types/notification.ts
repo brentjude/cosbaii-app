@@ -2,7 +2,7 @@
 export interface Notification {
   id: number;
   userId: number;
-  type: NotificationType; // ✅ Updated
+  type: NotificationType;
   title: string;
   message: string;
   data?: string;
@@ -19,22 +19,24 @@ export type NotificationType =
   | "COMPETITION_REJECTED"
   | "PARTICIPANT_APPROVED"
   | "BADGE_EARNED"
-  | "BLOG_LIKE" // ✅ NEW
-  | "BLOG_COMMENT" // ✅ NEW
-  | "BLOG_COMMENT_REPLY" // ✅ NEW
-  | "BLOG_PUBLISHED"; // ✅ NEW
+  | "BLOG_LIKE"
+  | "BLOG_COMMENT"
+  | "BLOG_COMMENT_REPLY"
+  | "BLOG_PUBLISHED";
 
+// ✅ Fixed: Remove 'any' and use proper type for additional properties
 export interface NotificationData {
   competitionId?: number;
   competitionName?: string;
   badgeId?: number;
   badgeName?: string;
-  blogId?: number; // ✅ NEW
-  blogSlug?: string; // ✅ NEW
-  blogTitle?: string; // ✅ NEW
-  commentId?: number; // ✅ NEW
-  commenterName?: string; // ✅ NEW
-  [key: string]: any;
+  blogId?: number;
+  blogSlug?: string;
+  blogTitle?: string;
+  commentId?: number;
+  commenterName?: string;
+  // ✅ Use Record<string, unknown> instead of [key: string]: any
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface CreateNotificationData {

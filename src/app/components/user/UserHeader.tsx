@@ -1,7 +1,7 @@
 // Update: src/app/components/user/UserHeader.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -33,8 +33,10 @@ export default function UserHeader() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [skip, setSkip] = useState(0);
-  const take = 5; // Load 5 at a time
+  
+  // ✅ Use ref for skip to avoid dependency issues
+  const skipRef = useRef(0);
+  const take = 5;
 
   const { profile, hasProfile, setupProfile } = useProfile();
 
@@ -42,23 +44,19 @@ export default function UserHeader() {
     setIsClient(true);
   }, []);
 
-  // ✅ Load initial notifications
-  useEffect(() => {
-    if (session?.user) {
-      loadNotifications(true);
-    }
-  }, [session?.user]);
-
-  const loadNotifications = async (isInitial = false) => {
+  // ✅ Fixed: Remove skip from dependencies and use ref
+  const loadNotifications = useCallback(async (isInitial = false) => {
     if (isInitial) {
       setNotificationsLoading(true);
-      setSkip(0);
+      skipRef.current = 0;
+      setNotifications([]); // Clear notifications on initial load
     } else {
       setLoadingMore(true);
     }
 
     try {
-      const currentSkip = isInitial ? 0 : skip;
+      const currentSkip = isInitial ? 0 : skipRef.current;
+      
       const response = await fetch(
         `/api/user/notifications?take=${take}&skip=${currentSkip}`
       );
@@ -73,15 +71,24 @@ export default function UserHeader() {
         setNotifications((prev) => [...prev, ...data.notifications]);
       }
 
-      setSkip(currentSkip + take);
+      // ✅ Update ref instead of state
+      skipRef.current = currentSkip + take;
       setHasMore(data.notifications.length === take);
     } catch (error) {
       console.error("Error loading notifications:", error);
+      setHasMore(false);
     } finally {
       setNotificationsLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [take]); // ✅ Only take in dependencies
+
+  // ✅ Load initial notifications only once
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadNotifications(true);
+    }
+  }, [session?.user?.id, loadNotifications]); // ✅ Only depend on user ID, not the whole session object
 
   const markAsRead = async (ids: number[]) => {
     try {

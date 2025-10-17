@@ -1,3 +1,4 @@
+// Update: src/app/components/admin/users/modals/AddUserModal.tsx
 import { useState } from "react";
 import { NewUserData, UserRole, UserStatus } from "@/types/admin";
 
@@ -16,6 +17,7 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
     password: "",
     role: "USER",
     status: "ACTIVE",
+    isPremiumUser: false, // ✅ Already correctly initialized
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -56,6 +58,7 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
       password: "",
       role: "USER",
       status: "ACTIVE",
+      isPremiumUser: false,
     });
     setErrors({});
     onClose();
@@ -154,6 +157,24 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
                   <option value="BANNED">BANNED</option>
                 </select>
               </div>
+            </div>
+
+            {/* ✅ Premium User Toggle - Fixed with Boolean() */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-4">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={Boolean(formData.isPremiumUser)}
+                  onChange={(e) => setFormData({ ...formData, isPremiumUser: e.target.checked })}
+                />
+                <div>
+                  <span className="label-text font-medium">Premium User</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Grant this user access to premium features and benefits
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
 

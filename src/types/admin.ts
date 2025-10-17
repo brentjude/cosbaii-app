@@ -1,3 +1,8 @@
+// Update: src/types/admin.ts
+import { Competition } from "./competition";
+import { Blog } from "./blog";
+import { Feedback } from "./feedback";
+
 export type UserStatus = "INACTIVE" | "ACTIVE" | "BANNED";
 export type UserRole = "USER" | "ADMIN" | "MODERATOR";
 
@@ -10,10 +15,12 @@ export interface User {
   status: UserStatus;
   createdAt: string;
   updatedAt: string;
-  reviewedBy: string | null | undefined; // ✅ Allow undefined
+  reviewedBy: string | null | undefined;
+  isPremiumUser: boolean;
 }
 
 export interface NewUserData {
+  isPremiumUser: boolean;
   name: string | null;
   email: string;
   username: string | null;
@@ -53,10 +60,36 @@ export interface AdminUser extends User {
   };
 }
 
+// ✅ Define proper types for recent items
+export interface RecentCompetition extends Competition {
+  _count: {
+    participants: number;
+    awards: number;
+  };
+}
+
+export interface RecentBlog extends Blog {
+  _count: {
+    likes: number;
+    comments: number;
+  };
+}
+
+// ✅ Fixed: Add name property to user object
+export interface RecentFeedback extends Feedback {
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    username: string | null;
+  };
+}
+
+// ✅ Update AdminDashboardData with proper types
 export interface AdminDashboardData {
   stats: AdminStats;
   recentUsers: AdminUser[];
-  recentCompetitions: any[];
-  recentBlogs: any[];
-  recentFeedback: any[];
+  recentCompetitions: RecentCompetition[];
+  recentBlogs: RecentBlog[];
+  recentFeedback: RecentFeedback[];
 }

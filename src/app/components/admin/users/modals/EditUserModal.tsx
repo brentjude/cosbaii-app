@@ -1,3 +1,4 @@
+// Update: src/app/components/admin/users/modals/EditUserModal.tsx
 import { useState, useEffect } from "react";
 import { User, UserRole, UserStatus } from "@/types/admin";
 
@@ -10,15 +11,31 @@ interface Props {
 }
 
 export default function EditUserModal({ isOpen, user, onClose, onSave, loading }: Props) {
-  const [formData, setFormData] = useState<User | null>(null);
+  // ✅ Initialize with a default structure to avoid undefined values
+  const [formData, setFormData] = useState<User>({
+    id: 0,
+    name: "",
+    email: "",
+    username: "",
+    role: "USER",
+    status: "ACTIVE",
+    createdAt: "",
+    updatedAt: "",
+    reviewedBy: null,
+    isPremiumUser: false, // ✅ Default value
+  });
 
   useEffect(() => {
     if (user) {
-      setFormData(user);
+      // ✅ Ensure isPremiumUser always has a boolean value
+      setFormData({
+        ...user,
+        isPremiumUser: Boolean(user.isPremiumUser), // ✅ Convert to boolean
+      });
     }
   }, [user]);
 
-  if (!isOpen || !formData) return null;
+  if (!isOpen || !user) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +116,24 @@ export default function EditUserModal({ isOpen, user, onClose, onSave, loading }
                   <option value="BANNED">BANNED</option>
                 </select>
               </div>
+            </div>
+
+            {/* ✅ Premium User Toggle - Fixed with proper boolean check */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-4">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={formData.isPremiumUser}
+                  onChange={(e) => setFormData({ ...formData, isPremiumUser: e.target.checked })}
+                />
+                <div>
+                  <span className="label-text font-medium">Premium User</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Grant this user access to premium features and benefits
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
 
