@@ -1,4 +1,4 @@
-// Create: src/app/components/user/NotificationCard.tsx
+// Update: src/app/components/user/NotificationCard.tsx
 "use client";
 
 import { useState } from 'react';
@@ -14,11 +14,13 @@ import { TrophyIcon } from '@heroicons/react/24/solid';
 interface NotificationCardProps {
   notification: Notification;
   onMarkAsRead?: (id: number) => void;
+  compact?: boolean; // ✅ Add compact mode for dropdown
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({ 
   notification, 
-  onMarkAsRead 
+  onMarkAsRead,
+  compact = false // ✅ Default to false
 }) => {
   const [isRead, setIsRead] = useState(notification.isRead);
 
@@ -32,12 +34,18 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         return <XCircleIcon className="w-5 h-5 text-red-500" />;
       case 'PARTICIPANT_APPROVED':
         return <TrophyIcon className="w-5 h-5 text-blue-500" />;
+      case 'BADGE_EARNED':
+        return <TrophyIcon className="w-5 h-5 text-purple-500" />;
       default:
         return <ClockIcon className="w-5 h-5 text-gray-500" />;
     }
   };
 
   const getNotificationColor = () => {
+    if (compact) {
+      return isRead ? 'bg-white' : 'bg-blue-50';
+    }
+
     switch (notification.type) {
       case 'COMPETITION_SUBMITTED':
         return 'border-l-yellow-400 bg-yellow-50';
@@ -47,6 +55,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
         return 'border-l-red-400 bg-red-50';
       case 'PARTICIPANT_APPROVED':
         return 'border-l-blue-400 bg-blue-50';
+      case 'BADGE_EARNED':
+        return 'border-l-purple-400 bg-purple-50';
       default:
         return 'border-l-gray-400 bg-gray-50';
     }
@@ -66,21 +76,62 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+      return `${diffInMinutes}m ago`;
     }
     
     if (diffInHours < 24) {
-      return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+      return `${diffInHours}h ago`;
     }
     
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) {
-      return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+      return `${diffInDays}d ago`;
     }
     
     return date.toLocaleDateString();
   };
 
+  // ✅ Compact view for dropdown
+  if (compact) {
+    return (
+      <div 
+        className={`transition-all duration-200 ${
+          getNotificationColor()
+        } ${isRead ? 'opacity-75' : 'opacity-100'}`}
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0 mt-1">
+            {getNotificationIcon()}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className={`font-medium text-sm ${
+                isRead ? 'text-gray-600' : 'text-gray-900'
+              }`}>
+                {notification.title}
+              </h4>
+              {!isRead && (
+                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+              )}
+            </div>
+            
+            <p className={`text-xs leading-relaxed line-clamp-2 ${
+              isRead ? 'text-gray-500' : 'text-gray-700'
+            }`}>
+              {notification.message}
+            </p>
+            
+            <span className="text-xs text-gray-500 mt-1 block">
+              {formatDate(notification.createdAt)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Full view for dashboard
   return (
     <div 
       className={`p-4 border-l-4 rounded-lg transition-all duration-200 hover:shadow-md ${

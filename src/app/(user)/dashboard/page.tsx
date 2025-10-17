@@ -1,15 +1,15 @@
 // Update: src/app/(user)/dashboard/page.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import UserDashboardSkeleton from "@/app/components/skeletons/user/UserDashboardSkeleton";
 import UserProfileCard from "@/app/components/user/UserProfileCard";
 import { useProfile } from "@/app/context/ProfileContext";
 import SubmitFeedbackCard from "@/app/components/user/SubmitFeedbackCard";
 import NotificationCard from "@/app/components/user/NotificationCard";
-import { useNotifications } from "@/hooks/user/useNotifications";
 import BadgesSection from "@/app/components/user/BadgeSection";
+import { Notification } from "@/types/notification";
 
 //Hero icons
 import { CheckBadgeIcon, BellIcon } from "@heroicons/react/16/solid";
@@ -25,15 +25,124 @@ const DashboardPage = () => {
   }, [session, status]);
 
   const { hasProfile, loading } = useProfile();
-  const {
-    notifications,
-    loading: notificationsLoading,
-    markAsRead,
-    markAllAsRead,
-  } = useNotifications(5);
+
+  // ✅ Notification state with pagination
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const ITEMS_PER_PAGE = 5; // ✅ Constant for items per page
 
   // Get display name
   const displayName = session?.user?.username || session?.user?.name;
+
+  // ✅ Load initial notifications (only 5)
+  useEffect(() => {
+    if (session?.user) {
+      loadNotifications(true);
+    }
+  }, [session?.user]);
+
+  const loadNotifications = async (isInitial = false) => {
+    if (isInitial) {
+      setNotificationsLoading(true);
+      setPage(0);
+      setNotifications([]); // ✅ Clear existing notifications
+    } else {
+      setLoadingMore(true);
+    }
+
+    try {
+      const currentPage = isInitial ? 0 : page;
+      const skip = currentPage * ITEMS_PER_PAGE;
+      
+      console.log('📡 Fetching notifications:', { 
+        take: ITEMS_PER_PAGE, 
+        skip, 
+        currentPage,
+        isInitial 
+      });
+      
+      const response = await fetch(
+        `/api/user/notifications?take=${ITEMS_PER_PAGE}&skip=${skip}`
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch notifications");
+
+      const data = await response.json();
+      
+      console.log('✅ Received notifications:', { 
+        count: data.notifications.length,
+        total: notifications.length + data.notifications.length
+      });
+
+      if (isInitial) {
+        setNotifications(data.notifications);
+      } else {
+        // ✅ Append to existing notifications
+        setNotifications((prev) => {
+          const newNotifications = [...prev, ...data.notifications];
+          console.log('📝 Updated notifications list:', newNotifications.length);
+          return newNotifications;
+        });
+      }
+
+      // ✅ Update page and check if there are more
+      setPage(currentPage + 1);
+      
+      // ✅ If we got less than ITEMS_PER_PAGE, there are no more
+      const shouldHaveMore = data.notifications.length === ITEMS_PER_PAGE;
+      setHasMore(shouldHaveMore);
+      
+      console.log('🔄 Pagination state:', { 
+        nextPage: currentPage + 1,
+        hasMore: shouldHaveMore,
+        receivedCount: data.notifications.length
+      });
+      
+    } catch (error) {
+      console.error("❌ Error loading notifications:", error);
+      setHasMore(false);
+    } finally {
+      setNotificationsLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const markAsRead = async (ids: number[]) => {
+    try {
+      const response = await fetch("/api/user/notifications/mark-read", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds: ids }),
+      });
+
+      if (!response.ok) throw new Error("Failed to mark as read");
+
+      // Update local state
+      setNotifications((prev) =>
+        prev.map((n) => (ids.includes(n.id) ? { ...n, isRead: true } : n))
+      );
+    } catch (error) {
+      console.error("Error marking as read:", error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const response = await fetch("/api/user/notifications/mark-all-read", {
+        method: "PATCH",
+      });
+
+      if (!response.ok) throw new Error("Failed to mark all as read");
+
+      // Update local state
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (error) {
+      console.error("Error marking all as read:", error);
+    }
+  };
 
   // Show skeleton while session or profile is loading
   if (status === "loading" || loading) {
@@ -169,7 +278,7 @@ const DashboardPage = () => {
             <BadgesSection />
           </div>
 
-          {/* ✅ Updated Recent Activity with Notifications */}
+          {/* ✅ Updated Recent Activity with Pagination */}
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -183,6 +292,10 @@ const DashboardPage = () => {
                       {unreadCount}
                     </span>
                   )}
+                  {/* ✅ Debug info - remove in production */}
+                  <span className="text-xs text-gray-500">
+                    ({notifications.length} loaded)
+                  </span>
                 </div>
 
                 {unreadCount > 0 && (
@@ -196,54 +309,79 @@ const DashboardPage = () => {
               </div>
             </div>
 
+            {/* ✅ Fixed Height Container with Scroll */}
             <div className="p-6">
-              {notificationsLoading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse">
-                      <div className="flex items-start gap-3 p-4 bg-gray-100 rounded-lg">
-                        <div className="w-5 h-5 bg-gray-300 rounded"></div>
-                        <div className="flex-1">
-                          <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                          <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
-                          <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+              <div className="max-h-[600px] overflow-y-auto">
+                {notificationsLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="flex items-start gap-3 p-4 bg-gray-100 rounded-lg">
+                          <div className="w-5 h-5 bg-gray-300 rounded"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-300 rounded w-full mb-2"></div>
+                            <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : notifications.length > 0 ? (
-                <div className="space-y-3">
-                  {notifications.map((notification) => (
-                    <NotificationCard
-                      key={notification.id}
-                      notification={notification}
-                      onMarkAsRead={(id) => {
-                        markAsRead([id]);
-                      }}
-                    />
-                  ))}
-
-                  {notifications.length === 5 && (
-                    <div className="text-center pt-4">
-                      <button className="text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                        View all notifications →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 mb-4">
-                    <BellIcon className="w-12 h-12 mx-auto" />
+                    ))}
                   </div>
-                  <p className="text-gray-600">
-                    {!hasProfile
-                      ? "No activity yet. Start by completing your profile!"
-                      : "No recent activity. Start exploring!"}
-                  </p>
-                </div>
-              )}
+                ) : notifications.length > 0 ? (
+                  <div className="space-y-3">
+                    {notifications.map((notification, index) => (
+                      <NotificationCard
+                        key={`${notification.id}-${index}`}
+                        notification={notification}
+                        onMarkAsRead={(id) => {
+                          markAsRead([id]);
+                        }}
+                        compact={false}
+                      />
+                    ))}
+
+                    {/* ✅ Load More Button - Always shows if hasMore is true */}
+                    {hasMore && (
+                      <div className="text-center pt-4 mt-4 border-t border-gray-100">
+                        <button
+                          onClick={() => loadNotifications(false)}
+                          disabled={loadingMore}
+                          className="text-sm text-blue-600 hover:text-blue-800 transition-colors py-2 px-4 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        >
+                          {loadingMore ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <span className="loading loading-spinner loading-sm"></span>
+                              Loading more...
+                            </span>
+                          ) : (
+                            `See previous notifications (Page ${page + 1})`
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ✅ End of notifications message */}
+                    {!hasMore && (
+                      <div className="text-center pt-4 mt-4 border-t border-gray-100">
+                        <p className="text-xs text-gray-500">
+                          No more notifications
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 mb-4">
+                      <BellIcon className="w-12 h-12 mx-auto" />
+                    </div>
+                    <p className="text-gray-600">
+                      {!hasProfile
+                        ? "No activity yet. Start by completing your profile!"
+                        : "No recent activity. Start exploring!"}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
