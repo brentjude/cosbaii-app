@@ -24,6 +24,14 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          include: {
+            profile: {
+              select: {
+                displayName: true,
+                profilePicture: true,
+              },
+            },
+          },
         });
 
         if (!user || !user.password) {
@@ -39,12 +47,14 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
-        // ✅ Return all user data including emailVerified
         console.log("User found in DB:", {
           id: user.id,
           email: user.email,
           status: user.status,
           emailVerified: user.emailVerified,
+          displayName: user.profile?.displayName,
+          reviewed: user.reviewed,
+          isPremiumUser: user.isPremiumUser,
         });
 
         return {
@@ -54,26 +64,32 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           username: user.username,
           status: user.status,
-          emailVerified: user.emailVerified, // ✅ Make sure this is included
+          emailVerified: user.emailVerified,
+          displayName: user.profile?.displayName || null,
+          profilePicture: user.profile?.profilePicture || null,
+          reviewed: user.reviewed,
+          isPremiumUser: user.isPremiumUser,
         };
       },
     }),
-    
   ],
   callbacks: {
-    async jwt({ token, user}) {
-      // ✅ When user first signs in, copy user data to token
+    async jwt({ token, user }) {
+      // When user first signs in, copy user data to token
       if (user) {
         console.log("JWT callback - user object:", user);
         token.id = user.id;
         token.role = user.role;
         token.username = user.username;
         token.status = user.status;
-        token.emailVerified = !!user.emailVerified; // ✅ Ensure boolean
+        token.emailVerified = !!user.emailVerified;
+        token.displayName = user.displayName;
+        token.profilePicture = user.profilePicture;
+        token.reviewed = user.reviewed;
+        token.isPremiumUser = user.isPremiumUser;
       }
 
-      // ✅ On every request, refresh user data from database
-      // This ensures we always have the latest status and emailVerified
+      // On every request, refresh user data from database
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: Number(token.id) },
@@ -84,7 +100,15 @@ export const authOptions: NextAuthOptions = {
             role: true,
             username: true,
             status: true,
-            emailVerified: true, // ✅ Always fetch latest value
+            emailVerified: true,
+            reviewed: true,
+            isPremiumUser: true,
+            profile: {
+              select: {
+                displayName: true,
+                profilePicture: true,
+              },
+            },
           },
         });
 
@@ -92,12 +116,19 @@ export const authOptions: NextAuthOptions = {
           console.log("JWT callback - refreshed user from DB:", {
             status: dbUser.status,
             emailVerified: dbUser.emailVerified,
+            displayName: dbUser.profile?.displayName,
+            reviewed: dbUser.reviewed,
+            isPremiumUser: dbUser.isPremiumUser,
           });
-          
+
           token.role = dbUser.role;
           token.status = dbUser.status;
-          token.emailVerified = dbUser.emailVerified; // ✅ Update token with latest value
+          token.emailVerified = dbUser.emailVerified;
           token.username = dbUser.username;
+          token.displayName = dbUser.profile?.displayName || null;
+          token.profilePicture = dbUser.profile?.profilePicture || null;
+          token.reviewed = dbUser.reviewed;
+          token.isPremiumUser = dbUser.isPremiumUser;
         }
       }
 
@@ -105,23 +136,33 @@ export const authOptions: NextAuthOptions = {
         id: token.id,
         status: token.status,
         emailVerified: token.emailVerified,
+        displayName: token.displayName,
+        reviewed: token.reviewed,
+        isPremiumUser: token.isPremiumUser,
       });
 
       return token;
     },
     async session({ session, token }) {
-      // ✅ Copy all data from token to session
+      // Copy all data from token to session
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role;
         session.user.username = token.username as string | null;
         session.user.status = token.status;
-        session.user.emailVerified = token.emailVerified as boolean; // ✅ Add to session
-        
+        session.user.emailVerified = token.emailVerified as boolean;
+        session.user.displayName = token.displayName as string | null;
+        session.user.profilePicture = token.profilePicture as string | null;
+        session.user.reviewed = token.reviewed as boolean;
+        session.user.isPremiumUser = token.isPremiumUser as boolean;
+
         console.log("Session callback - final session.user:", {
           id: session.user.id,
           status: session.user.status,
           emailVerified: session.user.emailVerified,
+          displayName: session.user.displayName,
+          reviewed: session.user.reviewed,
+          isPremiumUser: session.user.isPremiumUser,
         });
       }
       return session;
