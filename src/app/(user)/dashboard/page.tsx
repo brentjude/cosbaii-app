@@ -90,24 +90,46 @@ const DashboardPage = () => {
   }
 }, [session?.user?.id, loadNotifications]);
 
-  const markAsRead = async (ids: number[]) => {
-    try {
-      const response = await fetch("/api/user/notifications/mark-read", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationIds: ids }),
-      });
-
-      if (!response.ok) throw new Error("Failed to mark as read");
-
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((n) => (ids.includes(n.id) ? { ...n, isRead: true } : n))
-      );
-    } catch (error) {
-      console.error("Error marking as read:", error);
+  const markAsRead = async (notificationId: number) => {
+  try {
+    // ✅ Ensure notificationId is a number
+    if (!notificationId || isNaN(Number(notificationId))) {
+      console.error("Invalid notification ID:", notificationId);
+      throw new Error("Invalid notification ID");
     }
-  };
+
+    const response = await fetch("/api/user/notifications/mark-read", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        notificationId: Number(notificationId) // ✅ Ensure it's a number
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Mark as read failed:", errorData);
+      throw new Error(errorData.message || "Failed to mark as read");
+    }
+
+    const data = await response.json();
+    console.log("Mark as read success:", data);
+
+    // Update local state
+    setNotifications((prev) =>
+      prev.map((notif) =>
+        notif.id === notificationId ? { ...notif, isRead: true } : notif
+      )
+    );
+
+  
+  } catch (err) {
+    console.error("Error marking as read:", err);
+    throw err;
+  }
+};
 
   const markAllAsRead = async () => {
     try {
@@ -310,7 +332,7 @@ const DashboardPage = () => {
                         key={`${notification.id}-${index}`}
                         notification={notification}
                         onMarkAsRead={(id) => {
-                          markAsRead([id]);
+                          markAsRead(id);
                         }}
                         compact={false}
                       />
