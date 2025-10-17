@@ -1,31 +1,46 @@
-// src/types/user.ts
-export type UserStatus = "INACTIVE" | "ACTIVE" | "BANNED";
-export type UserRole = "USER" | "ADMIN" | "MODERATOR";
+// Update: src/types/user.ts
+import type { UserRole, UserStatus } from "@/generated/prisma";
 
 export interface User {
   id: number;
-  name: string | null;
   email: string;
-  username: string | null;
+  name: string | null;
+  username: string;
+  image: string | null;
   role: UserRole;
   status: UserStatus;
   createdAt: string;
   updatedAt: string;
-  reviewedBy: string | null;
+  isPremiumUser: boolean;
+  emailVerified: boolean;
+  // ✅ Add blog-related counts
+  _count?: {
+    blogs?: number;
+    blogLikes?: number;
+    blogComments?: number;
+  };
 }
 
+export interface UserWithBlogStats extends User {
+  blogsCount: number;
+  blogLikesCount: number;
+  blogCommentsCount: number;
+}
+
+// ✅ Add missing types that might be used elsewhere
 export interface NewUserData {
-  name: string | null;
   email: string;
-  username: string | null;
+  username: string;
   password: string;
-  role: UserRole;
-  status: UserStatus;
+  name?: string;
 }
 
 export interface UserStats {
-  total: number;
-  inactive: number;
-  active: number;
-  banned: number;
+  totalUsers: number;
+  activeUsers: number;
+  bannedUsers: number;
+  premiumUsers: number;
 }
+
+// Re-export Prisma enums for convenience
+export type { UserRole, UserStatus };

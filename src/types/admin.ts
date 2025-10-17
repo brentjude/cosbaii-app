@@ -28,3 +28,35 @@ export interface UserStats {
   inactive: number;
   banned: number;
 }
+
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  bannedUsers: number;
+  totalCompetitions: number;
+  pendingCompetitions: number;
+  totalBlogs: number;
+  publishedBlogs: number;
+  totalFeedback: number;
+  pendingFeedback: number;
+}
+
+export interface AdminUser extends User {
+  profile?: {
+    displayName: string | null;
+    profilePicture: string | null;
+  };
+  _count: {
+    competitions: number;
+    blogs: number;
+    feedback: number;
+  };
+}
+
+export interface AdminDashboardData {
+  stats: AdminStats;
+  recentUsers: AdminUser[];
+  recentCompetitions: any[];
+  recentBlogs: any[];
+  recentFeedback: any[];
+}
