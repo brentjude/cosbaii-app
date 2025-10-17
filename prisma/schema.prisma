@@ -86,15 +86,16 @@ model User {
   password      String?
   image         String?
   role          UserRole   @default(USER)
-  status        UserStatus @default(INACTIVE) // ✅ Changed default to INACTIVE
+  status        UserStatus @default(INACTIVE)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   reviewedBy    String?
   isPremiumUser Boolean    @default(false)
+  reviewed      Boolean    @default(false)
 
-  // ✅ Updated email verification fields
-  emailVerified            Boolean   @default(false) // ✅ Changed to Boolean
-  emailVerifiedDate        DateTime? // ✅ New field for verification date
+  //email verification
+  emailVerified            Boolean   @default(false)
+  emailVerifiedDate        DateTime?
   emailVerificationCode    String?
   emailVerificationExpires DateTime?
 

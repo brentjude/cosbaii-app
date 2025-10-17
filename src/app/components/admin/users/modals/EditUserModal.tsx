@@ -1,6 +1,7 @@
 // Update: src/app/components/admin/users/modals/EditUserModal.tsx
 import { useState, useEffect } from "react";
 import { User, UserRole, UserStatus } from "@/types/admin";
+import { useSession } from "next-auth/react";
 
 interface Props {
   isOpen: boolean;
@@ -11,7 +12,7 @@ interface Props {
 }
 
 export default function EditUserModal({ isOpen, user, onClose, onSave, loading }: Props) {
-  // ✅ Initialize with a default structure to avoid undefined values
+  const { data: session } = useSession();
   const [formData, setFormData] = useState<User>({
     id: 0,
     name: "",
@@ -22,15 +23,16 @@ export default function EditUserModal({ isOpen, user, onClose, onSave, loading }
     createdAt: "",
     updatedAt: "",
     reviewedBy: null,
-    isPremiumUser: false, // ✅ Default value
+    isPremiumUser: false,
+    reviewed: false,
   });
 
   useEffect(() => {
     if (user) {
-      // ✅ Ensure isPremiumUser always has a boolean value
       setFormData({
         ...user,
-        isPremiumUser: Boolean(user.isPremiumUser), // ✅ Convert to boolean
+        isPremiumUser: Boolean(user.isPremiumUser),
+        reviewed: Boolean(user.reviewed),
       });
     }
   }, [user]);
@@ -40,6 +42,16 @@ export default function EditUserModal({ isOpen, user, onClose, onSave, loading }
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
+  };
+
+  // ✅ Handle reviewed toggle change
+  const handleReviewedChange = (checked: boolean) => {
+    setFormData({
+      ...formData,
+      reviewed: checked,
+      // Update reviewedBy when marking as reviewed
+      reviewedBy: checked ? (session?.user?.username || session?.user?.email || null) : null,
+    });
   };
 
   return (
@@ -118,7 +130,7 @@ export default function EditUserModal({ isOpen, user, onClose, onSave, loading }
               </div>
             </div>
 
-            {/* ✅ Premium User Toggle - Fixed with proper boolean check */}
+            {/* ✅ Premium User Toggle */}
             <div className="form-control">
               <label className="label cursor-pointer justify-start gap-4">
                 <input
@@ -132,6 +144,30 @@ export default function EditUserModal({ isOpen, user, onClose, onSave, loading }
                   <p className="text-xs text-gray-500 mt-1">
                     Grant this user access to premium features and benefits
                   </p>
+                </div>
+              </label>
+            </div>
+
+            {/* ✅ Reviewed Toggle */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-4">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-success"
+                  checked={formData.reviewed}
+                  onChange={(e) => handleReviewedChange(e.target.checked)}
+                />
+                <div className="flex-1">
+                  <span className="label-text font-medium">Mark as Reviewed</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Indicate that this user profile has been reviewed by an admin
+                  </p>
+                  {/* ✅ Show who reviewed */}
+                  {formData.reviewed && formData.reviewedBy && (
+                    <p className="text-xs text-success mt-1">
+                      Reviewed by: {formData.reviewedBy}
+                    </p>
+                  )}
                 </div>
               </label>
             </div>

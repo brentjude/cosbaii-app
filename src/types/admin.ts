@@ -17,10 +17,12 @@ export interface User {
   updatedAt: string;
   reviewedBy: string | null | undefined;
   isPremiumUser: boolean;
+  reviewed: boolean; // ✅ NEW: Reviewed status
 }
 
 export interface NewUserData {
   isPremiumUser: boolean;
+  reviewed: boolean; // ✅ NEW: Reviewed status for new users
   name: string | null;
   email: string;
   username: string | null;
@@ -34,12 +36,16 @@ export interface UserStats {
   active: number;
   inactive: number;
   banned: number;
+  reviewed: number; // ✅ NEW: Count of reviewed users
+  unreviewed: number; // ✅ NEW: Count of unreviewed users
 }
 
 export interface AdminStats {
   totalUsers: number;
   activeUsers: number;
   bannedUsers: number;
+  reviewedUsers: number; // ✅ NEW
+  unreviewedUsers: number; // ✅ NEW
   totalCompetitions: number;
   pendingCompetitions: number;
   totalBlogs: number;
@@ -60,7 +66,7 @@ export interface AdminUser extends User {
   };
 }
 
-// ✅ Define proper types for recent items
+// Define proper types for recent items
 export interface RecentCompetition extends Competition {
   _count: {
     participants: number;
@@ -75,7 +81,6 @@ export interface RecentBlog extends Blog {
   };
 }
 
-// ✅ Fixed: Add name property to user object
 export interface RecentFeedback extends Feedback {
   user: {
     id: number;
@@ -85,7 +90,6 @@ export interface RecentFeedback extends Feedback {
   };
 }
 
-// ✅ Update AdminDashboardData with proper types
 export interface AdminDashboardData {
   stats: AdminStats;
   recentUsers: AdminUser[];

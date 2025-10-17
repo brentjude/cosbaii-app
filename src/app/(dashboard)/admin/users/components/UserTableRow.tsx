@@ -1,3 +1,10 @@
+// Update: src/app/(dashboard)/admin/users/components/UserTableRow.tsx
+import { User } from "@/types/admin";
+import {
+  getStatusBadge,
+  getRoleBadge,
+  formatRegistrationDate,
+} from "@/lib/admin/userUtils";
 import {
   EyeIcon,
   PencilIcon,
@@ -5,15 +12,7 @@ import {
   CheckIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { User } from "@/types/admin";
-import {
-  getStatusBadge,
-  getStatusIcon,
-  getRoleBadge,
-  formatRegistrationDate,
-  formatTime,
-  getStatusRowClass,
-} from "@/lib/admin/userUtils";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
 interface Props {
   user: User;
@@ -33,107 +32,87 @@ export default function UserTableRow({
   onReview,
 }: Props) {
   return (
-    <tr className={getStatusRowClass(user.status)}>
+    <tr className="hover">
       <td>
-        <div className="font-bold">{user.name || "No name"}</div>
-      </td>
-
-      <td>
-        <div className="font-medium">
-          {user.username ? `@${user.username}` : "No username"}
+        <div className="flex items-center gap-3">
+          <div>
+            <div className="font-bold">{user.name || "No name"}</div>
+            {user.isPremiumUser && (
+              <span className="badge badge-warning badge-xs">Premium</span>
+            )}
+          </div>
         </div>
       </td>
-
-      <td>
-        <div className="text-sm">{user.email}</div>
-      </td>
-
+      <td>{user.username ? `@${user.username}` : "No username"}</td>
+      <td>{user.email}</td>
       <td>
         <span className={getRoleBadge(user.role)}>{user.role}</span>
       </td>
-
       <td>
-        <div className="flex items-center gap-2">
-          {getStatusIcon(user.status)}
-          <span className={getStatusBadge(user.status)}>{user.status}</span>
-        </div>
+        <span className={getStatusBadge(user.status)}>{user.status}</span>
       </td>
-
+      {/* ✅ NEW: Reviewed column */}
       <td>
-        <div className="text-sm">
-          <div className="font-medium">
-            {formatRegistrationDate(user.createdAt)}
-          </div>
-          <div className="text-xs text-base-content/60">
-            {formatTime(user.createdAt)}
-          </div>
-        </div>
-      </td>
-
-      <td>
-        {user.reviewedBy ? (
-          <div className="text-sm">
-            <div className="font-medium text-base-content/70">
-              {user.reviewedBy}
-            </div>
-            <div className="text-xs text-base-content/50">
-              {formatRegistrationDate(user.updatedAt)}
-            </div>
+        {user.reviewed ? (
+          <div className="flex items-center gap-1 text-success">
+            <CheckCircleIcon className="w-4 h-4" />
+            <span className="text-xs">Yes</span>
           </div>
         ) : (
-          <span className="text-sm text-base-content/50 italic">
-            Not reviewed
-          </span>
+          <div className="flex items-center gap-1 text-error">
+            <XCircleIcon className="w-4 h-4" />
+            <span className="text-xs">No</span>
+          </div>
         )}
       </td>
-
       <td>
-        <div className="flex gap-1">
+        <span className="text-sm">{formatRegistrationDate(user.createdAt)}</span>
+      </td>
+      <td>
+        <div className="flex gap-2">
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => onView(user)}
+            title="View"
+          >
+            <EyeIcon className="w-4 h-4" />
+          </button>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => onEdit(user)}
+            disabled={actionLoading}
+            title="Edit"
+          >
+            <PencilIcon className="w-4 h-4" />
+          </button>
+          <button
+            className="btn btn-ghost btn-xs text-error"
+            onClick={() => onDelete(user)}
+            disabled={actionLoading}
+            title="Delete"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
           {user.status === "INACTIVE" && (
             <>
               <button
-                className="btn btn-sm btn-success"
+                className="btn btn-ghost btn-xs text-success"
                 onClick={() => onReview(user, "APPROVE")}
-                title="Approve User"
                 disabled={actionLoading}
+                title="Approve"
               >
                 <CheckIcon className="w-4 h-4" />
               </button>
               <button
-                className="btn btn-sm btn-error"
+                className="btn btn-ghost btn-xs text-error"
                 onClick={() => onReview(user, "BAN")}
-                title="Ban User"
                 disabled={actionLoading}
+                title="Ban"
               >
                 <XMarkIcon className="w-4 h-4" />
               </button>
             </>
           )}
-
-          <button
-            className="btn btn-sm btn-info btn-outline"
-            onClick={() => onView(user)}
-            title="View User Details"
-          >
-            <EyeIcon className="w-4 h-4" />
-          </button>
-
-          <button
-            className="btn btn-sm btn-ghost"
-            onClick={() => onEdit(user)}
-            title="Edit User"
-          >
-            <PencilIcon className="w-4 h-4" />
-          </button>
-
-          <button
-            className="btn btn-sm btn-error btn-outline"
-            onClick={() => onDelete(user)}
-            title="Delete User"
-            disabled={actionLoading}
-          >
-            <TrashIcon className="w-4 h-4" />
-          </button>
         </div>
       </td>
     </tr>

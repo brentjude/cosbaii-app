@@ -1,27 +1,11 @@
+// Update: src/app/api/admin/users/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { z } from "zod";
-import { UserRole, UserStatus } from "@/types";
+import { Prisma } from "@/generated/prisma";
 
-// ✅ Validation schema
-const updateUserSchema = z.object({
-  name: z.string().min(1).max(100).optional().nullable(),
-  email: z.string().email().min(1).optional(),
-  username: z
-    .string()
-    .min(3)
-    .max(20)
-    .regex(/^[a-zA-Z0-9_]+$/)
-    .transform((val) => val.toLowerCase())
-    .optional(),
-  role: z.enum(["USER", "ADMIN", "MODERATOR"]).optional(),
-  status: z.enum(["INACTIVE", "ACTIVE", "BANNED", "SUSPENDED"]).optional(),
-  isPremiumUser: z.boolean().optional(),
-});
-
-// GET: Fetch single user
+// ✅ Fixed: Make params async
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,22 +13,13 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR")) {
-      return NextResponse.json(
-        { message: "Unauthorized. Admin or Moderator access required." },
-        { status: 401 }
-      );
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // ✅ Await params
     const { id } = await params;
     const userId = parseInt(id);
-
-    if (isNaN(userId)) {
-      return NextResponse.json(
-        { message: "Invalid user ID format" },
-        { status: 400 }
-      );
-    }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -53,54 +28,31 @@ export async function GET(
         email: true,
         name: true,
         username: true,
-        image: true,
         role: true,
         status: true,
+        isPremiumUser: true,
+        reviewed: true,
         createdAt: true,
         updatedAt: true,
         reviewedBy: true,
-        isPremiumUser: true,
-        // ✅ Email verification fields
-        emailVerified: true,
-        emailVerifiedDate: true,
-        emailVerificationCode: true,
-        emailVerificationExpires: true,
-        // ✅ Email change fields
-        pendingEmail: true,
-        pendingEmailToken: true,
-        pendingEmailExpires: true,
-        // ✅ Counts
-        _count: {
-          select: {
-            competitions: true,
-            participations: true,
-            photos: true,
-          },
-        },
       },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(
-      { user, message: "User fetched successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({ user });
   } catch (error) {
     console.error("Error fetching user:", error);
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Failed to fetch user" },
       { status: 500 }
     );
   }
 }
 
-// PUT: Update user
+// ✅ Fixed: Make params async
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -108,150 +60,114 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR")) {
-      return NextResponse.json(
-        { message: "Unauthorized. Admin or Moderator access required." },
-        { status: 401 }
-      );
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // ✅ Await params
     const { id } = await params;
     const userId = parseInt(id);
+    const body = await request.json();
+    
+    const { name, username, email, role, status, isPremiumUser, reviewed } = body;
 
-    if (isNaN(userId)) {
-      return NextResponse.json(
-        { message: "Invalid user ID format" },
-        { status: 400 }
-      );
-    }
-
+    // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!existingUser) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const validationResult = updateUserSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          message: "Validation failed",
-          errors: validationResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const updateData = validationResult.data;
-
-    // Check email uniqueness
-    if (updateData.email && updateData.email !== existingUser.email) {
-      const existingUserByEmail = await prisma.user.findUnique({
-        where: { email: updateData.email },
-      });
-      if (existingUserByEmail) {
-        return NextResponse.json(
-          { message: "Email is already taken. Please use a different email." },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Check username uniqueness (case-insensitive)
-    if (updateData.username && updateData.username !== existingUser.username) {
-      const existingUserByUsername = await prisma.user.findFirst({
+    // Check if username or email is being changed and already taken by another user
+    if (username && username !== existingUser.username) {
+      const usernameExists = await prisma.user.findFirst({
         where: {
-          username: {
-            equals: updateData.username.toLowerCase(),
-            mode: "insensitive",
-          },
+          username,
+          NOT: { id: userId },
         },
       });
-      if (existingUserByUsername) {
+
+      if (usernameExists) {
         return NextResponse.json(
-          { message: "Username is already taken. Please choose a different one." },
-          { status: 409 }
+          { error: "Username already taken" },
+          { status: 400 }
         );
       }
     }
 
-    // ✅ Build update data object with proper typing
-    const dataToUpdate: {
-      name?: string | null;
-      email?: string;
-      username?: string;
-      role?: UserRole;
-      status?: UserStatus;
-      isPremiumUser?: boolean;
-      reviewedBy?: string;
-      updatedAt: Date;
-    } = {
-      updatedAt: new Date(),
-    };
+    if (email && email !== existingUser.email) {
+      const emailExists = await prisma.user.findFirst({
+        where: {
+          email,
+          NOT: { id: userId },
+        },
+      });
 
-    if (updateData.name !== undefined) dataToUpdate.name = updateData.name;
-    if (updateData.email !== undefined) dataToUpdate.email = updateData.email;
-    if (updateData.username !== undefined) dataToUpdate.username = updateData.username;
-    if (updateData.role !== undefined) dataToUpdate.role = updateData.role as UserRole;
-    if (updateData.status !== undefined) dataToUpdate.status = updateData.status as UserStatus;
-    if (updateData.isPremiumUser !== undefined) dataToUpdate.isPremiumUser = updateData.isPremiumUser;
-
-    // ✅ If admin is activating the user, mark as reviewed
-    if (updateData.status === "ACTIVE" && existingUser.status !== "ACTIVE") {
-      dataToUpdate.reviewedBy = session.user.email || session.user.username || "admin";
+      if (emailExists) {
+        return NextResponse.json(
+          { error: "Email already taken" },
+          { status: 400 }
+        );
+      }
     }
 
+    // Build update data object
+    const updateData: Prisma.UserUpdateInput = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (username !== undefined) updateData.username = username;
+    if (email !== undefined) updateData.email = email;
+    if (role !== undefined) updateData.role = role;
+    if (status !== undefined) updateData.status = status;
+    if (isPremiumUser !== undefined) updateData.isPremiumUser = isPremiumUser;
+    
+    // Handle reviewed field
+    if (reviewed !== undefined) {
+      updateData.reviewed = reviewed;
+      // If marking as reviewed, update reviewedBy with current admin username
+      if (reviewed === true) {
+        updateData.reviewedBy = session.user.username || session.user.email;
+      }
+    }
+
+    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: dataToUpdate,
+      data: updateData,
       select: {
         id: true,
         email: true,
         name: true,
         username: true,
-        image: true,
         role: true,
         status: true,
+        isPremiumUser: true,
+        reviewed: true,
+        reviewedBy: true,
         createdAt: true,
         updatedAt: true,
-        reviewedBy: true,
-        isPremiumUser: true,
-        // ✅ Email verification fields
-        emailVerified: true,
-        emailVerifiedDate: true,
-        emailVerificationCode: true,
-        emailVerificationExpires: true,
-        // ✅ Email change fields
-        pendingEmail: true,
-        pendingEmailToken: true,
-        pendingEmailExpires: true,
       },
     });
 
-    return NextResponse.json(
-      {
-        user: updatedUser,
-        message: "User updated successfully",
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
-      { message: "Internal server error" },
+      {
+        error: "Failed to update user",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
 }
 
-// DELETE: Delete user
+// ✅ Fixed: Make params async
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -259,53 +175,46 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { message: "Unauthorized. Admin access required to delete users." },
-        { status: 401 }
-      );
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
+    // ✅ Await params
     const { id } = await params;
     const userId = parseInt(id);
 
-    if (isNaN(userId)) {
-      return NextResponse.json(
-        { message: "Invalid user ID format" },
-        { status: 400 }
-      );
-    }
-
-    const existingUser = await prisma.user.findUnique({
+    // Check if user exists
+    const user = await prisma.user.findUnique({
       where: { id: userId },
     });
 
-    if (!existingUser) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    if (session.user.id === userId.toString()) {
+    // Prevent deleting yourself
+    if (userId === parseInt(session.user.id)) {
       return NextResponse.json(
-        { message: "You cannot delete your own account" },
+        { error: "Cannot delete your own account" },
         { status: 400 }
       );
     }
 
+    // Delete user
     await prisma.user.delete({
       where: { id: userId },
     });
 
-    return NextResponse.json(
-      { message: "User deleted successfully" },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      message: "User deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json(
-      { message: "Internal server error" },
+      {
+        error: "Failed to delete user",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

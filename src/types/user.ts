@@ -13,7 +13,7 @@ export interface User {
   updatedAt: string;
   isPremiumUser: boolean;
   emailVerified: boolean;
-  // ✅ Add blog-related counts
+  reviewed: boolean; // ✅ NEW: Reviewed status
   _count?: {
     blogs?: number;
     blogLikes?: number;
@@ -27,12 +27,12 @@ export interface UserWithBlogStats extends User {
   blogCommentsCount: number;
 }
 
-// ✅ Add missing types that might be used elsewhere
 export interface NewUserData {
   email: string;
   username: string;
   password: string;
   name?: string;
+  reviewed?: boolean; // ✅ NEW: Optional for user creation
 }
 
 export interface UserStats {
@@ -40,7 +40,8 @@ export interface UserStats {
   activeUsers: number;
   bannedUsers: number;
   premiumUsers: number;
+  reviewedUsers: number; // ✅ NEW
+  unreviewedUsers: number; // ✅ NEW
 }
 
-// Re-export Prisma enums for convenience
 export type { UserRole, UserStatus };

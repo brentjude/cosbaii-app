@@ -17,7 +17,8 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
     password: "",
     role: "USER",
     status: "ACTIVE",
-    isPremiumUser: false, // ✅ Already correctly initialized
+    isPremiumUser: false,
+    reviewed: false, // ✅ NEW: Default to false
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,6 +60,7 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
       role: "USER",
       status: "ACTIVE",
       isPremiumUser: false,
+      reviewed: false,
     });
     setErrors({});
     onClose();
@@ -159,7 +161,7 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
               </div>
             </div>
 
-            {/* ✅ Premium User Toggle - Fixed with Boolean() */}
+            {/* ✅ Premium User Toggle */}
             <div className="form-control">
               <label className="label cursor-pointer justify-start gap-4">
                 <input
@@ -172,6 +174,24 @@ export default function AddUserModal({ isOpen, onClose, onSave, loading }: Props
                   <span className="label-text font-medium">Premium User</span>
                   <p className="text-xs text-gray-500 mt-1">
                     Grant this user access to premium features and benefits
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* ✅ NEW: Reviewed Toggle */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-4">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-success"
+                  checked={Boolean(formData.reviewed)}
+                  onChange={(e) => setFormData({ ...formData, reviewed: e.target.checked })}
+                />
+                <div>
+                  <span className="label-text font-medium">Mark as Reviewed</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Indicate that this user profile has been reviewed by an admin
                   </p>
                 </div>
               </label>

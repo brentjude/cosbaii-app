@@ -1,3 +1,4 @@
+// Update: src/hooks/admin/useAdminUsers.ts
 import { useState, useEffect, useCallback } from "react";
 import { User, UserStats, NewUserData } from "@/types/admin";
 
@@ -8,37 +9,47 @@ export const useAdminUsers = () => {
     active: 0,
     inactive: 0,
     banned: 0,
+    reviewed: 0,
+    unreviewed: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async (status?: string) => {
+  const fetchUsers = useCallback(async (statusFilter?: string) => {
     try {
       setLoading(true);
-      const url = status
-        ? `/api/admin/users?status=${status}`
+      const url = statusFilter
+        ? `/api/admin/users?status=${statusFilter}`
         : "/api/admin/users";
 
       const response = await fetch(url);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch users");
+        const errorData = await response.json().catch(() => ({ error: "Failed to fetch users" }));
+        throw new Error(errorData.error || errorData.message || "Failed to fetch users");
       }
 
       const data = await response.json();
       
-      // ✅ Ensure reviewedBy is never undefined
+      // ✅ Normalize users data
       const normalizedUsers = data.users.map((user: User) => ({
         ...user,
         reviewedBy: user.reviewedBy ?? null,
+        reviewed: Boolean(user.reviewed),
+        isPremiumUser: Boolean(user.isPremiumUser),
       }));
       
       setUsers(normalizedUsers);
-      setStats(data.stats);
+      
+      // ✅ Set stats if available
+      if (data.stats) {
+        setStats(data.stats);
+      }
+      
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage = err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
       console.error("Error fetching users:", err);
     } finally {
       setLoading(false);
@@ -57,6 +68,8 @@ export const useAdminUsers = () => {
       return {
         ...data.user,
         reviewedBy: data.user.reviewedBy ?? null,
+        reviewed: Boolean(data.user.reviewed),
+        isPremiumUser: Boolean(data.user.isPremiumUser),
       };
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -75,7 +88,7 @@ export const useAdminUsers = () => {
         body: JSON.stringify(userData),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ error: "Invalid response" }));
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to create user");
@@ -105,7 +118,7 @@ export const useAdminUsers = () => {
         body: JSON.stringify(userData),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ error: "Invalid response" }));
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to update user");
@@ -135,7 +148,7 @@ export const useAdminUsers = () => {
         body: JSON.stringify({ action }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ error: "Invalid response" }));
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to review user");
@@ -158,7 +171,7 @@ export const useAdminUsers = () => {
         method: "DELETE",
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({ error: "Invalid response" }));
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to delete user");

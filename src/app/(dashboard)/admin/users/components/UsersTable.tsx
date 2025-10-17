@@ -1,3 +1,4 @@
+// Update: src/app/(dashboard)/admin/users/components/UsersTable.tsx
 import { useState, useMemo } from "react";
 import { ClockIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { User, UserStatus } from "@/types/admin";
@@ -89,8 +90,8 @@ export default function UsersTable({
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
+                <th>Reviewed</th>
                 <th>Registration</th>
-                <th>Reviewed By</th>
                 <th>Actions</th>
               </tr>
             </thead>

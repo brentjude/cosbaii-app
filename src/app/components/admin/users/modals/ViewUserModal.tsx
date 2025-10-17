@@ -6,7 +6,7 @@ import {
   formatRegistrationDate,
   formatTime,
 } from "@/lib/admin/userUtils";
-import { CheckBadgeIcon } from "@heroicons/react/24/solid";
+import { CheckBadgeIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 
 interface Props {
   isOpen: boolean;
@@ -85,6 +85,36 @@ export default function ViewUserModal({ isOpen, user, onClose }: Props) {
                   </div>
                   <span className="text-xs text-gray-500">
                     Basic features only
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* ✅ NEW: Review Status */}
+          <div>
+            <label className="label">
+              <span className="label-text font-semibold">Review Status</span>
+            </label>
+            <div className="flex items-center gap-2">
+              {user.reviewed ? (
+                <>
+                  <div className="badge badge-success badge-lg gap-2">
+                    <CheckCircleIcon className="w-4 h-4" />
+                    Reviewed
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    Profile has been reviewed by admin
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="badge badge-error badge-lg gap-2">
+                    <XCircleIcon className="w-4 h-4" />
+                    Not Reviewed
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    Awaiting admin review
                   </span>
                 </>
               )}
