@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { triggerParticipationBadges } from '@/lib/badgeTriggers';
 
 // ✅ Updated validation schema to include imageUrl
 const credentialsSchema = z.object({
@@ -148,6 +149,15 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Trigger badge check
+    try {
+      await triggerParticipationBadges(userId);
+      
+    } catch (badgeError) {
+      console.error('Error checking badges:', badgeError);
+    }
+        
 
     await prisma.notification.create({
       data: {

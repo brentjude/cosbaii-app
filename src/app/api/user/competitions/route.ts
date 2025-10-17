@@ -75,7 +75,9 @@ export async function POST(request: NextRequest) {
 
     // ✅ Trigger badge check
     try {
+      console.log('Participation badges');
       await triggerParticipationBadges(userId);
+      
     } catch (badgeError) {
       console.error('Error checking badges:', badgeError);
     }

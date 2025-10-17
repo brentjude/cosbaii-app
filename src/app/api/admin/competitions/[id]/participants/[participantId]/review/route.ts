@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
+import { triggerMilestoneBadges } from '@/lib/badgeTriggers';
 
 const reviewSchema = z.object({
   action: z.enum(['APPROVE', 'REJECT']),
@@ -97,6 +98,14 @@ export async function POST(
         reviewedAt: new Date(),
       },
     });
+
+     // ✅ Trigger badge check
+    try {
+      await triggerMilestoneBadges(participantId);
+      
+    } catch (badgeError) {
+      console.error('Error checking badges:', badgeError);
+    }
 
     // ✅ Create notification for the participant
     const notificationType = action === 'APPROVE' 

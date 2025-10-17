@@ -1,12 +1,17 @@
-// Update: src/app/components/user/BadgeSection.tsx
 "use client";
 
+import { useState } from 'react';
 import { useBadges } from '@/hooks/user/useBadges';
 import BadgeCard from './BadgeCard';
-import { TrophyIcon } from '@heroicons/react/24/outline';
+import { TrophyIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
+const ITEMS_PER_PAGE = 6;
 
 const BadgeSection: React.FC = () => {
-  const { progress, loading, error } = useBadges(); // ✅ Removed unused 'badges'
+  const { progress, loading, error } = useBadges();
+  
+  const [earnedPage, setEarnedPage] = useState(1);
+  const [availablePage, setAvailablePage] = useState(1);
 
   if (loading) {
     return (
@@ -36,6 +41,18 @@ const BadgeSection: React.FC = () => {
   const earnedBadges = progress.filter(p => p.earned);
   const unEarnedBadges = progress.filter(p => !p.earned);
 
+  // Pagination calculations for earned badges
+  const earnedTotalPages = Math.ceil(earnedBadges.length / ITEMS_PER_PAGE);
+  const earnedStartIndex = (earnedPage - 1) * ITEMS_PER_PAGE;
+  const earnedEndIndex = earnedStartIndex + ITEMS_PER_PAGE;
+  const earnedPaginatedBadges = earnedBadges.slice(earnedStartIndex, earnedEndIndex);
+
+  // Pagination calculations for available badges
+  const availableTotalPages = Math.ceil(unEarnedBadges.length / ITEMS_PER_PAGE);
+  const availableStartIndex = (availablePage - 1) * ITEMS_PER_PAGE;
+  const availableEndIndex = availableStartIndex + ITEMS_PER_PAGE;
+  const availablePaginatedBadges = unEarnedBadges.slice(availableStartIndex, availableEndIndex);
+
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-200">
       <div className="flex items-center justify-between mb-6">
@@ -51,13 +68,36 @@ const BadgeSection: React.FC = () => {
       {/* Earned Badges */}
       {earnedBadges.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Earned Badges ({earnedBadges.length})
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Earned Badges ({earnedBadges.length})
+            </h3>
+            {earnedTotalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setEarnedPage(p => Math.max(1, p - 1))}
+                  disabled={earnedPage === 1}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeftIcon className="w-5 h-5" />
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {earnedPage} of {earnedTotalPages}
+                </span>
+                <button
+                  onClick={() => setEarnedPage(p => Math.min(earnedTotalPages, p + 1))}
+                  disabled={earnedPage === earnedTotalPages}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRightIcon className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {earnedBadges.map((badgeProgress) => (
+            {earnedPaginatedBadges.map((badgeProgress) => (
               <BadgeCard
-                key={badgeProgress.badge.name}
+                key={badgeProgress.badge.id}
                 badge={badgeProgress.badge}
                 awardedAt={badgeProgress.awardedAt ?? undefined}
                 earned={true}
@@ -70,13 +110,36 @@ const BadgeSection: React.FC = () => {
       {/* Available Badges */}
       {unEarnedBadges.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Available Badges ({unEarnedBadges.length})
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Available Badges ({unEarnedBadges.length})
+            </h3>
+            {availableTotalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAvailablePage(p => Math.max(1, p - 1))}
+                  disabled={availablePage === 1}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeftIcon className="w-5 h-5" />
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {availablePage} of {availableTotalPages}
+                </span>
+                <button
+                  onClick={() => setAvailablePage(p => Math.min(availableTotalPages, p + 1))}
+                  disabled={availablePage === availableTotalPages}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRightIcon className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {unEarnedBadges.map((badgeProgress) => (
+            {availablePaginatedBadges.map((badgeProgress) => (
               <BadgeCard
-                key={badgeProgress.badge.name}
+                key={badgeProgress.badge.id}
                 badge={badgeProgress.badge}
                 currentProgress={badgeProgress.currentProgress}
                 progressPercentage={badgeProgress.progressPercentage}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { triggerProfileBadges } from "@/lib/badgeTriggers";
 
 export async function GET() {
   try {
@@ -118,6 +119,16 @@ export async function PUT(request: NextRequest) {
         orderBy: { order: 'asc' }
       });
     });
+
+    // Trigger badge check
+    try {
+        await triggerProfileBadges(userId);
+      
+    } catch (badgeError) {
+      console.error('Error checking badges:', badgeError);
+    }
+
+    
 
     return NextResponse.json({ 
       success: true, 
