@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./providers";
 import { Open_Sans, Paytone_One } from "next/font/google";
 
+
 // ✅ Configure Open Sans font
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -37,7 +38,9 @@ export default function RootLayout({
       className={`${openSans.variable} ${paytoneOne.variable}`}
     >
       <body className={openSans.className}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

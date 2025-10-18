@@ -159,15 +159,28 @@ export async function POST(request: NextRequest) {
     }
         
 
-    await prisma.notification.create({
-      data: {
-        userId: competition.submittedById,
-        type: 'PARTICIPANT_SUBMITTED',
-        title: 'New Participant',
-        message: `${session.user.name || session.user.email} submitted credentials for "${competition.name}"`,
-        relatedId: competitionId,
-      },
-    });
+    await Promise.all([
+  // Notification for the user who submitted
+      prisma.notification.create({
+        data: {
+          userId,
+          type: 'CREDENTIAL_SUBMITTED',
+          title: 'Credential Submitted',
+          message: `Your credentials for "${competition.name}" have been submitted successfully and are pending review.`,
+          relatedId: competitionId,
+        },
+      }),
+      // Notification for the competition organizer (admin)
+      prisma.notification.create({
+        data: {
+          userId: competition.submittedById,
+          type: 'PARTICIPANT_SUBMITTED',
+          title: 'New Participant',
+          message: `${session.user.displayName || session.user.name || session.user.email} submitted credentials for "${competition.name}"`,
+          relatedId: competitionId,
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,

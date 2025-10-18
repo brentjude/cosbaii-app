@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { CompetitionCredential } from "@/types/profile";
+import { useToastContext } from '@/app/context/ToastContext';
 
 interface EditCredentialsModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ export default function EditCredentialsModal({
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const toast = useToastContext();
 
   // Initialize ordered credentials when modal opens
   useEffect(() => {
@@ -138,13 +141,16 @@ export default function EditCredentialsModal({
       console.log('Reorder response:', result);
 
       if (!response.ok) {
+        toast.error("Failed to save changes. Please try again.");
         throw new Error(result.error || "Failed to save changes");
       }
 
       await onSave();
+      toast.success("Credentials save!");
       onClose();
     } catch (err) {
       console.error("Error saving credential order:", err);
+      toast.error("Failed to save changes. Please try again.");
       setError(err instanceof Error ? err.message : "Failed to save changes");
     } finally {
       setIsSaving(false);
