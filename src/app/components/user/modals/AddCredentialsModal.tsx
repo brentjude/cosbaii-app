@@ -1,4 +1,3 @@
-// Update: src/app/components/user/modals/AddCredentialsModal.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -6,6 +5,7 @@ import { XMarkIcon, MagnifyingGlassIcon, PlusIcon, TrophyIcon, CameraIcon } from
 import Image from "next/image";
 import AddNewCompetitionModal from "./AddNewCompetitionModal";
 import { useCloudinaryUpload } from "@/hooks/common/useCloudinaryUpload";
+import { useToastContext } from "@/app/context/ToastContext";
 
 interface Competition {
   id: number;
@@ -19,7 +19,6 @@ interface Competition {
   status: string;
 }
 
-// ✅ Add interface for credential response
 interface CredentialResponse {
   credentials?: Array<{
     competitionId: number;
@@ -38,24 +37,23 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const toast = useToastContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
   const [showAddCompetitionModal, setShowAddCompetitionModal] = useState(false);
-  
-  // ✅ Add state for user's existing credentials - removed unused credentialsLoading
   const [userCredentials, setUserCredentials] = useState<number[]>([]);
-
   const [imageUploading, setImageUploading] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [participantData, setParticipantData] = useState({
     position: "",
-    cosplayTitle: "",
+    characterName: "", // ✅ Changed from cosplayTitle to characterName
+    seriesName: "", // ✅ Added seriesName field
     description: "",
-    imageUrl: "",
+    imageUrl: "", // ✅ Optional now
     category: "",
   });
 
@@ -63,8 +61,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const { uploadImage, error: uploadError } = useCloudinaryUpload(); // ✅ Removed unused 'uploading'
+  const { uploadImage, error: uploadError } = useCloudinaryUpload();
 
   const positionOptions = [
     { value: "CHAMPION", label: "Champion" },
@@ -74,7 +71,6 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
     { value: "PARTICIPANT", label: "Participant" },
   ];
 
-  // ✅ Fetch user's existing credentials when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchUserCredentials();
@@ -85,8 +81,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
     try {
       const response = await fetch('/api/user/credentials');
       if (response.ok) {
-        const data = await response.json() as CredentialResponse; // ✅ Fixed: proper typing
-        // Extract competition IDs from user's credentials
+        const data = await response.json() as CredentialResponse;
         const competitionIds = data.credentials?.map((cred) => cred.competitionId) || [];
         setUserCredentials(competitionIds);
       }
@@ -100,12 +95,12 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      alert("Please select an image file");
+      toast.error("Please select an image file");
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert("File size must be less than 10MB");
+      toast.error("File size must be less than 10MB");
       return;
     }
 
@@ -116,9 +111,11 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
         folder: 'cosbaii/cosplay-credentials',
         onSuccess: (result) => {
           console.log('Cosplay image upload successful:', result);
+          toast.success("Image uploaded successfully!");
         },
         onError: (error) => {
           console.error('Cosplay image upload error:', error);
+          toast.error("Failed to upload image");
         }
       });
 
@@ -127,12 +124,10 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
           ...prev,
           imageUrl: uploadResult.url
         }));
-        console.log('Cosplay image uploaded successfully:', uploadResult.url);
       }
-
     } catch (error) {
       console.error('Error uploading cosplay image:', error);
-      alert('Failed to upload image. Please try again.');
+      toast.error("Failed to upload image. Please try again.");
     } finally {
       setImageUploading(false);
     }
@@ -142,7 +137,6 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
     }
   };
 
-  // Fetch competitions when search term changes
   useEffect(() => {
     const fetchCompetitions = async () => {
       if (searchTerm.length < 2) {
@@ -164,7 +158,6 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
           setCompetitions(data.competitions || []);
           setShowDropdown(data.competitions && data.competitions.length > 0);
         } else {
-          console.error('Search API error:', response.status);
           setCompetitions([]);
           setShowDropdown(false);
         }
@@ -181,14 +174,14 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
     return () => clearTimeout(debounceTimer);
   }, [searchTerm, selectedCompetition]);
 
-  // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setSearchTerm("");
       setSelectedCompetition(null);
       setParticipantData({
         position: "",
-        cosplayTitle: "",
+        characterName: "",
+        seriesName: "",
         description: "",
         imageUrl: "",
         category: "",
@@ -200,7 +193,6 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
   }, [isOpen]);
 
   const handleCompetitionSelect = (competition: Competition) => {
-    // ✅ Check if competition is selectable
     if (!isCompetitionSelectable(competition)) {
       return;
     }
@@ -211,7 +203,6 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
     setErrors(prev => ({ ...prev, competition: "" }));
   };
 
-  // ✅ Helper function to check if competition is selectable
   const isCompetitionSelectable = (competition: Competition) => {
     const isAccepted = competition.status === 'ACCEPTED';
     const alreadyAdded = userCredentials.includes(competition.id);
@@ -233,13 +224,16 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
       newErrors.competition = "Please select a competition";
     }
 
-    if (!participantData.cosplayTitle.trim()) {
-      newErrors.cosplayTitle = "Cosplay title is required";
+    // ✅ Changed validation from cosplayTitle to characterName
+    if (!participantData.characterName.trim()) {
+      newErrors.characterName = "Character name is required";
     }
 
     if (!participantData.position) {
       newErrors.position = "Please select your position";
     }
+
+    // ✅ Image is now optional, no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -263,23 +257,39 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
 
     setSubmitLoading(true);
     try {
+      // ✅ Format data to match API expectations
+      const submitData = {
+        competitionId: selectedCompetition!.id,
+        position: participantData.position,
+        // Combine character and series name into cosplayTitle for the API
+        cosplayTitle: participantData.seriesName 
+          ? `${participantData.characterName} - ${participantData.seriesName}`
+          : participantData.characterName,
+        description: participantData.description,
+        imageUrl: participantData.imageUrl || undefined, // Send undefined if empty
+        category: participantData.category || undefined,
+      };
+
+
       const response = await fetch('/api/user/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          competitionId: selectedCompetition!.id,
-          ...participantData,
-        }),
+        body: JSON.stringify(submitData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
+        toast.success("Credentials submitted successfully! Pending review.");
         onSuccess();
         onClose();
       } else {
-        const errorData = await response.json();
-        setErrors({ submit: errorData.error || "Failed to add credential" });
+        toast.error(data.error || "Failed to add credential");
+        setErrors({ submit: data.error || "Failed to add credential" });
       }
-    } catch {  // ✅ Removed unused 'error' parameter
+    } catch (error) {
+      console.error('Error submitting credentials:', error);
+      toast.error("Failed to add credential. Please try again.");
       setErrors({ submit: "Failed to add credential" });
     } finally {
       setSubmitLoading(false);
@@ -311,15 +321,15 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/50 z-50" onClick={handleClose} />
       
-      {/* ✅ Updated Modal with fixed height and scrollable content */}
-      <div className="fixed inset-4 z-50 flex items-center justify-center p-4">
-        <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full h-[60vh] flex flex-col overflow-hidden">
+      {/* ✅ Mobile-optimized Modal */}
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="bg-base-100 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl h-[90vh] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
           
-          {/* ✅ Fixed Header - doesn't scroll */}
-          <div className="flex-shrink-0 flex justify-between items-center p-6 border-b border-base-200 bg-base-100">
+          {/* Fixed Header */}
+          <div className="flex-shrink-0 flex justify-between items-center p-4 sm:p-6 border-b border-base-200 bg-base-100">
             <div>
-              <h2 className="text-2xl font-bold">Add Competition Credentials</h2>
-              <p className="text-base-content/70">Add your participation in a competition</p>
+              <h2 className="text-xl sm:text-2xl font-bold">Add Competition Credentials</h2>
+              <p className="text-sm sm:text-base text-base-content/70">Add your participation in a competition</p>
             </div>
             <button
               onClick={handleClose}
@@ -332,14 +342,14 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
 
           {/* Upload Error Display */}
           {uploadError && (
-            <div className="flex-shrink-0 mx-6 mt-4 alert alert-error">
+            <div className="flex-shrink-0 mx-4 sm:mx-6 mt-4 alert alert-error text-sm">
               <span>{uploadError}</span>
             </div>
           )}
 
-          {/* ✅ Scrollable Content Body */}
+          {/* Scrollable Content Body */}
           <div className="flex-1 overflow-y-auto">
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
 
               {/* Competition Search */}
               <div className="space-y-2">
@@ -351,8 +361,8 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                     <input
                       ref={searchInputRef}
                       type="text"
-                      className={`input input-bordered w-full pr-20 ${errors.competition ? 'input-error' : ''}`}
-                      placeholder="Type competition name (min 2 characters)..."
+                      className={`input input-bordered w-full pr-20 text-sm sm:text-base ${errors.competition ? 'input-error' : ''}`}
+                      placeholder="Type competition name..."
                       value={searchTerm}
                       onChange={handleInputChange}
                       onFocus={() => {
@@ -381,209 +391,140 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* ✅ Updated Dropdown Results with scrollable area */}
-                  {showDropdown && !selectedCompetition && (
-                    <div
-                      data-dropdown-content 
-                      className="absolute top-full left-0 right-0 z-50 bg-base-100 border border-base-200 rounded-lg mt-1 shadow-lg max-h-80 overflow-y-auto"
-                    >
-                      {competitions.length > 0 ? (
-                        competitions.map((competition) => {
-                          const isUnderReview = competition.status === 'SUBMITTED';
-                          const isRejected = competition.status === 'REJECTED';
-                          const isAccepted = competition.status === 'ACCEPTED';
-                          const alreadyAdded = userCredentials.includes(competition.id);
-                          const isClickable = isAccepted && !alreadyAdded;
-                          
-                          return (
-                            <div
-                              key={competition.id}
-                              className={`p-4 border-b border-base-200 last:border-b-0 relative transition-all duration-200 ${
-                                isClickable 
-                                  ? 'hover:bg-base-200 cursor-pointer' 
-                                  : 'opacity-50 cursor-not-allowed bg-base-100'
-                              } ${!isClickable ? 'grayscale' : ''}`}
-                              onClick={() => isClickable && handleCompetitionSelect(competition)}
-                              title={
-                                alreadyAdded 
-                                  ? "You already have credentials for this competition"
-                                  : isUnderReview 
-                                  ? "This competition is pending admin approval" 
-                                  : isRejected 
-                                  ? "This competition was rejected by admin"
-                                  : "Click to select this competition"
-                              }
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="relative">
-                                  {/* ✅ Line 415: Replaced <img> with <Image /> */}
-                                  <Image
-                                    src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
-                                    alt="Competition Logo"
-                                    width={40}
-                                    height={40}
-                                    className={`w-10 h-10 object-cover rounded bg-base-300 ${
-                                      !isClickable ? 'grayscale opacity-70' : ''
-                                    }`}
-                                    onError={(e) => {
-                                      e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
-                                    }}
-                                  />
-                                  {/* Status indicator dot */}
-                                  <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-base-100 ${
-                                    alreadyAdded ? 'bg-info' : 
-                                    isAccepted ? 'bg-success' : 
-                                    isUnderReview ? 'bg-warning' : 'bg-error'
-                                  }`}></div>
+                {/* Dropdown Results */}
+                {showDropdown && !selectedCompetition && (
+                  <div
+                    data-dropdown-content 
+                    className="absolute top-full left-0 right-0 z-50 bg-base-100 border border-base-200 rounded-lg mt-1 shadow-lg max-h-60 sm:max-h-80 overflow-y-auto"
+                  >
+                    {loading ? (
+                      // ✅ Loading Skeleton
+                      <div className="space-y-0">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="p-3 sm:p-4 border-b border-base-200 last:border-b-0 animate-pulse">
+                            <div className="flex items-start gap-2 sm:gap-3">
+                              <div className="flex-shrink-0">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-base-300 rounded"></div>
+                              </div>
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <div className="h-4 bg-base-300 rounded w-3/4"></div>
+                                <div className="h-3 bg-base-300 rounded w-1/2"></div>
+                                <div className="flex gap-1 mt-2">
+                                  <div className="h-5 bg-base-300 rounded w-16"></div>
                                 </div>
-                                
-                                <div className="flex-1">
-                                  <div className={`font-medium ${!isClickable ? 'text-base-content/60' : ''}`}>
-                                    {competition.name}
-                                  </div>
-                                  <div className={`text-sm ${!isClickable ? 'text-base-content/50' : 'text-base-content/70'}`}>
-                                    {formatDate(competition.eventDate)}
-                                    {competition.location && ` • ${competition.location}`}
-                                  </div>
-                                  <div className="flex gap-1 mt-1 flex-wrap">
-                                    <span className={`badge badge-outline badge-xs ${!isClickable ? 'opacity-60' : ''}`}>
-                                      {competition.competitionType}
-                                    </span>
-                                    <span className={`badge badge-info badge-xs ${!isClickable ? 'opacity-60' : ''}`}>
-                                      {competition.rivalryType}
-                                    </span>
-                                    <span className={`badge badge-accent badge-xs ${!isClickable ? 'opacity-60' : ''}`}>
-                                      {competition.level}
-                                    </span>
-                                  </div>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <div className="h-5 bg-base-300 rounded w-12"></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : competitions.length > 0 ? (
+                      competitions.map((competition) => {
+                        const isAccepted = competition.status === 'ACCEPTED';
+                        const alreadyAdded = userCredentials.includes(competition.id);
+                        const isClickable = isAccepted && !alreadyAdded;
+                        
+                        return (
+                          <div
+                            key={competition.id}
+                            className={`p-3 sm:p-4 border-b border-base-200 last:border-b-0 relative transition-all duration-200 ${
+                              isClickable 
+                                ? 'hover:bg-base-200 cursor-pointer active:bg-base-300' 
+                                : 'opacity-50 cursor-not-allowed bg-base-100'
+                            } ${!isClickable ? 'grayscale' : ''}`}
+                            onClick={() => isClickable && handleCompetitionSelect(competition)}
+                          >
+                            <div className="flex items-start gap-2 sm:gap-3">
+                              <div className="relative flex-shrink-0">
+                                <Image
+                                  src={competition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
+                                  alt="Competition Logo"
+                                  width={40}
+                                  height={40}
+                                  className={`w-8 h-8 sm:w-10 sm:h-10 object-cover rounded bg-base-300 ${
+                                    !isClickable ? 'grayscale opacity-70' : ''
+                                  }`}
+                                  onError={(e) => {
+                                    e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
+                                  }}
+                                />
+                                <div className={`absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 rounded-full border-2 border-base-100 ${
+                                  alreadyAdded ? 'bg-info' : 
+                                  isAccepted ? 'bg-success' : 'bg-warning'
+                                }`}></div>
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className={`font-medium text-sm sm:text-base truncate ${!isClickable ? 'text-base-content/60' : ''}`}>
+                                  {competition.name}
                                 </div>
-                                
-                                {/* ✅ Enhanced Status Badge with "Already Added" indicator */}
-                                <div className="flex flex-col items-end gap-1 min-w-[90px]">
-                                  {alreadyAdded && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="badge badge-info badge-xs">
-                                        Already Added
-                                      </span>
-                                      <div className="tooltip tooltip-left" data-tip="You already have credentials for this competition">
-                                        <svg className="w-3 h-3 text-info" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {!alreadyAdded && isAccepted && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="badge badge-success badge-xs">
-                                        Available
-                                      </span>
-                                    </div>
-                                  )}
-                                  
-                                  {!alreadyAdded && isUnderReview && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="badge badge-warning badge-xs">
-                                        Under Review
-                                      </span>
-                                      <div className="tooltip tooltip-left" data-tip="Pending admin approval">
-                                        <svg className="w-3 h-3 text-warning animate-pulse" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                                        </svg>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {!alreadyAdded && isRejected && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="badge badge-error badge-xs">
-                                        Rejected
-                                      </span>
-                                      <div className="tooltip tooltip-left" data-tip="Rejected by admin">
-                                        <svg className="w-3 h-3 text-error" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {!isClickable && (
-                                    <div className="text-xs text-base-content/40 mt-1 text-center">
-                                      Not selectable
-                                    </div>
-                                  )}
+                                <div className={`text-xs sm:text-sm truncate ${!isClickable ? 'text-base-content/50' : 'text-base-content/70'}`}>
+                                  {formatDate(competition.eventDate)}
+                                  {competition.location && ` • ${competition.location}`}
+                                </div>
+                                <div className="flex gap-1 mt-1 flex-wrap">
+                                  <span className={`badge badge-outline badge-xs ${!isClickable ? 'opacity-60' : ''}`}>
+                                    {competition.competitionType}
+                                  </span>
                                 </div>
                               </div>
                               
-                              {/* Subtle overlay for non-clickable items */}
-                              {!isClickable && (
-                                <div className="absolute inset-0 bg-base-200/20 rounded pointer-events-none" />
-                              )}
-                              
-                              {/* ✅ Blue overlay for already added competitions */}
-                              {alreadyAdded && (
-                                <div className="absolute inset-0 bg-info/10 rounded pointer-events-none" />
-                              )}
-                              
-                              {/* Striped pattern for rejected competitions */}
-                              {isRejected && (
-                                <div className="absolute inset-0 bg-repeat opacity-10 pointer-events-none" 
-                                  style={{
-                                    backgroundImage: `repeating-linear-gradient(
-                                      45deg,
-                                      transparent,
-                                      transparent 5px,
-                                      rgba(239, 68, 68, 0.3) 5px,
-                                      rgba(239, 68, 68, 0.3) 10px
-                                    )`
-                                  }} />
-                              )}
+                              <div className="flex-shrink-0">
+                                {alreadyAdded && (
+                                  <span className="badge badge-info badge-xs">Added</span>
+                                )}
+                                {!alreadyAdded && isAccepted && (
+                                  <span className="badge badge-success badge-xs hidden sm:inline-flex">Available</span>
+                                )}
+                              </div>
                             </div>
-                          );
-                        })
-                      ) : searchTerm.length >= 2 && !loading ? (
-                        <div className="p-6 text-center">
-                          <div className="text-base-content/50 mb-4">
-                            <TrophyIcon className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                            <p className="font-medium">No competitions found</p>
-                            {/* ✅ Line 542: Fixed apostrophes */}
-                            <p className="text-sm mt-1">Can&apos;t find the competition you&apos;re looking for?</p>
+                            
+                            {!isClickable && (
+                              <div className="absolute inset-0 bg-base-200/20 rounded pointer-events-none" />
+                            )}
+                            {alreadyAdded && (
+                              <div className="absolute inset-0 bg-info/10 rounded pointer-events-none" />
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            onClick={() => {
-                              setShowAddCompetitionModal(true);
-                              setShowDropdown(false);
-                            }}
-                          >
-                            <PlusIcon className="w-4 h-4" />
-                            Submit New Competition
-                          </button>
+                        );
+                      })
+                    ) : searchTerm.length >= 2 && !loading ? (
+                      <div className="p-4 sm:p-6 text-center">
+                        <div className="text-base-content/50 mb-4">
+                          <TrophyIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 opacity-30" />
+                          <p className="font-medium text-sm sm:text-base">No competitions found</p>
+                          <p className="text-xs sm:text-sm mt-1">Can&apos;t find the competition you&apos;re looking for?</p>
                         </div>
-                      ) : loading ? (
-                        <div className="p-4 text-center">
-                          <span className="loading loading-spinner loading-sm"></span>
-                          <p className="text-sm text-base-content/70 ml-2">Searching...</p>
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => {
+                            setShowAddCompetitionModal(true);
+                            setShowDropdown(false);
+                          }}
+                        >
+                          <PlusIcon className="w-4 h-4" />
+                          Submit New Competition
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
                   {errors.competition && (
                     <label className="label">
-                      <span className="label-text-alt text-error">{errors.competition}</span>
+                      <span className="label-text-alt text-error text-xs">{errors.competition}</span>
                     </label>
                   )}
                 </div>
 
                 {/* No Search Results Helper */}
                 {searchTerm.length < 2 && (
-                  <div className="text-center py-6 bg-base-200 rounded-lg">
-                    <TrophyIcon className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                    <p className="text-base-content/70 mb-2">Start typing to search competitions</p>
-                    {/* ✅ Line 577: Fixed apostrophe */}
-                    <p className="text-sm text-base-content/50">Can&apos;t find your competition?</p>
+                  <div className="text-center py-4 sm:py-6 bg-base-200 rounded-lg">
+                    <TrophyIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm sm:text-base text-base-content/70 mb-2">Start typing to search competitions</p>
+                    <p className="text-xs sm:text-sm text-base-content/50">Can&apos;t find your competition?</p>
                     <button
                       type="button"
                       className="btn btn-primary btn-sm mt-2"
@@ -598,34 +539,27 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
 
               {/* Selected Competition Display */}
               {selectedCompetition && (
-                <div className="bg-base-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    {/* ✅ Line 594: Replaced <img> with <Image /> */}
+                <div className="bg-base-200 rounded-lg p-3 sm:p-4">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <Image
                       src={selectedCompetition.logoUrl || "/icons/cosbaii-icon-primary.svg"}
                       alt="Competition Logo"
                       width={48}
                       height={48}
-                      className="w-12 h-12 object-cover rounded bg-base-300"
+                      className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded bg-base-300"
                       onError={(e) => {
                         e.currentTarget.src = "/icons/cosbaii-icon-primary.svg";
                       }}
                     />
-                    <div className="flex-1">
-                      <h4 className="font-medium">{selectedCompetition.name}</h4>
-                      <p className="text-sm text-base-content/70">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm sm:text-base truncate">{selectedCompetition.name}</h4>
+                      <p className="text-xs sm:text-sm text-base-content/70 truncate">
                         {formatDate(selectedCompetition.eventDate)}
                         {selectedCompetition.location && ` • ${selectedCompetition.location}`}
                       </p>
-                      <div className="flex gap-1 mt-2">
+                      <div className="flex gap-1 mt-2 flex-wrap">
                         <span className="badge badge-outline badge-xs">
                           {selectedCompetition.competitionType}
-                        </span>
-                        <span className="badge badge-info badge-xs">
-                          {selectedCompetition.rivalryType}
-                        </span>
-                        <span className="badge badge-accent badge-xs">
-                          {selectedCompetition.level}
                         </span>
                       </div>
                     </div>
@@ -636,88 +570,109 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
               {/* Participation Details */}
               {selectedCompetition && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold border-b border-base-200 pb-2">
+                  <h3 className="text-base sm:text-lg font-semibold border-b border-base-200 pb-2">
                     Your Participation Details
                   </h3>
 
-                  {/* Position and Cosplay Title */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Position */}
+                  <div className="form-control">
+                    <label className="label">
+                      <span className="label-text font-medium text-sm sm:text-base">Position/Result *</span>
+                    </label>
+                    <select
+                      className={`select select-bordered text-sm sm:text-base ${errors.position ? 'select-error' : ''}`}
+                      value={participantData.position}
+                      onChange={(e) => {
+                        setParticipantData(prev => ({ ...prev, position: e.target.value }));
+                        setErrors(prev => ({ ...prev, position: "" }));
+                      }}
+                      disabled={submitLoading}
+                    >
+                      <option value="">Select your position</option>
+                      {positionOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.position && (
+                      <label className="label">
+                        <span className="label-text-alt text-error text-xs">{errors.position}</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* ✅ Character Name and Series Name in 2-column grid on desktop */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Position/Result *</span>
+                        <span className="label-text font-medium text-sm sm:text-base">Character *</span>
                       </label>
-                      <select
-                        className={`select select-bordered ${errors.position ? 'select-error' : ''}`}
-                        value={participantData.position}
-                        onChange={(e) => setParticipantData(prev => ({ ...prev, position: e.target.value }))}
+                      <input
+                        type="text"
+                        className={`input input-bordered text-sm sm:text-base ${errors.characterName ? 'input-error' : ''}`}
+                        placeholder="e.g., Sakura Haruno"
+                        value={participantData.characterName}
+                        onChange={(e) => {
+                          setParticipantData(prev => ({ ...prev, characterName: e.target.value }));
+                          setErrors(prev => ({ ...prev, characterName: "" }));
+                        }}
                         disabled={submitLoading}
-                      >
-                        <option value="">Select your position</option>
-                        {positionOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.position && (
+                        maxLength={200}
+                      />
+                      {errors.characterName && (
                         <label className="label">
-                          <span className="label-text-alt text-error">{errors.position}</span>
+                          <span className="label-text-alt text-error text-xs">{errors.characterName}</span>
                         </label>
                       )}
                     </div>
 
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text font-medium">Cosplay Title *</span>
+                        <span className="label-text font-medium text-sm sm:text-base">Series/Movie</span>
                       </label>
                       <input
                         type="text"
-                        className={`input input-bordered ${errors.cosplayTitle ? 'input-error' : ''}`}
-                        placeholder="Name of your cosplay"
-                        value={participantData.cosplayTitle}
-                        onChange={(e) => setParticipantData(prev => ({ ...prev, cosplayTitle: e.target.value }))}
+                        className="input input-bordered text-sm sm:text-base"
+                        placeholder="e.g., Naruto Shippuden"
+                        value={participantData.seriesName}
+                        onChange={(e) => setParticipantData(prev => ({ ...prev, seriesName: e.target.value }))}
                         disabled={submitLoading}
+                        maxLength={200}
                       />
-                      {errors.cosplayTitle && (
-                        <label className="label">
-                          <span className="label-text-alt text-error">{errors.cosplayTitle}</span>
-                        </label>
-                      )}
                     </div>
                   </div>
 
                   {/* Category */}
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Category</span>
+                      <span className="label-text font-medium text-sm sm:text-base">Category</span>
                     </label>
                     <input
                       type="text"
-                      className="input input-bordered"
+                      className="input input-bordered text-sm sm:text-base"
                       placeholder="e.g., Individual, Group, Best in Craftsmanship"
                       value={participantData.category}
                       onChange={(e) => setParticipantData(prev => ({ ...prev, category: e.target.value }))}
                       disabled={submitLoading}
+                      maxLength={100}
                     />
                   </div>
 
-                  {/* Cosplay Image Upload Section */}
+                  {/* ✅ Cosplay Image Upload Section - Optional */}
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Cosplay Photo</span>
+                      <span className="label-text font-medium text-sm sm:text-base">Cosplay Photo (Optional)</span>
                     </label>
                     
                     <div className="space-y-3">
                       {participantData.imageUrl ? (
-                        <div className="relative w-full h-48 bg-base-200 rounded-lg overflow-hidden">
+                        <div className="relative w-full h-40 sm:h-48 bg-base-200 rounded-lg overflow-hidden">
                           <Image
                             src={participantData.imageUrl}
                             alt="Cosplay preview"
                             fill
                             className="object-cover"
-                            onError={() => {  // ✅ Line 706: Removed unused 'e' parameter
-                              console.error('Failed to load cosplay image:', participantData.imageUrl);
-                            }}
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
                             <button
@@ -742,19 +697,19 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                         </div>
                       ) : (
                         <div 
-                          className="w-full h-48 bg-base-200 rounded-lg border-2 border-dashed border-base-300 hover:border-primary transition-colors cursor-pointer flex flex-col items-center justify-center"
+                          className="w-full h-32 sm:h-40 bg-base-200 rounded-lg border-2 border-dashed border-base-300 hover:border-primary transition-colors cursor-pointer flex flex-col items-center justify-center"
                           onClick={() => !imageUploading && !submitLoading && imageInputRef.current?.click()}
                         >
                           {imageUploading ? (
                             <div className="text-center">
-                              <span className="loading loading-spinner loading-lg mb-2"></span>
-                              <p className="text-sm text-base-content/70">Uploading photo...</p>
+                              <span className="loading loading-spinner loading-md mb-2"></span>
+                              <p className="text-xs sm:text-sm text-base-content/70">Uploading photo...</p>
                             </div>
                           ) : (
-                            <div className="text-center">
-                              <CameraIcon className="w-12 h-12 text-base-content/50 mb-2" />
-                              <p className="text-sm text-base-content/70 mb-1">Click to upload cosplay photo</p>
-                              <p className="text-xs text-base-content/50">PNG, JPG, GIF up to 10MB</p>
+                            <div className="text-center px-4">
+                              <CameraIcon className="w-8 h-8 sm:w-10 sm:h-10 text-base-content/50 mb-2 mx-auto" />
+                              <p className="text-xs sm:text-sm text-base-content/70 mb-1">Click to upload cosplay photo</p>
+                              <p className="text-xs text-base-content/50">PNG, JPG up to 10MB</p>
                             </div>
                           )}
                         </div>
@@ -762,7 +717,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
 
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm"
+                        className="btn btn-outline btn-sm w-full sm:w-auto"
                         onClick={() => !imageUploading && !submitLoading && imageInputRef.current?.click()}
                         disabled={imageUploading || submitLoading}
                       >
@@ -784,14 +739,15 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
                   {/* Description */}
                   <div className="form-control">
                     <label className="label">
-                      <span className="label-text font-medium">Description</span>
+                      <span className="label-text font-medium text-sm sm:text-base">Description</span>
                     </label>
                     <textarea
-                      className="textarea textarea-bordered h-20"
-                      placeholder="Tell us about your cosplay experience in this competition..."
+                      className="textarea textarea-bordered h-20 text-sm sm:text-base"
+                      placeholder="Tell us about your cosplay experience..."
                       value={participantData.description}
                       onChange={(e) => setParticipantData(prev => ({ ...prev, description: e.target.value }))}
                       disabled={submitLoading}
+                      maxLength={5000}
                     />
                   </div>
                 </div>
@@ -799,7 +755,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
 
               {/* Submit Error */}
               {errors.submit && (
-                <div className="alert alert-error">
+                <div className="alert alert-error text-sm">
                   <span>{errors.submit}</span>
                 </div>
               )}
@@ -807,12 +763,12 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
             </div>
           </div>
 
-          {/* ✅ Fixed Footer - doesn't scroll */}
-          <div className="flex-shrink-0 p-6 border-t border-base-200 bg-base-100 flex justify-end gap-3">
+          {/* Fixed Footer */}
+          <div className="flex-shrink-0 p-4 sm:p-6 border-t border-base-200 bg-base-100 flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleClose}
-              className="btn btn-ghost"
+              className="btn btn-ghost order-2 sm:order-1"
               disabled={submitLoading}
             >
               Cancel
@@ -820,7 +776,7 @@ const AddCredentialsModal: React.FC<AddCredentialsModalProps> = ({
             <button
               type="button"
               onClick={handleSubmit}
-              className="btn btn-primary"
+              className="btn btn-primary order-1 sm:order-2"
               disabled={submitLoading || !selectedCompetition || imageUploading}
             >
               {submitLoading ? (
